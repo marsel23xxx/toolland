@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /tools/contoh
 
 Sitemap: https://julian-marcell.com/sitemap-index.xml

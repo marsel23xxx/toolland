@@ -1,0 +1,9 @@
+---
+import CaseConverter from '../../components/tools/CaseConverter.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../i18n';
+---
+
+<ToolPage slug="ubah-huruf">
+  <CaseConverter client:visible m={toolMessages('id', 'caseConverter')} />
+</ToolPage>

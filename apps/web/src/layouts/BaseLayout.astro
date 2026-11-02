@@ -49,6 +49,7 @@ const homeHref = locale === 'en' ? '/en' : '/';
     <meta name="theme-color" content="#0f766e" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href={fontUrl} as="font" type="font/woff2" crossorigin />
+    <slot name="head" />
   </head>
   <body class="flex min-h-dvh flex-col">
     <a

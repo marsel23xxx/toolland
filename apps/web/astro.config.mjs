@@ -5,8 +5,8 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 import Icons from 'unplugin-icons/vite';
 
-// Halaman contoh untuk uji Lighthouse; tidak masuk sitemap.
-const NOINDEX_PAGES = ['/tools/contoh'];
+// Halaman yang tidak masuk sitemap.
+const NOINDEX_PAGES = ['/404'];
 
 export default defineConfig({
   site: 'https://julian-marcell.com',

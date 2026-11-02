@@ -1,0 +1,9 @@
+---
+import UuidGenerator from '../../components/tools/UuidGenerator.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../i18n';
+---
+
+<ToolPage slug="generator-uuid">
+  <UuidGenerator client:visible m={toolMessages('id', 'uuid')} />
+</ToolPage>

@@ -1,0 +1,9 @@
+---
+import UrlEncodeTool from '../../components/tools/UrlEncodeTool.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../i18n';
+---
+
+<ToolPage slug="url-encode-decode">
+  <UrlEncodeTool client:visible m={toolMessages('id', 'urlEncode')} />
+</ToolPage>
