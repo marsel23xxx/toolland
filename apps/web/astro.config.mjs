@@ -55,5 +55,20 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss(), Icons({ compiler: 'vue3' })],
+    // Worker sebagai ES module agar codec WASM bisa di-import dinamis di dalamnya.
+    worker: { format: 'es' },
+    // Codec WASM memuat file .wasm lewat new URL(..., import.meta.url); jangan di-pre-bundle.
+    optimizeDeps: {
+      exclude: [
+        '@jsquash/avif',
+        '@jsquash/jpeg',
+        '@jsquash/oxipng',
+        '@jsquash/png',
+        '@jsquash/resize',
+        '@jsquash/webp',
+        'libheif-js',
+        'esbuild-wasm',
+      ],
+    },
   },
 });

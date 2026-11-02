@@ -121,6 +121,16 @@
   .prose-tool a {
     @apply text-brand-700 underline dark:text-brand-300;
   }
+  .prose-tool table {
+    @apply mb-3 border-collapse text-sm;
+  }
+  .prose-tool th,
+  .prose-tool td {
+    @apply border border-slate-200 px-3 py-1.5 text-left dark:border-slate-800;
+  }
+  .prose-tool th {
+    @apply bg-slate-50 font-semibold dark:bg-slate-900;
+  }
   .prose-tool code {
     @apply rounded bg-slate-100 px-1 py-0.5 font-mono text-sm dark:bg-slate-800;
   }
