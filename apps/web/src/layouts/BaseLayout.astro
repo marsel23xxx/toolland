@@ -1,5 +1,6 @@
 ---
 import fontUrl from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2?url';
+import IconHeart from '~icons/lucide/heart';
 import { getLocale, useTranslations, type Locale } from '../i18n';
 import { LOCALE_TAGS } from '../lib/format';
 import { SITE } from '../lib/site';
@@ -66,13 +67,19 @@ const homeHref = locale === 'en' ? '/en' : '/';
         >
           {SITE.name}
         </a>
-        <a
-          href={switchHref}
-          hreflang={LOCALE_TAGS[otherLocale]}
-          class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-        >
-          {t('nav.language')}
-        </a>
+        <div class="flex items-center gap-4">
+          <a
+            href={switchHref}
+            hreflang={LOCALE_TAGS[otherLocale]}
+            class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+          >
+            {t('nav.language')}
+          </a>
+          <a href="/dukung" class="btn btn-secondary py-1.5">
+            <IconHeart class="text-brand-600 dark:text-brand-400" aria-hidden="true" />
+            {t('nav.donate')}
+          </a>
+        </div>
       </nav>
     </header>
 
@@ -83,9 +90,17 @@ const homeHref = locale === 'en' ? '/en' : '/';
     <footer class="border-t border-slate-200 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-400">
       <div class="mx-auto flex max-w-5xl flex-wrap justify-between gap-2 px-4 py-6">
         <p>{t('footer.privacy')}</p>
-        <a href={SITE.repo} class="underline hover:text-slate-900 dark:hover:text-slate-100">
-          GitHub
-        </a>
+        <div class="flex gap-4">
+          <a
+            href="/kebijakan-privasi"
+            class="underline hover:text-slate-900 dark:hover:text-slate-100"
+          >
+            {t('footer.privacyPolicy')}
+          </a>
+          <a href={SITE.repo} class="underline hover:text-slate-900 dark:hover:text-slate-100">
+            GitHub
+          </a>
+        </div>
       </div>
     </footer>
   </body>

@@ -245,5 +245,7 @@
   "crop.loading": "Menyiapkan gambar…",
   "crop.hint": "Geser dan ubah ukuran kotak untuk memilih bagian gambar.",
   "crop.pasfotoHint": "Posisikan wajah di tengah, sisakan sedikit ruang di atas kepala. Hasil siap cetak 300 DPI.",
-  "crop.canvas": "Area potong gambar"
+  "crop.canvas": "Area potong gambar",
+  "nav.donate": "Dukung",
+  "footer.privacyPolicy": "Kebijakan Privasi"
 }

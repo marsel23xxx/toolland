@@ -1,0 +1,75 @@
+---
+import IconHeart from '~icons/lucide/heart';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../lib/site';
+---
+
+<BaseLayout
+  title="Dukung Toolland | Toolland"
+  description="Toolland gratis tanpa iklan dan tanpa login. Dukungan seikhlasnya lewat Saweria membantu biaya server dan pembuatan tools baru."
+  alternates={{ id: '/dukung' }}
+>
+  <div class="prose-tool">
+    <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+      Dukung Toolland
+    </h1>
+    <p class="mt-3 text-lg">
+      Toolland gratis, tanpa iklan, tanpa login, dan tanpa watermark. Kalau Toolland membantu
+      pekerjaanmu, dukungan seikhlasnya sangat berarti.
+    </p>
+
+    <div class="card not-prose my-6 flex flex-wrap items-center gap-4 border-brand-300 bg-brand-50 dark:border-brand-700 dark:bg-brand-900/30">
+      <IconHeart class="size-8 shrink-0 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+      <div class="min-w-0 flex-1">
+        <p class="font-semibold text-slate-900 dark:text-slate-100">Donasi lewat Saweria</p>
+        <p class="text-sm">
+          Bisa lewat QRIS, e-wallet, atau transfer bank. Nominal bebas, tidak perlu daftar.
+        </p>
+      </div>
+      {SITE.saweria ? (
+        <a href={SITE.saweria} target="_blank" rel="noopener" class="btn btn-primary no-underline">
+          Dukung lewat Saweria
+        </a>
+      ) : (
+        <p class="text-sm font-semibold">Halaman donasi sedang disiapkan.</p>
+      )}
+    </div>
+
+    <h2>Untuk apa dukunganmu?</h2>
+    <ul>
+      <li>
+        <strong>Biaya server dan domain.</strong> Sebagian besar tools berjalan di browser kamu,
+        tapi website tetap butuh server, domain, dan bandwidth untuk mengirim codec WebAssembly ke
+        setiap pengunjung.
+      </li>
+      <li>
+        <strong>Tools yang butuh server.</strong> Konversi Word, Excel, dan PowerPoint ke PDF serta
+        kompres PDF maksimal akan berjalan di server sendiri, tanpa menyimpan file.
+      </li>
+      <li>
+        <strong>Waktu membuat tools baru</strong> dan menjaga semuanya tetap cepat.
+      </li>
+    </ul>
+
+    <h2>Yang sedang disiapkan</h2>
+    <ul>
+      <li>
+        Tools PDF: gabung, pisah, PDF ke JPG, JPG ke PDF, tanda tangan, watermark, nomor halaman.
+      </li>
+      <li>Hapus background foto dan blur wajah, langsung di browser.</li>
+      <li>Tools video dan audio: video ke GIF, kompres video, potong audio.</li>
+      <li>Word, Excel, dan PowerPoint ke PDF.</li>
+      <li>Versi bahasa Inggris.</li>
+    </ul>
+
+    <h2>Cara lain membantu</h2>
+    <ul>
+      <li>Bagikan Toolland ke teman, grup kelas, atau rekan kerja.</li>
+      <li>
+        Laporkan bug atau usulkan tool baru lewat <a href={`${SITE.repo}/issues`}>GitHub</a>. Kode
+        Toolland terbuka (AGPL-3.0).
+      </li>
+    </ul>
+    <p>Donasi bersifat sukarela. Semua tools tetap gratis, dengan atau tanpa donasi.</p>
+  </div>
+</BaseLayout>

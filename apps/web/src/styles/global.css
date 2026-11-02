@@ -118,7 +118,7 @@
   .prose-tool ol {
     @apply list-decimal pl-5;
   }
-  .prose-tool a {
+  .prose-tool a:not(.btn) {
     @apply text-brand-700 underline dark:text-brand-300;
   }
   .prose-tool table {

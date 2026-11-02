@@ -15,5 +15,7 @@
   "tool.howTo": "How to use",
   "tool.faq": "FAQ",
   "tool.related": "Related tools",
-  "footer.privacy": "Files are never stored. Open source (AGPL-3.0)."
+  "footer.privacy": "Files are never stored. Open source (AGPL-3.0).",
+  "nav.donate": "Support",
+  "footer.privacyPolicy": "Privacy Policy"
 }
