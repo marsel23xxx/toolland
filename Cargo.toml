@@ -1,0 +1,16 @@
+[workspace]
+resolver = "3"
+members = ["apps/api", "crates/tools-core"]
+
+[workspace.package]
+edition = "2024"
+license = "AGPL-3.0-only"
+repository = "https://github.com/marsel23xxx/toolland"
+publish = false
+
+# Profil release sesuai PRD: binary kecil dan paling cepat.
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

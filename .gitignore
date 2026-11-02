@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.astro/
+target/
+
+# env (rahasia tidak pernah masuk repo)
+.env
+.env.*
+!.env.example
+
+# editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# logs
+*.log

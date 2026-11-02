@@ -1,0 +1,22 @@
+[package]
+name = "toolland-api"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow = "1.0.104"
+axum = "0.8.9"
+mimalloc = "0.1.52"
+serde = { version = "1.0.229", features = ["derive"] }
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "net", "signal", "io-util", "time"] }
+tower-http = { version = "0.7.1", features = ["trace", "timeout"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
+
+[dev-dependencies]
+http-body-util = "0.1.5"
+serde_json = "1.0.154"
+tower = { version = "0.5.3", features = ["util"] }

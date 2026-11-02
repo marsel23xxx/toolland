@@ -1,0 +1,19 @@
+{
+  "site.name": "Toolland",
+  "site.tagline": "Free, fast, and private online tools",
+  "site.description": "Free online tools for images, PDF, text, developers, and media. Files are processed on your device and never stored.",
+  "nav.skip": "Skip to content",
+  "nav.home": "Home",
+  "nav.language": "Bahasa Indonesia",
+  "privacy.browser": "Processed on your device",
+  "privacy.server": "Processed on server, deleted automatically",
+  "dropzone.title": "Drop files here or click to choose",
+  "dropzone.hint": "You can also paste (Ctrl+V) from the clipboard",
+  "dropzone.maxSize": "Up to {size} per file",
+  "dropzone.errorType": "{name}: format not supported",
+  "dropzone.errorSize": "{name}: file too large (max {size})",
+  "tool.howTo": "How to use",
+  "tool.faq": "FAQ",
+  "tool.related": "Related tools",
+  "footer.privacy": "Files are never stored. Open source (AGPL-3.0)."
+}

@@ -1,0 +1,82 @@
+---
+/**
+ * Kerangka setiap halaman tool: judul, badge privasi, area tool (island Vue),
+ * lalu konten SEO statis (cara pakai, FAQ, tools terkait) tanpa JavaScript.
+ */
+import IconCpu from '~icons/lucide/cpu';
+import IconServer from '~icons/lucide/server';
+import { getLocale, useTranslations, type Locale } from '../../i18n';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+interface Props {
+  /** Judul halaman (unik per tool), juga jadi <h1>. */
+  title: string;
+  /** Meta description, juga ditampilkan di bawah judul. */
+  description: string;
+  /** Tempat file diproses; menentukan badge privasi. */
+  processing: 'browser' | 'server';
+  alternates?: Partial<Record<Locale, string>>;
+  noindex?: boolean;
+}
+
+const { title, description, processing, alternates, noindex } = Astro.props;
+const t = useTranslations(getLocale(Astro.url));
+const onDevice = processing === 'browser';
+---
+
+<BaseLayout
+  title={`${title} | Toolland`}
+  description={description}
+  alternates={alternates}
+  noindex={noindex}
+>
+  <header class="mb-5">
+    <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">{title}</h1>
+    <p class="mt-2 text-slate-600 dark:text-slate-400">{description}</p>
+    <p
+      class:list={[
+        'mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold',
+        onDevice
+          ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300'
+          : 'bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+      ]}
+    >
+      {onDevice ? <IconCpu aria-hidden="true" /> : <IconServer aria-hidden="true" />}
+      {onDevice ? t('privacy.browser') : t('privacy.server')}
+    </p>
+  </header>
+
+  <!-- Area tool: harus terlihat tanpa scroll di HP. -->
+  <section aria-label={title}>
+    <slot />
+  </section>
+
+  {Astro.slots.has('how-to') && (
+    <section class="mt-12">
+      <h2 class="text-xl font-bold">{t('tool.howTo')}</h2>
+      <div class="mt-3">
+        <slot name="how-to" />
+      </div>
+    </section>
+  )}
+
+  {Astro.slots.has('faq') && (
+    <section class="mt-10">
+      <h2 class="text-xl font-bold">{t('tool.faq')}</h2>
+      <div class="mt-3">
+        <slot name="faq" />
+      </div>
+    </section>
+  )}
+
+  {Astro.slots.has('related') && (
+    <nav class="mt-10" aria-labelledby="related-heading">
+      <h2 id="related-heading" class="text-xl font-bold">
+        {t('tool.related')}
+      </h2>
+      <div class="mt-3">
+        <slot name="related" />
+      </div>
+    </nav>
+  )}
+</BaseLayout>

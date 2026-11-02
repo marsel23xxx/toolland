@@ -1,0 +1,91 @@
+---
+import fontUrl from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2?url';
+import { getLocale, useTranslations, type Locale } from '../i18n';
+import { LOCALE_TAGS } from '../lib/format';
+import { SITE } from '../lib/site';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Path halaman yang sama di tiap bahasa, untuk hreflang dan tombol ganti bahasa. */
+  alternates?: Partial<Record<Locale, string>>;
+  noindex?: boolean;
+}
+
+const { title, description, alternates = {}, noindex = false } = Astro.props;
+const locale = getLocale(Astro.url);
+const t = useTranslations(locale);
+const canonical = new URL(Astro.url.pathname, SITE.url).href;
+const otherLocale: Locale = locale === 'id' ? 'en' : 'id';
+const switchHref = alternates[otherLocale] ?? (otherLocale === 'en' ? '/en' : '/');
+const homeHref = locale === 'en' ? '/en' : '/';
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+    {Object.entries(alternates).map(([lang, path]) => (
+      <link
+        rel="alternate"
+        hreflang={LOCALE_TAGS[lang as Locale]}
+        href={new URL(path, SITE.url).href}
+      />
+    ))}
+    {alternates.id && (
+      <link rel="alternate" hreflang="x-default" href={new URL(alternates.id, SITE.url).href} />
+    )}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="theme-color" content="#0f766e" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href={fontUrl} as="font" type="font/woff2" crossorigin />
+  </head>
+  <body class="flex min-h-dvh flex-col">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:text-slate-900"
+    >
+      {t('nav.skip')}
+    </a>
+    <header class="border-b border-slate-200 dark:border-slate-800">
+      <nav class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
+        <a
+          href={homeHref}
+          class="text-lg font-extrabold tracking-tight text-brand-700 dark:text-brand-300"
+        >
+          {SITE.name}
+        </a>
+        <a
+          href={switchHref}
+          hreflang={LOCALE_TAGS[otherLocale]}
+          class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+        >
+          {t('nav.language')}
+        </a>
+      </nav>
+    </header>
+
+    <main id="main" class="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-10">
+      <slot />
+    </main>
+
+    <footer class="border-t border-slate-200 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-400">
+      <div class="mx-auto flex max-w-5xl flex-wrap justify-between gap-2 px-4 py-6">
+        <p>{t('footer.privacy')}</p>
+        <a href={SITE.repo} class="underline hover:text-slate-900 dark:hover:text-slate-100">
+          GitHub
+        </a>
+      </div>
+    </footer>
+  </body>
+</html>

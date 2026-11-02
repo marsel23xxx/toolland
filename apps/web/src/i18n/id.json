@@ -1,0 +1,19 @@
+{
+  "site.name": "Toolland",
+  "site.tagline": "Tools online gratis, cepat, dan privat",
+  "site.description": "Kumpulan tools online gratis untuk gambar, PDF, teks, developer, dan media. File diproses di perangkatmu dan tidak pernah disimpan.",
+  "nav.skip": "Langsung ke konten",
+  "nav.home": "Beranda",
+  "nav.language": "English",
+  "privacy.browser": "Diproses di perangkatmu",
+  "privacy.server": "Diproses di server, dihapus otomatis",
+  "dropzone.title": "Tarik file ke sini atau klik untuk memilih",
+  "dropzone.hint": "Bisa juga tempel (Ctrl+V) dari clipboard",
+  "dropzone.maxSize": "Maksimal {size} per file",
+  "dropzone.errorType": "{name}: format tidak didukung",
+  "dropzone.errorSize": "{name}: file terlalu besar (maksimal {size})",
+  "tool.howTo": "Cara pakai",
+  "tool.faq": "Pertanyaan umum",
+  "tool.related": "Tools terkait",
+  "footer.privacy": "File tidak pernah disimpan. Kode sumber terbuka (AGPL-3.0)."
+}

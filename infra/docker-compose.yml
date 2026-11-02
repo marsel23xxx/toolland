@@ -1,0 +1,102 @@
+# Toolland di VPS bersama project lain. Nginx host memegang port 80/443 dan meneruskan:
+#   /            -> web (127.0.0.1:8081)
+#   /api/tools/  -> api (127.0.0.1:8082)
+# Jalankan dari folder infra/:  docker compose --env-file ../.env up -d
+name: toolland
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: '10m', max-file: '7' }
+
+services:
+  # HTML statis hasil build Astro.
+  # WEB_ROOT berisi releases/<versi>/ dan symlink relatif current -> releases/<versi>.
+  # Folder induk yang di-mount (bukan symlink-nya), agar pindah symlink langsung aktif tanpa restart.
+  web:
+    <<: *hardening
+    image: nginx:alpine
+    # Nginx master perlu CHOWN/SETUID/SETGID untuk menjalankan worker sebagai user nginx.
+    cap_add: [CHOWN, SETUID, SETGID]
+    ports: ['127.0.0.1:8081:8080']
+    volumes:
+      - ${WEB_ROOT:-/srv/toolland/web}:/srv/web:ro
+      - ./nginx/web.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/security-headers.conf:/etc/nginx/snippets/security-headers.conf:ro
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    cpus: 0.5
+    mem_limit: 128m
+    memswap_limit: 128m
+
+  # Rust API (stateless). File sementara hanya di tmpfs /run/tools (RAM).
+  api:
+    <<: *hardening
+    image: ${API_IMAGE:-ghcr.io/marsel23xxx/toolland-api:latest}
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    user: '65532:65532'
+    ports: ['127.0.0.1:8082:8082']
+    environment:
+      TOOLLAND_API_ADDR: ${TOOLLAND_API_ADDR:-0.0.0.0:8082}
+      RUST_LOG: ${RUST_LOG:-info}
+      GOTENBERG_URL: http://gotenberg:3000
+    tmpfs:
+      - /run/tools:size=512m,uid=65532,gid=65532,mode=0700
+    cpus: 2
+    mem_limit: 1g
+    # Sama dengan mem_limit = tanpa swap, sehingga isi tmpfs tidak pernah terpindah ke disk.
+    memswap_limit: 1g
+    networks: [public, internal]
+    healthcheck:
+      test: ['CMD', '/usr/local/bin/toolland-api', 'healthcheck']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Word/Excel/PowerPoint ke PDF. Hanya di jaringan internal, tidak dibuka ke internet.
+  # Varian -libreoffice: tanpa Chromium, karena PRD hanya butuh konversi Office.
+  gotenberg:
+    image: gotenberg/gotenberg:8-libreoffice
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '7' }
+    tmpfs:
+      - /tmp
+    cpus: 1
+    mem_limit: 1g
+    memswap_limit: 1g
+    networks: [internal]
+
+  # Cek /api/tools/v1/health dan halaman utama tiap menit, notifikasi ke Telegram.
+  # UI hanya di localhost; akses lewat SSH tunnel: ssh -L 3001:127.0.0.1:3001 <vps>
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '7' }
+    security_opt: ['no-new-privileges:true']
+    ports: ['127.0.0.1:3001:3001']
+    volumes:
+      - uptime-kuma:/app/data
+    cpus: 0.5
+    mem_limit: 256m
+    networks: [public]
+
+networks:
+  public: {}
+  internal:
+    internal: true
+
+volumes:
+  uptime-kuma: {}
