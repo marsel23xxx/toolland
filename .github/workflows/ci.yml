@@ -38,6 +38,26 @@ jobs:
           path: apps/web/dist
           retention-days: 7
 
+  lighthouse:
+    name: Lighthouse (performa >= 95)
+    if: github.event_name == 'pull_request'
+    needs: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: web-dist
+          path: apps/web/dist
+      - name: Lighthouse CI
+        run: npx --yes @lhci/cli@0.16.0 autorun
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: lighthouse-report
+          path: .lighthouseci
+          retention-days: 7
+
   rust:
     name: Backend (fmt, clippy, test, build)
     runs-on: ubuntu-latest

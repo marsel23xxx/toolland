@@ -1,0 +1,29 @@
+{
+  "ci": {
+    "collect": {
+      "staticDistDir": "apps/web/dist",
+      "numberOfRuns": 3,
+      "url": [
+        "http://localhost/index.html",
+        "http://localhost/tools/hitung-kata.html",
+        "http://localhost/tools/json-formatter.html",
+        "http://localhost/tools/jpg-ke-webp.html",
+        "http://localhost/tools/pas-foto.html",
+        "http://localhost/tools/buat-qr-code.html"
+      ],
+      "settings": { "chromeFlags": "--no-sandbox" }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": [
+          "error",
+          { "minScore": 0.95, "aggregationMethod": "median-run" }
+        ],
+        "categories:accessibility": ["warn", { "minScore": 0.95 }],
+        "categories:best-practices": ["warn", { "minScore": 0.95 }],
+        "categories:seo": ["warn", { "minScore": 0.9 }]
+      }
+    },
+    "upload": { "target": "filesystem", "outputDir": ".lighthouseci" }
+  }
+}
