@@ -30,8 +30,27 @@ export function isolatedPages(nginxConf) {
 
 export function startServer(dist, nginxConf) {
   const isolated = isolatedPages(nginxConf);
+  const api = process.env.TOOLLAND_API_URL;
   const server = http.createServer((req, res) => {
     const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    // Seperti Nginx host: /api/tools/ diteruskan ke API Rust (bila TOOLLAND_API_URL diisi).
+    if (urlPath.startsWith('/api/') && api) {
+      const target = new URL(req.url, api);
+      const proxied = http.request(
+        target,
+        {
+          method: req.method,
+          headers: { ...req.headers, host: target.host, 'x-real-ip': '127.0.0.1' },
+        },
+        (r) => {
+          res.writeHead(r.statusCode ?? 502, r.headers);
+          r.pipe(res);
+        },
+      );
+      proxied.on('error', () => res.writeHead(502).end());
+      req.pipe(proxied);
+      return;
+    }
     if (urlPath.length > 1 && urlPath.endsWith('/')) {
       res.writeHead(301, { location: urlPath.slice(0, -1) }).end();
       return;

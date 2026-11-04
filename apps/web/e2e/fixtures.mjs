@@ -1,6 +1,7 @@
 // Buat file uji yang tidak di-commit (PDF, JPG dengan EXIF rotasi, salinan untuk batch) di folder sementara.
 import fs from 'node:fs';
 import path from 'node:path';
+import { strToU8, zipSync } from 'fflate';
 import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 const HERE = path.dirname(new URL(import.meta.url).pathname);
@@ -58,6 +59,26 @@ export async function makeFixtures() {
   fs.writeFileSync(path.join(dir, 'foto.pdf'), await doc2.save());
 
   fs.writeFileSync(path.join(dir, 'bukan.pdf'), 'ini bukan pdf');
+
+  // DOCX minimal yang valid untuk LibreOffice (urutan entri seperti buatan Word).
+  const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  fs.writeFileSync(
+    path.join(dir, 'surat.docx'),
+    zipSync({
+      '[Content_Types].xml': strToU8(
+        '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
+      ),
+      '_rels/.rels': strToU8(
+        '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
+      ),
+      'word/document.xml': strToU8(
+        `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="${W}"><w:body><w:p><w:r><w:t>Surat uji Toolland</w:t></w:r></w:p></w:body></w:document>`,
+      ),
+      'word/_rels/document.xml.rels': strToU8(
+        '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>',
+      ),
+    }),
+  );
 
   // Foto wajah untuk uji AI: aset uji MediaPipe (Apache-2.0). Tidak di-commit; diunduh sekali ke cache.
   const cache = path.join(base, 'cache');

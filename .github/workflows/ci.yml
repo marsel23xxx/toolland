@@ -85,6 +85,8 @@ jobs:
       # Toolchain dibaca dari rust-toolchain.toml (stable + rustfmt + clippy).
       - run: rustup show active-toolchain || rustup toolchain install
       - uses: Swatinem/rust-cache@v2
+      # Ghostscript untuk test kompres PDF (tanpa gs, test itu dilewati).
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ghostscript
       - name: Format
         run: cargo fmt --all --check
       - name: Clippy

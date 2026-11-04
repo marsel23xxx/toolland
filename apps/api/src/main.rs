@@ -1,45 +1,99 @@
 //! Toolland API: service stateless untuk proses yang tidak bisa di browser.
-//! Fase 0 hanya berisi health check; endpoint Office/PDF menyusul di Fase 3.
+//! File hanya ada di tmpfs (RAM) selama diproses, lalu dihapus. Tanpa database.
 
-use std::{env, net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use anyhow::Context;
-use axum::{Router, routing::get};
+use axum::{
+    Router,
+    extract::DefaultBodyLimit,
+    routing::{get, post},
+};
 use tokio::net::TcpListener;
-use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
+use tower_governor::{
+    GovernorLayer, governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor,
+};
+use tower_http::{
+    timeout::TimeoutLayer,
+    trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
+};
+use tracing::Level;
 use tracing_subscriber::EnvFilter;
 
+mod config;
+mod error;
 mod routes;
+mod services;
+mod state;
+mod temp;
+mod upload;
+
+#[cfg(test)]
+mod tests;
+
+use config::Config;
+use state::AppState;
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-const DEFAULT_ADDR: &str = "0.0.0.0:8082";
-
 /// Semua route API di bawah /api/tools/v1.
-pub fn app() -> Router {
-    let v1 = Router::new().route("/health", get(routes::health::health));
+pub fn app(state: AppState) -> Router {
+    let cfg = state.cfg.clone();
+
+    // Rate limit per IP untuk endpoint berat (PRD: misalnya 20 per menit).
+    // IP dibaca dari X-Real-IP / X-Forwarded-For yang diisi Nginx host dari CF-Connecting-IP.
+    let governor = GovernorConfigBuilder::default()
+        .period(Duration::from_secs(60) / cfg.rate_per_minute.max(1))
+        .burst_size(cfg.rate_per_minute.max(1))
+        .key_extractor(SmartIpKeyExtractor)
+        .finish()
+        .expect("konfigurasi rate limit valid");
+    let limiter = governor.limiter().clone();
+    // Bersihkan catatan IP lama agar memori tidak tumbuh.
+    if tokio::runtime::Handle::try_current().is_ok() {
+        tokio::spawn(async move {
+            let mut tick = tokio::time::interval(Duration::from_secs(60));
+            loop {
+                tick.tick().await;
+                limiter.retain_recent();
+            }
+        });
+    }
+
+    let heavy = Router::new()
+        .route("/office-to-pdf", post(routes::office_to_pdf::handler))
+        .route("/pdf/compress", post(routes::pdf_compress::handler))
+        // Batas body sedikit di atas 15 MB untuk overhead multipart; batas file pasti dicek saat upload.
+        .layer(DefaultBodyLimit::max(cfg.max_upload + 64 * 1024))
+        .layer(GovernorLayer::new(Arc::new(governor)));
+
+    let v1 = Router::new()
+        .route("/health", get(routes::health::health))
+        .merge(heavy)
+        .with_state(state);
 
     Router::new()
         .nest("/api/tools/v1", v1)
-        // Log hanya metode, path, status, durasi; tanpa isi file atau IP.
-        .layer(TraceLayer::new_for_http())
+        // Log hanya metode, path, status, durasi; tanpa isi file, nama file, atau IP.
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO)),
+        )
         .layer(TimeoutLayer::with_status_code(
             axum::http::StatusCode::REQUEST_TIMEOUT,
-            Duration::from_secs(90),
+            cfg.process_timeout + cfg.queue_timeout + Duration::from_secs(30),
         ))
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let addr: SocketAddr = env::var("TOOLLAND_API_ADDR")
-        .unwrap_or_else(|_| DEFAULT_ADDR.to_owned())
-        .parse()
-        .context("TOOLLAND_API_ADDR tidak valid")?;
+    let cfg = Config::from_env()?;
 
-    // Image distroless tidak punya curl/shell, jadi healthcheck Docker memakai binary ini sendiri.
-    if env::args().nth(1).as_deref() == Some("healthcheck") {
-        return routes::health::probe(addr.port()).await;
+    // Image runtime tanpa curl, jadi healthcheck Docker memakai binary ini sendiri.
+    if std::env::args().nth(1).as_deref() == Some("healthcheck") {
+        return routes::health::probe(cfg.addr.port()).await;
     }
 
     tracing_subscriber::fmt()
@@ -47,14 +101,34 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
         .init();
 
+    if cfg.metrics_port != 0 {
+        metrics_exporter_prometheus::PrometheusBuilder::new()
+            .with_http_listener(SocketAddr::from(([0, 0, 0, 0], cfg.metrics_port)))
+            .install()
+            .context("gagal memasang exporter Prometheus")?;
+    }
+
+    tokio::fs::create_dir_all(&cfg.tmp_dir)
+        .await
+        .with_context(|| {
+            format!(
+                "folder sementara {} tidak bisa dibuat",
+                cfg.tmp_dir.display()
+            )
+        })?;
+
+    let addr = cfg.addr;
     let listener = TcpListener::bind(addr)
         .await
         .with_context(|| format!("gagal bind ke {addr}"))?;
     tracing::info!(%addr, "toolland-api berjalan");
 
-    axum::serve(listener, app())
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        app(AppState::new(cfg)?).into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
     Ok(())
 }
 

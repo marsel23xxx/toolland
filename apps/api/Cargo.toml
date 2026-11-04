@@ -8,15 +8,24 @@ publish.workspace = true
 
 [dependencies]
 anyhow = "1.0.104"
-axum = "0.8.9"
+axum = { version = "0.8.9", features = ["multipart"] }
+bytes = "1.12.1"
+infer = "0.22.0"
+metrics = "0.24.6"
+metrics-exporter-prometheus = { version = "0.18.3", default-features = false, features = ["http-listener"] }
 mimalloc = "0.1.52"
+reqwest = { version = "0.13.5", default-features = false, features = ["stream", "multipart"] }
 serde = { version = "1.0.229", features = ["derive"] }
-tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "net", "signal", "io-util", "time"] }
-tower-http = { version = "0.7.1", features = ["trace", "timeout"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "net", "signal", "io-util", "time", "fs", "process", "sync"] }
+tokio-util = { version = "0.7.20", features = ["io"] }
+tower_governor = "0.8.0"
+tower-http = { version = "0.7.1", features = ["trace", "timeout", "limit"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
+uuid = { version = "1.29.0", features = ["v4"] }
 
 [dev-dependencies]
 http-body-util = "0.1.5"
-serde_json = "1.0.154"
 tower = { version = "0.5.3", features = ["util"] }

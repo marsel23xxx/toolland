@@ -47,6 +47,10 @@ services:
       TOOLLAND_API_ADDR: ${TOOLLAND_API_ADDR:-0.0.0.0:8082}
       RUST_LOG: ${RUST_LOG:-info}
       GOTENBERG_URL: http://gotenberg:3000
+      TOOLLAND_TMP: /run/tools
+      TMPDIR: /run/tools
+      # Prometheus metrics di port 9091 (hanya jaringan Docker, tidak dibuka ke host).
+      TOOLLAND_METRICS_PORT: '9091'
     tmpfs:
       - /run/tools:size=512m,uid=65532,gid=65532,mode=0700
     cpus: 2
@@ -64,6 +68,18 @@ services:
   # Varian -libreoffice: tanpa Chromium, karena PRD hanya butuh konversi Office.
   gotenberg:
     image: gotenberg/gotenberg:8-libreoffice
+    command:
+      - gotenberg
+      - --api-timeout=60s
+      - --api-body-limit=16MB
+      # Hanya API Toolland yang memanggil; fitur ambil URL dan webhook dimatikan (cegah SSRF).
+      - --api-disable-download-from
+      - --webhook-disable
+      # LibreOffice langsung dinyalakan agar request pertama tidak menunggu ~20 detik.
+      - --libreoffice-auto-start
+      - --libreoffice-max-queue-size=4
+      - --libreoffice-restart-after=10
+      - --log-level=warn
     cap_drop: [ALL]
     security_opt: ['no-new-privileges:true']
     restart: unless-stopped

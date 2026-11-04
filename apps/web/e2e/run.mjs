@@ -33,7 +33,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Konteks untuk setiap tes: halaman baru, pencatat masalah (CSP, error console), dan helper. */
 async function context(urlPath) {
-  const page = await browser.newPage();
+  // Context baru per tes (seperti jendela incognito): izin dan batas unduhan tidak terbawa antar-tes.
+  // Folder unduhan sendiri per tes agar file bernama sama dari tes lain tidak tertimpa/terhitung.
+  const dlDir = fs.mkdtempSync(path.join(downloads, 't-'));
+  const ctx = await browser.createBrowserContext({
+    downloadBehavior: { policy: 'allow', downloadPath: dlDir },
+  });
+  const page = await ctx.newPage();
   await page.setViewport({ width: 1280, height: 900 });
   const problems = [];
   page.on('console', (m) => {
@@ -47,11 +53,11 @@ async function context(urlPath) {
       console.error(`CSP ${e.violatedDirective} ${e.blockedURI} @${e.sourceFile}:${e.lineNumber}`),
     ),
   );
-  const cdp = await page.createCDPSession();
-  await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads });
-  await browser
-    .defaultBrowserContext()
-    .overridePermissions(url, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
+  await ctx.overridePermissions(url, [
+    'clipboard-read',
+    'clipboard-write',
+    'clipboard-sanitized-write',
+  ]);
   await page.goto(url + urlPath, { waitUntil: 'networkidle0' });
   await page.waitForFunction(
     () => [...document.querySelectorAll('astro-island')].every((i) => !i.hasAttribute('ssr')),
@@ -63,7 +69,7 @@ async function context(urlPath) {
     problems,
     sleep,
     fixture: (name) => path.join(fixtures, name),
-    downloads,
+    downloads: dlDir,
     async upload(...names) {
       const input = await page.$('input[type=file]');
       await input.uploadFile(...names.map(h.fixture));
@@ -117,16 +123,14 @@ async function context(urlPath) {
           .map((e) => e.innerText.replace(/\s+/g, ' ').trim()),
       );
     },
-    /** Unduh file hasil pertama dengan nama tertentu lalu kembalikan isinya. */
+    /** Unduh file hasil dengan nama tertentu lalu kembalikan isinya. */
     async download(name) {
-      const before = new Set(fs.readdirSync(downloads));
+      const before = new Set(fs.readdirSync(dlDir));
       await page.waitForSelector(`a[download="${name}"]`, { timeout: 60000 });
       await page.$eval(`a[download="${name}"]`, (a) => a.click());
-      for (let i = 0; i < 100; i++) {
-        const f = fs
-          .readdirSync(downloads)
-          .find((x) => !before.has(x) && !x.endsWith('.crdownload'));
-        if (f) return fs.readFileSync(path.join(downloads, f));
+      for (let i = 0; i < 150; i++) {
+        const f = fs.readdirSync(dlDir).find((x) => !before.has(x) && !x.endsWith('.crdownload'));
+        if (f) return fs.readFileSync(path.join(dlDir, f));
         await sleep(100);
       }
       throw new Error(`unduhan ${name} tidak muncul`);
@@ -162,7 +166,10 @@ for (const file of suiteFiles) {
           .screenshot({ path: path.join(fixtures, `gagal-${t.name.replace(/\W+/g, '-')}.png`) })
           .catch(() => {});
     } finally {
-      await h?.page.close().catch(() => {});
+      await h?.page
+        .browserContext()
+        .close()
+        .catch(() => {});
     }
   }
 }

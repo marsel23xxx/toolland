@@ -20,7 +20,7 @@ faq:
     a: 'Tidak. Kompres cepat berjalan sepenuhnya di browser kamu.'
   - q: 'Bagaimana jika hasilnya justru lebih besar?'
     a: 'Toolland mempertahankan file asli bila hasil kompresi tidak lebih kecil, jadi ukuran tidak pernah bertambah.'
-related: ['gabung-pdf', 'kompres-gambar', 'pisah-pdf']
+related: ['kompres-pdf-maksimal', 'gabung-pdf', 'kompres-gambar']
 ---
 
 ## Lolos batas upload

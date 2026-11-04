@@ -55,6 +55,8 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss(), Icons({ compiler: 'vue3' })],
+    // Saat pnpm dev: /api diteruskan ke API Rust lokal (cargo run -p toolland-api).
+    server: { proxy: { '/api': 'http://127.0.0.1:8082' } },
     // Worker sebagai ES module agar codec WASM bisa di-import dinamis di dalamnya.
     worker: { format: 'es' },
     // Codec WASM memuat file .wasm lewat new URL(..., import.meta.url); jangan di-pre-bundle.

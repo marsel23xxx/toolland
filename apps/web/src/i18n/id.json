@@ -400,5 +400,21 @@
   "audio.cutRun": "Potong audio",
   "audio.extractRun": "Ekstrak audio",
   "audio.cutHint": "Potongan disalin tanpa encode ulang, jadi cepat dan kualitas tetap sama.",
-  "files.larger": "{before} → {after} · {percent}% lebih besar"
+  "files.larger": "{before} → {after} · {percent}% lebih besar",
+  "server.uploading": "Mengunggah {name}… {percent}%",
+  "server.converting": "Mengonversi {name} di server…",
+  "server.compressing": "Mengompres {name} di server…",
+  "server.privacy": "File dikirim lewat HTTPS, diproses di RAM server, lalu dihapus begitu hasil dikirim. Tidak ada salinan yang disimpan. Maksimal 15 MB per file.",
+  "server.error.too_large": "File lebih dari 15 MB. Kompres atau pisah dulu, lalu coba lagi.",
+  "server.error.unsupported": "Format file tidak didukung untuk tool ini.",
+  "server.error.busy": "Server sedang sibuk. Coba lagi sebentar lagi.",
+  "server.error.timeout": "Proses terlalu lama dan dihentikan. Coba file yang lebih kecil.",
+  "server.error.rate_limit": "Terlalu banyak permintaan dari koneksimu. Tunggu sebentar lalu coba lagi.",
+  "server.error.failed": "File tidak bisa diproses. Pastikan file tidak rusak dan tidak dikunci password.",
+  "server.error.offline": "Tidak bisa terhubung ke server. Periksa koneksi internet.",
+  "server.error.cancelled": "Dibatalkan.",
+  "server.unchanged": "Sudah optimal, file asli dipertahankan",
+  "server.officeHint.word": "Mendukung DOC, DOCX, ODT, dan RTF.",
+  "server.officeHint.excel": "Mendukung XLS, XLSX, dan ODS. Setiap sheet menjadi halaman PDF.",
+  "server.officeHint.ppt": "Mendukung PPT, PPTX, dan ODP. Setiap slide menjadi satu halaman."
 }

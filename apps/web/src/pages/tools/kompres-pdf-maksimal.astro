@@ -1,0 +1,17 @@
+---
+import ServerFileTool from '../../components/tools/server/ServerFileTool.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { messages } from '../../i18n';
+---
+
+<ToolPage slug="kompres-pdf-maksimal">
+  <ServerFileTool
+    client:visible
+    m={messages('id', 'server')}
+    t={messages('id', 'pdf')}
+    files={messages('id', 'files')}
+    dropzone={messages('id', 'dropzone')}
+    donate={messages('id', 'donate')}
+    mode="compress"
+  />
+</ToolPage>
