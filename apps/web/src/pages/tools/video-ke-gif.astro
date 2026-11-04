@@ -1,0 +1,10 @@
+---
+import VideoToGif from '../../components/tools/media/VideoToGif.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { messages } from '../../i18n';
+import { mediaToolProps } from '../../lib/media/props';
+---
+
+<ToolPage slug="video-ke-gif">
+  <VideoToGif client:visible {...mediaToolProps('id')} t={messages('id', 'gif')} />
+</ToolPage>

@@ -97,6 +97,13 @@
     @apply text-sm text-red-700 dark:text-red-400;
   }
 
+  /* Latar kotak-kotak untuk pratinjau gambar transparan. */
+  .checker {
+    background-color: #ffffff;
+    background-image: conic-gradient(#e2e8f0 25%, transparent 0 50%, #e2e8f0 0 75%, transparent 0);
+    background-size: 16px 16px;
+  }
+
   /* Isi Markdown konten SEO. */
   .prose-tool {
     @apply max-w-3xl leading-relaxed text-slate-700 dark:text-slate-300;

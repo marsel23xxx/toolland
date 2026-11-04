@@ -6,7 +6,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/dist/', '**/.astro/', '**/node_modules/', 'target/'] },
+  { ignores: ['**/dist/', '**/.astro/', '**/node_modules/', '**/public/vendor/', 'target/'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...vue.configs['flat/recommended'],

@@ -1,0 +1,10 @@
+---
+import AudioTool from '../../components/tools/media/AudioTool.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { messages } from '../../i18n';
+import { mediaToolProps } from '../../lib/media/props';
+---
+
+<ToolPage slug="potong-audio">
+  <AudioTool client:visible {...mediaToolProps('id')} t={messages('id', 'audio')} mode="cut" />
+</ToolPage>

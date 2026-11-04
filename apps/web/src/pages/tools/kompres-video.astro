@@ -1,0 +1,10 @@
+---
+import VideoCompressor from '../../components/tools/media/VideoCompressor.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { messages } from '../../i18n';
+import { mediaToolProps } from '../../lib/media/props';
+---
+
+<ToolPage slug="kompres-video">
+  <VideoCompressor client:visible {...mediaToolProps('id')} t={messages('id', 'video')} />
+</ToolPage>

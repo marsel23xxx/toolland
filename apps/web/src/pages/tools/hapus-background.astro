@@ -1,0 +1,15 @@
+---
+import BackgroundRemover from '../../components/tools/ai/BackgroundRemover.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { messages } from '../../i18n';
+---
+
+<ToolPage slug="hapus-background">
+  <BackgroundRemover
+    client:visible
+    t={messages('id', 'ai')}
+    files={messages('id', 'files')}
+    dropzone={messages('id', 'dropzone')}
+    donate={messages('id', 'donate')}
+  />
+</ToolPage>

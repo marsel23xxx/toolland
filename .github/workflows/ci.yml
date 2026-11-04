@@ -24,6 +24,12 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Model AI dan aset vendor lain (diunduh saat build) disimpan antar-run.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/toolland-vendor
+          key: vendor-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: vendor-
       - name: Lint dan format
         run: pnpm lint
       - name: Type check
@@ -32,10 +38,23 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
+      - name: Uji browser (e2e)
+        run: pnpm --filter web e2e
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: e2e-screenshots
+          path: apps/web/e2e/.tmp/run-*/*.png
+          retention-days: 7
       - uses: actions/upload-artifact@v7
         with:
           name: web-dist
-          path: apps/web/dist
+          # Aset vendor (model AI, ffmpeg) tidak dibutuhkan Lighthouse dan sangat besar.
+          path: |
+            apps/web/dist
+            !apps/web/dist/vendor
           retention-days: 7
 
   lighthouse:

@@ -1,2 +1,6 @@
 packages:
   - apps/web
+
+allowBuilds:
+  # postinstall protobufjs hanya pengecekan versi, tidak dibutuhkan.
+  protobufjs: false

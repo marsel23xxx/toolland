@@ -56,6 +56,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/toolland-vendor
+          key: vendor-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: vendor-
       - run: pnpm build
 
       # ---------- Kirim ke VPS ----------
@@ -70,8 +75,10 @@ jobs:
       - name: Salin konfigurasi infra
         run: rsync -az --delete --exclude 'nginx/host/' infra/ "$TARGET:$REMOTE/infra/"
 
+      # File yang isinya sama dengan rilis aktif (misalnya model AI) di-hardlink, tidak dikirim ulang.
+      # Waktu file sengaja tidak disalin (-rlpD, bukan -a): rsync hanya membuat hardlink bila waktu sama.
       - name: Upload rilis frontend ke folder baru
-        run: rsync -az --delete apps/web/dist/ "$TARGET:$REMOTE/web/releases/$SHA/"
+        run: rsync -rlpDz --delete --checksum --link-dest="$REMOTE/web/current/" apps/web/dist/ "$TARGET:$REMOTE/web/releases/$SHA/"
 
       - name: Aktifkan rilis frontend (pindah symlink)
         run: ssh "$TARGET" "$REMOTE/infra/scripts/activate-release.sh $SHA $REMOTE/web"
