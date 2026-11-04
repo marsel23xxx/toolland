@@ -1,0 +1,9 @@
+---
+import JsonFormatter from '../../../components/tools/JsonFormatter.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../../i18n';
+---
+
+<ToolPage slug="json-formatter">
+  <JsonFormatter client:visible m={toolMessages('en', 'jsonFormatter')} />
+</ToolPage>

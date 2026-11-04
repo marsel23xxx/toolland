@@ -3,6 +3,7 @@
  * Tools yang memakai server: Word/Excel/PowerPoint ke PDF (Gotenberg) dan kompres PDF maksimal
  * (Ghostscript). File diproses satu per satu agar tidak membebani server.
  */
+import { fileName } from '../../../lib/names';
 import { ref } from 'vue';
 import type { Messages } from '../../../i18n';
 import { fill, formatBytes } from '../../../lib/format';
@@ -80,7 +81,11 @@ async function pump() {
                 percent: pct,
               });
         }
-        results.add(withSuffix(file.name, compress ? '-kecil' : '', '.pdf'), r.blob, detail);
+        results.add(
+          withSuffix(file.name, compress ? fileName('small') : '', '.pdf'),
+          r.blob,
+          detail,
+        );
       } catch (e) {
         const code = errorCode(e);
         if (code === 'cancelled') break;
@@ -136,7 +141,7 @@ function cancel() {
       :items="results.items.value"
       :m="files"
       :donate="donate"
-      zip-name="hasil-pdf.zip"
+      :zip-name="`${fileName('zipPdf')}.zip`"
       @remove="results.remove"
     />
   </div>

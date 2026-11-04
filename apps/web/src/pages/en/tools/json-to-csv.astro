@@ -1,0 +1,9 @@
+---
+import JsonCsv from '../../../components/tools/JsonCsv.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../../i18n';
+---
+
+<ToolPage slug="json-to-csv">
+  <JsonCsv client:visible m={toolMessages('en', 'jsonCsv')} />
+</ToolPage>

@@ -3,6 +3,7 @@
  * Tanda tangan PDF: halaman dirender dengan pdf.js, tanda tangan dibuat dengan signature_pad
  * (atau unggah gambar), lalu ditempel dan dipasang permanen dengan pdf-lib di worker.
  */
+import { fileName } from '../../../lib/names';
 import type SignaturePad from 'signature_pad';
 import { nextTick, onBeforeUnmount, ref, shallowRef } from 'vue';
 import IconX from '~icons/lucide/x';
@@ -256,7 +257,7 @@ async function save() {
       await pdfWorker()
     ).sign(await file.value.arrayBuffer(), signature.value.png.slice(0), placements);
     results.add(
-      withSuffix(file.value.name, '-ttd', '.pdf'),
+      withSuffix(file.value.name, fileName('signed'), '.pdf'),
       new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/pdf' }),
     );
   } catch (e) {

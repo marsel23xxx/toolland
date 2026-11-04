@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fileName } from '../../lib/names';
 import { computed, ref } from 'vue';
 import type { Messages } from '../../i18n';
 import { useImageBatch } from '../../lib/image/batch';
@@ -20,7 +21,7 @@ const quality = ref(75);
 const maxSide = ref(0);
 const SIDES = [0, 3840, 2560, 1920, 1280, 1024];
 
-const batch = useImageBatch({ suffix: '-kecil' });
+const batch = useImageBatch({ suffix: fileName('small') });
 const job = computed<ImageJob>(() => ({
   format: format.value,
   quality: quality.value,
@@ -48,7 +49,7 @@ function apply() {
     :m="m"
     :dropzone="dropzone"
     :donate="donate"
-    zip-name="gambar-kecil.zip"
+    :zip-name="`${fileName('zipSmallImages')}.zip`"
     @files="add"
     @prefetch="batch.pool.warmup(format === 'same' ? 'jpeg' : format)"
   >

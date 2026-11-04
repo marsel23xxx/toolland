@@ -9,21 +9,47 @@
         "http://localhost/tools/json-formatter.html",
         "http://localhost/tools/jpg-ke-webp.html",
         "http://localhost/tools/pas-foto.html",
-        "http://localhost/tools/buat-qr-code.html"
+        "http://localhost/tools/buat-qr-code.html",
+        "http://localhost/en.html",
+        "http://localhost/en/tools/compress-image.html",
+        "http://localhost/tools/hapus-background.html"
       ],
-      "settings": { "chromeFlags": "--no-sandbox" }
+      "settings": {
+        "chromeFlags": "--no-sandbox"
+      }
     },
     "assert": {
       "assertions": {
         "categories:performance": [
           "error",
-          { "minScore": 0.95, "aggregationMethod": "median-run" }
+          {
+            "minScore": 0.95,
+            "aggregationMethod": "median-run"
+          }
         ],
-        "categories:accessibility": ["warn", { "minScore": 0.95 }],
-        "categories:best-practices": ["warn", { "minScore": 0.95 }],
-        "categories:seo": ["warn", { "minScore": 0.9 }]
+        "categories:accessibility": [
+          "warn",
+          {
+            "minScore": 0.95
+          }
+        ],
+        "categories:best-practices": [
+          "warn",
+          {
+            "minScore": 0.95
+          }
+        ],
+        "categories:seo": [
+          "warn",
+          {
+            "minScore": 0.9
+          }
+        ]
       }
     },
-    "upload": { "target": "filesystem", "outputDir": ".lighthouseci" }
+    "upload": {
+      "target": "filesystem",
+      "outputDir": ".lighthouseci"
+    }
   }
 }

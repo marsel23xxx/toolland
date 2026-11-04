@@ -3,6 +3,7 @@
  * Kerangka bersama tools gambar batch: dropzone, pengaturan (slot), daftar file,
  * ringkasan, unduh ZIP, dan kartu donasi.
  */
+import { fileName } from '../../lib/names';
 import { computed, defineAsyncComponent, ref } from 'vue';
 import type { Messages } from '../../i18n';
 import { fill, formatBytes } from '../../lib/format';
@@ -24,7 +25,7 @@ const props = withDefaults(
     accept?: string;
     zipName?: string;
   }>(),
-  { accept: IMAGE_ACCEPT, zipName: 'toolland-gambar.zip' },
+  { accept: IMAGE_ACCEPT, zipName: () => `${fileName('zipImages')}.zip` },
 );
 const emit = defineEmits<{ files: [files: File[]]; prefetch: [] }>();
 const downloads = ref(0);

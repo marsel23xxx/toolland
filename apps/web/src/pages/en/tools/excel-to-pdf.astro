@@ -1,0 +1,17 @@
+---
+import ServerFileTool from '../../../components/tools/server/ServerFileTool.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { messages } from '../../../i18n';
+---
+
+<ToolPage slug="excel-to-pdf">
+  <ServerFileTool
+    client:visible
+    m={messages('en', 'server')}
+    t={messages('en', 'pdf')}
+    files={messages('en', 'files')}
+    dropzone={messages('en', 'dropzone')}
+    donate={messages('en', 'donate')}
+    mode="excel"
+  />
+</ToolPage>

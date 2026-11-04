@@ -4,7 +4,7 @@
  * judul, badge privasi, area tool (slot), cara pakai, isi Markdown, FAQ, tools terkait,
  * serta structured data SoftwareApplication, HowTo, dan FAQPage.
  */
-import { getEntry, render } from 'astro:content';
+import { getCollection, getEntry, render } from 'astro:content';
 import { getLocale } from '../../i18n';
 import { toolPath } from '../../lib/categories';
 import { SITE } from '../../lib/site';
@@ -26,6 +26,17 @@ const related = (
 ).filter((e) => e !== undefined);
 
 const url = new URL(toolPath(locale, slug), SITE.url).href;
+
+// Pasangan halaman di bahasa lain (slug berbeda per bahasa, dihubungkan lewat idSlug).
+const alternates: Partial<Record<'id' | 'en', string>> = { [locale]: toolPath(locale, slug) };
+if (locale === 'id') {
+  const en = (await getCollection('tools', (e) => e.id.startsWith('en/'))).find(
+    (e) => e.data.idSlug === slug,
+  );
+  if (en) alternates.en = toolPath('en', en.id.split('/')[1]);
+} else if (data.idSlug) {
+  alternates.id = toolPath('id', data.idSlug);
+}
 const jsonLd = [
   {
     '@context': 'https://schema.org',
@@ -63,7 +74,7 @@ const jsonLdText = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
   title={data.title}
   description={data.description}
   processing={data.processing}
-  alternates={{ [locale]: toolPath(locale, slug) }}
+  alternates={alternates}
 >
   <script slot="head" type="application/ld+json" is:inline set:html={jsonLdText} />
   <slot />

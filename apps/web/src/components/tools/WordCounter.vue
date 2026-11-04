@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import type { ToolMessages } from '../../i18n';
-import { fill } from '../../lib/format';
+import { fill, LOCALE_TAGS, pageLocale } from '../../lib/format';
 import { textStats } from '../../lib/text-stats';
 
 const props = defineProps<{ m: Record<string, string> }>();
@@ -18,7 +18,7 @@ watch(text, (t) => {
   else timer = window.setTimeout(() => (stats.value = textStats(t)), 150);
 });
 
-const nf = new Intl.NumberFormat('id-ID');
+const nf = new Intl.NumberFormat(LOCALE_TAGS[pageLocale()]);
 const items = computed(() => [
   { label: m.words, value: nf.format(stats.value.words) },
   { label: m.characters, value: nf.format(stats.value.characters) },

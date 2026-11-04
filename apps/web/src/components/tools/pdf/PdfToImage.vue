@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fileName } from '../../../lib/names';
 import { ref } from 'vue';
 import type { Messages } from '../../../i18n';
 import { fill } from '../../../lib/format';
@@ -49,7 +50,7 @@ async function process(list: File[]) {
       );
       canvas.width = canvas.height = 0; // lepas memori canvas
       const ext = format.value === 'png' ? '.png' : '.jpg';
-      results.add(withSuffix(file.name, `-hal-${n}`, ext), blob);
+      results.add(withSuffix(file.name, `${fileName('page')}${n}`, ext), blob);
     }
     await closePdf(doc);
   }
@@ -93,7 +94,7 @@ function add(list: File[]) {
       :items="results.items.value"
       :m="files"
       :donate="donate"
-      zip-name="halaman-pdf.zip"
+      :zip-name="`${fileName('zipPages')}.zip`"
       thumbnails
       @remove="results.remove"
     />

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fileName } from '../../../lib/names';
 import { ref, shallowRef } from 'vue';
 import type { Messages } from '../../../i18n';
 import { fill, formatBytes } from '../../../lib/format';
@@ -66,7 +67,7 @@ async function run() {
     outputs.forEach((bytes, i) => {
       const name = withSuffix(
         file.value!.name,
-        mode.value === 'extract' ? '-pilihan' : `-${label(groups[i])}`,
+        mode.value === 'extract' ? fileName('selection') : `-${label(groups[i])}`,
         '.pdf',
       );
       results.add(
@@ -149,7 +150,7 @@ async function run() {
       :items="results.items.value"
       :m="files"
       :donate="donate"
-      zip-name="pdf-terpisah.zip"
+      :zip-name="`${fileName('zipSplit')}.zip`"
       @remove="results.remove"
     />
   </div>

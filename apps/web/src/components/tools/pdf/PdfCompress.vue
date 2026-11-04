@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fileName } from '../../../lib/names';
 import { ref } from 'vue';
 import type { Messages } from '../../../i18n';
 import { fill, formatBytes } from '../../../lib/format';
@@ -38,7 +39,7 @@ async function process(list: File[]) {
           ? `${formatBytes(before)} · ${props.t['compress.unchanged']}`
           : `${fill(props.files.saved, { before: formatBytes(before), after: formatBytes(after), percent: Math.round((1 - after / before) * 100) })} · ${fill(props.t['compress.images'], { done: r.imagesRecompressed, total: r.imagesTotal })}`;
         results.add(
-          withSuffix(file.name, '-kecil', '.pdf'),
+          withSuffix(file.name, fileName('small'), '.pdf'),
           new Blob([r.bytes as Uint8Array<ArrayBuffer>], { type: 'application/pdf' }),
           detail,
         );
@@ -103,7 +104,7 @@ function cancel() {
       :items="results.items.value"
       :m="files"
       :donate="donate"
-      zip-name="pdf-kecil.zip"
+      :zip-name="`${fileName('zipSmallPdf')}.zip`"
       @remove="results.remove"
     />
   </div>

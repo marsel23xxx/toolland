@@ -110,7 +110,7 @@ async function context(urlPath) {
       await page.waitForFunction(
         (n) => {
           const cards = [...document.querySelectorAll('li.card')].filter((c) =>
-            c.querySelector('button[aria-label^="Hapus"]'),
+            c.querySelector('button[aria-label^="Hapus"], button[aria-label^="Remove"]'),
           );
           return cards.length >= n && cards.every((c) => !c.querySelector('progress'));
         },
@@ -119,7 +119,9 @@ async function context(urlPath) {
       );
       return page.$$eval('li.card', (els) =>
         els
-          .filter((c) => c.querySelector('button[aria-label^="Hapus"]'))
+          .filter((c) =>
+            c.querySelector('button[aria-label^="Hapus"], button[aria-label^="Remove"]'),
+          )
           .map((e) => e.innerText.replace(/\s+/g, ' ').trim()),
       );
     },

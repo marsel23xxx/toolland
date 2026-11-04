@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fileName } from '../../../lib/names';
 import { computed, ref } from 'vue';
 import IconArrowDown from '~icons/lucide/arrow-down';
 import IconArrowUp from '~icons/lucide/arrow-up';
@@ -69,7 +70,7 @@ async function run() {
     const bufs = await Promise.all(valid.value.map((e) => e.file.arrayBuffer()));
     const bytes = await api.merge(bufs);
     results.add(
-      'gabungan.pdf',
+      `${fileName('merged')}.pdf`,
       new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/pdf' }),
       fill(props.t.pages, { n: totalPages.value }),
     );

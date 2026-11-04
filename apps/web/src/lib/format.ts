@@ -1,8 +1,13 @@
 export const LOCALE_TAGS = { id: 'id-ID', en: 'en-US' } as const;
 export type Locale = keyof typeof LOCALE_TAGS;
 
+/** Bahasa halaman saat ini (dari <html lang>), untuk teks yang dibuat di browser. Saat build: 'id'. */
+export function pageLocale(): Locale {
+  return typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'id';
+}
+
 /** Format ukuran file sesuai bahasa, misalnya "4,2 MB". */
-export function formatBytes(bytes: number, locale: Locale = 'id'): string {
+export function formatBytes(bytes: number, locale: Locale = pageLocale()): string {
   const units = ['B', 'KB', 'MB', 'GB'];
   let value = bytes;
   let unit = 0;

@@ -15,12 +15,12 @@ faq:
   - q: 'Bagaimana posisi wajah yang benar?'
     a: 'Wajah menghadap lurus ke kamera, berada di tengah, dengan sedikit ruang di atas kepala. Bahu terlihat dan wajah mengisi sekitar 70–80% tinggi foto.'
   - q: 'Bisakah mengganti latar menjadi merah atau biru?'
-    a: 'Belum di tool ini. Foto dengan latar polos yang sudah sesuai warna akan memberi hasil terbaik.'
+    a: 'Bisa. Pakai tool Hapus Background dengan pilihan Warna lain (merah atau biru), lalu potong hasilnya di sini.'
   - q: 'Bagaimana mencetaknya?'
     a: 'Unduh JPG lalu cetak di studio foto atau percetakan dengan ukuran sesuai. Karena sudah 300 DPI, hasil cetak tetap tajam.'
   - q: 'Apakah foto saya diunggah?'
     a: 'Tidak. Foto diproses di browser kamu dan tidak disimpan di mana pun.'
-related: ['potong-gambar', 'kompres-gambar', 'ubah-ukuran-gambar']
+related: ['hapus-background', 'potong-gambar', 'ubah-ukuran-gambar']
 ---
 
 ## Pas foto tanpa ke studio

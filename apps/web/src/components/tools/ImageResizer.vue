@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { pageLocale } from '../../lib/format';
+import { fileName } from '../../lib/names';
 import { computed, ref } from 'vue';
 import type { Messages } from '../../i18n';
 import { useImageBatch } from '../../lib/image/batch';
@@ -16,14 +18,15 @@ defineProps<{
   t: Messages<'resize'>;
 }>();
 
+const en = pageLocale() === 'en';
 const PRESETS = [
-  { name: 'Instagram persegi', w: 1080, h: 1080 },
-  { name: 'Instagram potret 4:5', w: 1080, h: 1350 },
-  { name: 'Instagram/WhatsApp story', w: 1080, h: 1920 },
-  { name: 'Thumbnail YouTube', w: 1280, h: 720 },
-  { name: 'Sampul Facebook', w: 820, h: 312 },
-  { name: 'Header X (Twitter)', w: 1500, h: 500 },
-  { name: 'Banner LinkedIn', w: 1584, h: 396 },
+  { name: en ? 'Instagram square' : 'Instagram persegi', w: 1080, h: 1080 },
+  { name: en ? 'Instagram portrait 4:5' : 'Instagram potret 4:5', w: 1080, h: 1350 },
+  { name: en ? 'Instagram/WhatsApp story' : 'Instagram/WhatsApp story', w: 1080, h: 1920 },
+  { name: en ? 'YouTube thumbnail' : 'Thumbnail YouTube', w: 1280, h: 720 },
+  { name: en ? 'Facebook cover' : 'Sampul Facebook', w: 820, h: 312 },
+  { name: en ? 'X (Twitter) header' : 'Header X (Twitter)', w: 1500, h: 500 },
+  { name: en ? 'LinkedIn banner' : 'Banner LinkedIn', w: 1584, h: 396 },
   { name: 'Full HD', w: 1920, h: 1080 },
 ];
 
@@ -59,7 +62,7 @@ const showFit = computed(
     (mode.value === 'pixels' && !keepRatio.value && !!width.value && !!height.value),
 );
 
-const batch = useImageBatch({ suffix: '-resize' });
+const batch = useImageBatch({ suffix: fileName('resized') });
 const job = computed<ImageJob>(() => ({
   format: format.value,
   quality: quality.value,
@@ -85,7 +88,7 @@ function apply() {
     :m="m"
     :dropzone="dropzone"
     :donate="donate"
-    zip-name="gambar-resize.zip"
+    :zip-name="`${fileName('zipResized')}.zip`"
     @files="add"
     @prefetch="batch.pool.warmup(format === 'same' ? 'jpeg' : format)"
   >

@@ -75,7 +75,7 @@ const homeHref = locale === 'en' ? '/en' : '/';
           >
             {t('nav.language')}
           </a>
-          <a href="/dukung" class="btn btn-secondary py-1.5">
+          <a href={locale === 'en' ? '/en/support' : '/dukung'} class="btn btn-secondary py-1.5">
             <IconHeart class="text-brand-600 dark:text-brand-400" aria-hidden="true" />
             {t('nav.donate')}
           </a>
@@ -92,7 +92,7 @@ const homeHref = locale === 'en' ? '/en' : '/';
         <p>{t('footer.privacy')}</p>
         <div class="flex gap-4">
           <a
-            href="/kebijakan-privasi"
+            href={locale === 'en' ? '/en/privacy' : '/kebijakan-privasi'}
             class="underline hover:text-slate-900 dark:hover:text-slate-100"
           >
             {t('footer.privacyPolicy')}

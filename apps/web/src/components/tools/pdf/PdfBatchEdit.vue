@@ -1,5 +1,6 @@
 <script setup lang="ts">
 /** Watermark atau nomor halaman untuk banyak PDF sekaligus. */
+import { fileName } from '../../../lib/names';
 import { computed, ref } from 'vue';
 import type { Messages } from '../../../i18n';
 import { fill } from '../../../lib/format';
@@ -78,7 +79,7 @@ async function run() {
           props.mode === 'watermark'
             ? await api.watermark(buf, opts)
             : await api.pageNumbers(buf, opts);
-        const suffix = props.mode === 'watermark' ? '-watermark' : '-bernomor';
+        const suffix = fileName(props.mode === 'watermark' ? 'watermarked' : 'numbered');
         results.add(
           withSuffix(file.name, suffix, '.pdf'),
           new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/pdf' }),

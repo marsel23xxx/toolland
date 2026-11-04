@@ -3,6 +3,7 @@
  * Blur wajah: deteksi otomatis dengan MediaPipe Face Detector (di browser), area manual dengan
  * menarik kotak, lalu blur atau mosaik diterapkan di canvas. Gambar tidak keluar dari perangkat.
  */
+import { fileName } from '../../../lib/names';
 import type { FaceDetector } from '@mediapipe/tasks-vision';
 import { computed, onBeforeUnmount, ref, shallowRef } from 'vue';
 import IconX from '~icons/lucide/x';
@@ -237,7 +238,7 @@ async function run() {
         : 'image/jpeg';
   const ext = type === 'image/png' ? '.png' : type === 'image/webp' ? '.webp' : '.jpg';
   results.clear();
-  results.add(withSuffix(src.name, '-blur', ext), await canvasToBlob(c, type, 0.92));
+  results.add(withSuffix(src.name, fileName('blurred'), ext), await canvasToBlob(c, type, 0.92));
 }
 
 function reset() {

@@ -1,0 +1,15 @@
+---
+import ImageConverter from '../../../components/tools/ImageConverter.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { messages } from '../../../i18n';
+import { imageToolProps } from '../../../lib/image/props';
+---
+
+<ToolPage slug="jpg-to-webp">
+  <ImageConverter
+    client:visible
+    {...imageToolProps('en')}
+    t={messages('en', 'convert')}
+    defaultFormat="webp"
+  />
+</ToolPage>

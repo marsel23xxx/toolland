@@ -1,0 +1,9 @@
+---
+import PdfSign from '../../../components/tools/pdf/PdfSign.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { pdfToolProps } from '../../../lib/pdf/props';
+---
+
+<ToolPage slug="sign-pdf">
+  <PdfSign client:visible {...pdfToolProps('en')} />
+</ToolPage>

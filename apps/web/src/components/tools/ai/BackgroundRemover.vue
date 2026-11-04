@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fileName } from '../../../lib/names';
 import type { Remote } from 'comlink';
 import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue';
 import type { Messages } from '../../../i18n';
@@ -75,7 +76,8 @@ async function compose(png: Blob): Promise<Blob> {
   return canvasToBlob(c, 'image/jpeg', 0.92);
 }
 
-const outName = (name: string) => withSuffix(name, '-tanpa-bg', fillColor.value ? '.jpg' : '.png');
+const outName = (name: string) =>
+  withSuffix(name, fileName('noBackground'), fillColor.value ? '.jpg' : '.png');
 
 async function pump() {
   if (running) return;
@@ -199,7 +201,7 @@ onBeforeUnmount(() => {
         :files="zipEntries"
         :label="files.downloadAll"
         :busy-label="files.zipping"
-        zip-name="tanpa-background.zip"
+        :zip-name="`${fileName('zipNoBackground')}.zip`"
         @downloaded="downloads++"
       />
     </div>

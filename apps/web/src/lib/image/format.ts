@@ -1,3 +1,5 @@
+import { fileName } from '../names';
+
 export const OUTPUT_FORMATS = ['jpeg', 'png', 'webp', 'avif'] as const;
 export type OutputFormat = (typeof OUTPUT_FORMATS)[number];
 export type InputFormat = OutputFormat | 'heic' | 'gif' | 'bmp' | 'unknown';
@@ -65,6 +67,6 @@ export function sameAsInput(input: InputFormat): OutputFormat {
 
 /** Nama file hasil: foto.HEIC -> foto.jpg, dengan akhiran opsional. */
 export function outputName(original: string, format: OutputFormat, suffix = ''): string {
-  const base = original.replace(/\.[^./\\]+$/, '') || 'gambar';
+  const base = original.replace(/\.[^./\\]+$/, '') || fileName('image');
   return `${base}${suffix}.${EXT[format]}`;
 }

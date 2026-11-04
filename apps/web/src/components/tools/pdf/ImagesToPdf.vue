@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { fileName } from '../../../lib/names';
 import { onBeforeUnmount, ref } from 'vue';
 import IconArrowDown from '~icons/lucide/arrow-down';
 import IconArrowUp from '~icons/lucide/arrow-up';
@@ -79,7 +80,7 @@ async function run() {
       margin: marginMm.value * 2.835,
     });
     results.add(
-      'gambar.pdf',
+      `${fileName('images')}.pdf`,
       new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/pdf' }),
       fill(props.t.pages, { n: inputs.length }),
     );

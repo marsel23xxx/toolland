@@ -1,5 +1,6 @@
 <script setup lang="ts">
 /** Potong audio (stream copy, cepat) atau ekstrak audio dari video (MP3, M4A, WAV). */
+import { fileName } from '../../../lib/names';
 import { ref, watch } from 'vue';
 import type { Messages } from '../../../i18n';
 import { formatBytes } from '../../../lib/format';
@@ -83,7 +84,7 @@ async function run() {
         out,
         AUDIO_MIME[ext] ?? 'audio/mp4',
       );
-      name = withSuffix(file.name, '-potongan', `.${ext}`);
+      name = withSuffix(file.name, fileName('clip'), `.${ext}`);
     } else {
       const c = CODEC[format.value];
       const out = `audio.${format.value}`;

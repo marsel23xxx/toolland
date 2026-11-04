@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * Editor kode. Awalnya <textarea> biasa (langsung bisa dipakai, ringan),
- * lalu ditingkatkan ke CodeMirror saat pengguna berinteraksi atau browser sedang idle.
+ * Editor kode. Awalnya <textarea> biasa (langsung bisa dipakai, ringan), lalu ditingkatkan ke
+ * CodeMirror saat pengguna berinteraksi (kursor masuk, fokus, atau tempel). Tidak dimuat saat idle,
+ * agar halaman tetap ringan bagi pengunjung yang belum memakai editor.
  */
 import type { EditorView } from '@codemirror/view';
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { onBeforeUnmount, ref, watch } from 'vue';
 
 const props = withDefaults(
   defineProps<{ label: string; placeholder?: string; language?: 'json' | 'plain' }>(),
@@ -19,7 +20,6 @@ const ready = ref(false);
 let view: EditorView | undefined;
 let setText: ((v: EditorView, t: string) => void) | undefined;
 let started = false;
-let idleHandle: number | undefined;
 
 async function upgrade() {
   if (started || !cmHost.value) return;
@@ -47,13 +47,7 @@ watch(model, (v) => {
   if (view && setText) setText(view, v);
 });
 
-onMounted(() => {
-  const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 2000));
-  idleHandle = idle(() => void upgrade(), { timeout: 4000 });
-});
-
 onBeforeUnmount(() => {
-  window.cancelIdleCallback?.(idleHandle!);
   view?.destroy();
 });
 </script>

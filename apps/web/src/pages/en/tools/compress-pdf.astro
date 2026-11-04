@@ -1,0 +1,9 @@
+---
+import PdfCompress from '../../../components/tools/pdf/PdfCompress.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { pdfToolProps } from '../../../lib/pdf/props';
+---
+
+<ToolPage slug="compress-pdf">
+  <PdfCompress client:visible {...pdfToolProps('en')} />
+</ToolPage>

@@ -1,0 +1,14 @@
+---
+import QRCode from 'qrcode';
+import QrGenerator from '../../../components/tools/QrGenerator.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../../i18n';
+import { QR_DEFAULTS, qrOptions } from '../../../lib/qr';
+
+// QR awal dibuat saat build sehingga sudah ada di HTML (LCP cepat).
+const initial = await QRCode.toDataURL(QR_DEFAULTS.text, qrOptions(QR_DEFAULTS));
+---
+
+<ToolPage slug="qr-code-generator">
+  <QrGenerator client:visible m={toolMessages('en', 'qr')} initial={initial} />
+</ToolPage>

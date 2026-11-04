@@ -3,6 +3,7 @@
  * Potong gambar dengan cropperjs (rasio bebas atau tetap), atau buat pas foto 2x3/3x4/4x6 cm (300 DPI).
  * Kotak dipilih di pratinjau, lalu dipotong dari file ASLI di worker agar kualitas tetap penuh.
  */
+import { fileName } from '../../lib/names';
 import type Cropper from 'cropperjs';
 import {
   computed,
@@ -66,7 +67,9 @@ const previewUrl = ref('');
 const preparing = ref(false);
 const host = ref<HTMLDivElement>();
 let cropper: Cropper | null = null;
-const batch = useImageBatch({ suffix: props.mode === 'pasfoto' ? '-pasfoto' : '-crop' });
+const batch = useImageBatch({
+  suffix: fileName(props.mode === 'pasfoto' ? 'passport' : 'cropped'),
+});
 const downloads = ref(0);
 
 async function load(files: File[]) {

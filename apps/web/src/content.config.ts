@@ -29,8 +29,10 @@ const tools = defineCollection({
       .array(z.object({ q: z.string(), a: z.string() }))
       .min(4)
       .max(6),
-    /** Slug tools terkait. */
+    /** Slug tools terkait (dalam bahasa yang sama). */
     related: z.array(z.string()).default([]),
+    /** Khusus konten non-Indonesia: slug halaman Indonesia yang sama (untuk hreflang). */
+    idSlug: z.string().optional(),
   }),
 });
 

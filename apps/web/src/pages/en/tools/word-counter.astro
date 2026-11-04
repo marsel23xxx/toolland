@@ -1,0 +1,9 @@
+---
+import WordCounter from '../../../components/tools/WordCounter.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../../i18n';
+---
+
+<ToolPage slug="word-counter">
+  <WordCounter client:visible m={toolMessages('en', 'wordCounter')} />
+</ToolPage>

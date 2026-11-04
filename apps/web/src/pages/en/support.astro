@@ -1,0 +1,64 @@
+---
+import IconHeart from '~icons/lucide/heart';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE } from '../../lib/site';
+---
+
+<BaseLayout
+  title="Support Toolland | Toolland"
+  description="Toolland is free, ad-free, and needs no sign-up. Voluntary support through Saweria helps pay for servers and new tools."
+  alternates={{ id: '/dukung', en: '/en/support' }}
+>
+  <div class="prose-tool">
+    <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+      Support Toolland
+    </h1>
+    <p class="mt-3 text-lg">
+      Toolland is free, with no ads, no sign-up, and no watermarks. If it helps your work, any
+      support means a lot.
+    </p>
+
+    <div class="card my-6 flex flex-wrap items-center gap-4 border-brand-300 bg-brand-50 dark:border-brand-700 dark:bg-brand-900/30">
+      <IconHeart class="size-8 shrink-0 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+      <div class="min-w-0 flex-1">
+        <p class="font-semibold text-slate-900 dark:text-slate-100">Donate through Saweria</p>
+        <p class="text-sm">
+          Pay with QRIS, e-wallets, or bank transfer. Any amount, no account needed.
+        </p>
+      </div>
+      {SITE.saweria ? (
+        <a href={SITE.saweria} target="_blank" rel="noopener" class="btn btn-primary no-underline">
+          Support on Saweria
+        </a>
+      ) : (
+        <p class="text-sm font-semibold">The donation page is being set up.</p>
+      )}
+    </div>
+
+    <h2>What your support pays for</h2>
+    <ul>
+      <li>
+        <strong>Server and domain costs.</strong> Most tools run in your browser, but the website
+        still needs a server, a domain, and bandwidth to deliver WebAssembly codecs and AI models to
+        every visitor.
+      </li>
+      <li>
+        <strong>Server-side tools.</strong> Word, Excel, and PowerPoint to PDF and maximum PDF
+        compression run on our own server without storing files.
+      </li>
+      <li>
+        <strong>Time to build new tools</strong> and keep everything fast.
+      </li>
+    </ul>
+
+    <h2>Other ways to help</h2>
+    <ul>
+      <li>Share Toolland with friends, classmates, or colleagues.</li>
+      <li>
+        Report bugs or suggest new tools on <a href={`${SITE.repo}/issues`}>GitHub</a>. Toolland is
+        open source (AGPL-3.0).
+      </li>
+    </ul>
+    <p>Donations are voluntary. Every tool stays free, with or without a donation.</p>
+  </div>
+</BaseLayout>

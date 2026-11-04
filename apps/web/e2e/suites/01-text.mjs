@@ -37,7 +37,7 @@ export const tests = [
     name: 'JSON formatter (CodeMirror di Shadow DOM)',
     path: '/tools/json-formatter',
     async run(h) {
-      await h.page.hover('.field');
+      await h.page.focus('textarea[aria-label="JSON"]');
       await h.page.waitForSelector('pierce/.cm-content', { timeout: 10000 });
       await h.page.click('pierce/.cm-content');
       await h.page.keyboard.type('{"b":1,"a":[1,2]}');

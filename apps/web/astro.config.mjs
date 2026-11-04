@@ -1,4 +1,5 @@
 // @ts-check
+import fs from 'node:fs';
 import sitemap from '@astrojs/sitemap';
 import vue from '@astrojs/vue';
 import tailwindcss from '@tailwindcss/vite';
@@ -8,8 +9,37 @@ import Icons from 'unplugin-icons/vite';
 // Halaman yang tidak masuk sitemap.
 const NOINDEX_PAGES = ['/404'];
 
+/**
+ * Pasangan halaman Indonesia <-> Inggris untuk hreflang di sitemap. Slug berbeda per bahasa,
+ * jadi dibaca dari field idSlug di konten Inggris (src/content/tools/en/*.md).
+ */
+function languagePairs() {
+  const dir = new URL('./src/content/tools/en/', import.meta.url);
+  const pairs = [
+    ['/', '/en'],
+    ['/dukung', '/en/support'],
+    ['/kebijakan-privasi', '/en/privacy'],
+  ];
+  for (const file of fs.readdirSync(dir)) {
+    const idSlug = /^idSlug: '(.+)'$/m.exec(fs.readFileSync(new URL(file, dir), 'utf8'))?.[1];
+    if (idSlug) pairs.push([`/tools/${idSlug}`, `/en/tools/${file.replace(/\.md$/, '')}`]);
+  }
+  const map = new Map();
+  for (const [id, en] of pairs) {
+    const links = [
+      { lang: 'id-ID', url: `${SITE}${id === '/' ? '/' : id}` },
+      { lang: 'en-US', url: `${SITE}${en}` },
+    ];
+    map.set(id, links);
+    map.set(en, links);
+  }
+  return map;
+}
+const SITE = 'https://julian-marcell.com';
+const PAIRS = languagePairs();
+
 export default defineConfig({
-  site: 'https://julian-marcell.com',
+  site: SITE,
   output: 'static',
   // URL tanpa garis miring di akhir: /tools/jpg-ke-webp
   trailingSlash: 'never',
@@ -28,8 +58,12 @@ export default defineConfig({
   integrations: [
     vue(),
     sitemap({
-      i18n: { defaultLocale: 'id', locales: { id: 'id-ID', en: 'en-US' } },
       filter: (page) => !NOINDEX_PAGES.some((p) => page.replace(/\/$/, '').endsWith(p)),
+      serialize(item) {
+        const path = new URL(item.url).pathname.replace(/(.)\/$/, '$1');
+        const links = PAIRS.get(path);
+        return links ? { ...item, links } : item;
+      },
     }),
   ],
 

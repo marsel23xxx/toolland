@@ -1,0 +1,9 @@
+---
+import RegexTester from '../../../components/tools/RegexTester.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../../i18n';
+---
+
+<ToolPage slug="regex-tester">
+  <RegexTester client:visible m={toolMessages('en', 'regex')} />
+</ToolPage>
