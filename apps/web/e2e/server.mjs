@@ -28,7 +28,7 @@ export function isolatedPages(nginxConf) {
   return [...block.matchAll(/^\s*~(\S+)\s+1;/gm)].map((m) => new RegExp(m[1]));
 }
 
-export function startServer(dist, nginxConf) {
+export function startServer(dist, nginxConf, port = 0) {
   const isolated = isolatedPages(nginxConf);
   const api = process.env.TOOLLAND_API_URL;
   const server = http.createServer((req, res) => {
@@ -77,7 +77,7 @@ export function startServer(dist, nginxConf) {
     fs.createReadStream(file).pipe(res);
   });
   return new Promise((resolve) =>
-    server.listen(0, '127.0.0.1', () =>
+    server.listen(port, '127.0.0.1', () =>
       resolve({ server, url: `http://127.0.0.1:${server.address().port}` }),
     ),
   );

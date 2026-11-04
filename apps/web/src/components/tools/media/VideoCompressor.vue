@@ -37,6 +37,9 @@ async function run() {
         'libx264',
         '-preset',
         'veryfast',
+        // Hemat memori: lookahead pendek agar video besar dari HP lebih jarang kehabisan memori WebAssembly.
+        '-x264-params',
+        'rc-lookahead=5',
         '-crf',
         String(crf.value),
         ...(height.value ? ['-vf', `scale=-2:'min(${height.value},ih)'`] : []),

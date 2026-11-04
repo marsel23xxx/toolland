@@ -188,3 +188,26 @@ describe('hash', async () => {
     expect(findMatch(r, 'abc')).toBeUndefined();
   });
 });
+
+describe('ffmpeg thread limit', async () => {
+  const { withThreadLimit, FFMPEG_THREADS: T } = await import('./media/ffmpeg');
+  it('membatasi thread decoder, filter, dan encoder', () => {
+    expect(
+      withThreadLimit(['-ss', '1', '-i', '/in/a.mp4', '-c:v', 'libx264', '/out/b.mp4']),
+    ).toEqual([
+      '-filter_threads',
+      T,
+      '-ss',
+      '1',
+      '-threads',
+      T,
+      '-i',
+      '/in/a.mp4',
+      '-c:v',
+      'libx264',
+      '-threads',
+      T,
+      '/out/b.mp4',
+    ]);
+  });
+});

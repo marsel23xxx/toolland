@@ -12,7 +12,8 @@
     "preview": "astro preview",
     "check": "astro check && vue-tsc --noEmit",
     "test": "vitest run",
-    "e2e": "node e2e/run.mjs"
+    "e2e": "node e2e/run.mjs",
+    "serve": "node scripts/serve.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",

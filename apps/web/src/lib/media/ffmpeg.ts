@@ -13,6 +13,23 @@ export function lowMemoryWarning(size: number): boolean {
   return !!mem && mem <= 4 && size > 500 * 1024 ** 2;
 }
 
+/**
+ * Batasi jumlah thread ffmpeg. Tanpa batas, decoder dan x264 membuat thread sebanyak core × 1,5
+ * plus thread lookahead; di ffmpeg.wasm itu bisa melebihi kumpulan thread (proses macet) atau
+ * kehabisan memori pada video besar.
+ */
+export const FFMPEG_THREADS = String(
+  Math.max(1, Math.min(4, globalThis.navigator?.hardwareConcurrency ?? 2)),
+);
+
+export function withThreadLimit(args: string[]): string[] {
+  const a = [...args];
+  const output = a.pop()!;
+  const input = a.indexOf('-i');
+  if (input >= 0) a.splice(input, 0, '-threads', FFMPEG_THREADS);
+  return ['-filter_threads', FFMPEG_THREADS, ...a, '-threads', FFMPEG_THREADS, output];
+}
+
 /** Detik ke "m:ss" atau "h:mm:ss". */
 export function formatTime(sec: number): string {
   const s = Math.max(0, Math.round(sec));
@@ -95,7 +112,7 @@ export function useFfmpeg() {
       await ff.createDir(inDir).catch(() => {});
       await ff.createDir('/out').catch(() => {});
       await ff.mount(FFFSType.WORKERFS, { files: [file] }, inDir);
-      const code = await ff.exec(args(`${inDir}/${file.name}`));
+      const code = await ff.exec(withThreadLimit(args(`${inDir}/${file.name}`)));
       if (code !== 0) throw new Error(classify(lastLog.join('\n')));
       const data = (await ff.readFile(out)) as Uint8Array;
       await ff.deleteFile(out).catch(() => {});
@@ -112,8 +129,10 @@ export function useFfmpeg() {
   }
 
   function classify(log: string): MediaErrorCode {
+    // Log ffmpeg di console agar kegagalan bisa dilacak (tidak berisi isi file).
+    console.warn('[ffmpeg]', log.split('\n').slice(-15).join('\n'));
     if (
-      /out of memory|memory access out of bounds|Cannot enlarge memory|RangeError|Array buffer allocation failed/i.test(
+      /out of memory|\bOOM\b|memory access out of bounds|Cannot enlarge memory|RangeError|Array buffer allocation failed/i.test(
         log,
       )
     )
