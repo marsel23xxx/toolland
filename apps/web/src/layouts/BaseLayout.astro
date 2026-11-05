@@ -2,7 +2,7 @@
 import displayFontUrl from '@fontsource/fraunces/files/fraunces-latin-600-normal.woff2?url';
 import fontUrl from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2?url';
 import Logo from '../components/ui/Logo.astro';
-import { getLocale, useTranslations, type Locale } from '../i18n';
+import { getLocale, pagePath, useTranslations, type Locale } from '../i18n';
 import { CATEGORY_IDS, CATEGORY_NAMES, type CategoryId } from '../lib/categories';
 import { LOCALE_TAGS } from '../lib/format';
 import { SITE } from '../lib/site';
@@ -23,7 +23,7 @@ interface Props {
 const { title, description, alternates = {}, noindex = false, cat, wide = false } = Astro.props;
 const locale = getLocale(Astro.url);
 const t = useTranslations(locale);
-const canonical = new URL(Astro.url.pathname, SITE.url).href;
+const canonical = new URL(pagePath(Astro.url), SITE.url).href;
 const otherLocale: Locale = locale === 'id' ? 'en' : 'id';
 const switchHref = alternates[otherLocale] ?? (otherLocale === 'en' ? '/en' : '/');
 const homeHref = locale === 'en' ? '/en' : '/';

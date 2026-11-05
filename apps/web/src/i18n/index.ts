@@ -35,8 +35,18 @@ export function messages<P extends string>(locale: Locale, prefix: P): Messages<
 }
 
 /** Bahasa dari URL saat build: /en/... = Inggris, selain itu Indonesia. */
+/**
+ * Path halaman tanpa akhiran .html. Saat build (format 'file') Astro.url berisi /en.html atau
+ * /index.html, sedangkan alamat publiknya /en dan /.
+ */
+export function pagePath(url: URL): string {
+  const p = url.pathname.replace(/\.html$/, '').replace(/\/index$/, '/');
+  return p === '' ? '/' : p;
+}
+
 export function getLocale(url: URL): Locale {
-  return url.pathname === '/en' || url.pathname.startsWith('/en/') ? 'en' : 'id';
+  const p = pagePath(url);
+  return p === '/en' || p.startsWith('/en/') ? 'en' : 'id';
 }
 
 /** Teks bersama (salin, unduh, ...) ditambah teks khusus satu tool. */

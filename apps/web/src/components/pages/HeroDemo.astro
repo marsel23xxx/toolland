@@ -1,0 +1,301 @@
+---
+/**
+ * Hiasan beranda: kartu file yang berganti tiap 4 detik dan menunjukkan apa yang dikerjakan
+ * Toolland (file besar menjadi kecil, HEIC menjadi JPG, dst.). Murni CSS, tanpa JavaScript.
+ * Jika pengguna memilih "kurangi animasi", hanya adegan pertama yang tampil dalam keadaan selesai.
+ */
+import type { Locale } from '../../i18n';
+import type { CategoryId } from '../../lib/categories';
+
+interface Props {
+  locale: Locale;
+}
+
+interface Scene {
+  cat: CategoryId;
+  tool: string;
+  time: string;
+  from: { name: string; ext: string; size: string };
+  to: { name: string; ext: string; size: string };
+  note: string;
+}
+
+const { locale } = Astro.props;
+const en = locale === 'en';
+
+const scenes: Scene[] = [
+  {
+    cat: 'gambar',
+    tool: en ? 'Compress image' : 'Kompres gambar',
+    time: en ? '0.4 s' : '0,4 dtk',
+    from: { name: en ? 'holiday.jpg' : 'foto-liburan.jpg', ext: 'JPG', size: '4,2 MB' },
+    to: { name: en ? 'holiday-small.jpg' : 'foto-liburan-kecil.jpg', ext: 'JPG', size: '380 KB' },
+    note: '−91%',
+  },
+  {
+    cat: 'gambar',
+    tool: en ? 'HEIC to JPG' : 'HEIC ke JPG',
+    time: en ? '0.9 s' : '0,9 dtk',
+    from: { name: 'IMG_0412.HEIC', ext: 'HEIC', size: '3,1 MB' },
+    to: { name: 'IMG_0412.jpg', ext: 'JPG', size: '1,2 MB' },
+    note: en ? 'opens anywhere' : 'bisa dibuka di mana saja',
+  },
+  {
+    cat: 'pdf',
+    tool: en ? 'Merge PDF' : 'Gabung PDF',
+    time: en ? '0.3 s' : '0,3 dtk',
+    from: { name: en ? 'id, diploma, cv' : 'ktp, ijazah, cv', ext: '3×PDF', size: '2,4 MB' },
+    to: { name: en ? 'merged.pdf' : 'gabungan.pdf', ext: 'PDF', size: '2,4 MB' },
+    note: en ? '12 pages' : '12 halaman',
+  },
+  {
+    cat: 'media',
+    tool: en ? 'Video to MP3' : 'Video ke MP3',
+    time: en ? '6.2 s' : '6,2 dtk',
+    from: { name: en ? 'lecture.mp4' : 'rekaman-kuliah.mp4', ext: 'MP4', size: '180 MB' },
+    to: { name: en ? 'lecture.mp3' : 'rekaman-kuliah.mp3', ext: 'MP3', size: '12 MB' },
+    note: en ? 'audio only' : 'suaranya saja',
+  },
+];
+const fmt = (s: string) => (en ? s.replace(',', '.') : s);
+---
+
+<div
+  class="flex h-64 flex-col overflow-hidden rounded-md border border-ink bg-paper-2"
+  aria-hidden="true"
+>
+  <div class="relative flex-1">
+    {scenes.map((s) => (
+      <div class="scene absolute inset-0 flex flex-col p-5" data-cat={s.cat}>
+        <div class="flex items-center justify-between">
+          <span class="eyebrow flex items-center gap-2">
+            <span class="size-2 bg-brand-600" />
+            {s.tool}
+          </span>
+          <span class="time eyebrow">{s.time}</span>
+        </div>
+
+        <div class="mt-4 flex items-center gap-3">
+          <span class="file-icon">{s.from.ext}</span>
+          <span class="before min-w-0 flex-1">
+            <span class="block truncate text-sm font-semibold">{s.from.name}</span>
+            <span class="font-mono text-xs text-ink-3">{fmt(s.from.size)}</span>
+          </span>
+        </div>
+
+        <div class="my-3 h-px bg-rule">
+          <div class="bar h-px bg-brand-600" />
+        </div>
+
+        <div class="after flex items-center gap-3">
+          <span class="file-icon file-icon-done">{s.to.ext}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-sm font-semibold">{s.to.name}</span>
+            <span class="font-mono text-xs text-ink-3">
+              {fmt(s.to.size)} · <span class="text-brand-700 dark:text-brand-300">{s.note}</span>
+            </span>
+          </span>
+          <span class="text-lg text-brand-600 dark:text-brand-400">✓</span>
+        </div>
+      </div>
+    ))}
+  </div>
+  <div class="flex items-center justify-between border-t border-rule px-5 py-3">
+    <span class="eyebrow flex items-center gap-2">
+      <span class="live size-1.5 rounded-full bg-daun" />
+      {en ? 'Runs on your device' : 'Diproses di perangkatmu'}
+    </span>
+    <span class="flex gap-1">
+      {scenes.map((s) => (
+        <span class="dot h-1 w-4" data-cat={s.cat} />
+      ))}
+    </span>
+  </div>
+</div>
+
+<style>
+  /* Ikon file: kertas kecil dengan sudut terlipat, warna mengikuti kategori adegan. */
+  .file-icon {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: flex-end;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.75rem;
+    padding-bottom: 0.3rem;
+    border: 1px solid var(--ink);
+    background: var(--paper);
+    clip-path: polygon(0 0, 70% 0, 100% 22%, 100% 100%, 0 100%);
+    font-family: ui-monospace, monospace;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--ink-2);
+  }
+  .file-icon::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 30%;
+    height: 22%;
+    background: var(--ink);
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+  }
+  .file-icon-done {
+    border-color: var(--c);
+    background: var(--c);
+    color: var(--paper);
+  }
+  .file-icon-done::after {
+    background: var(--c-dark);
+  }
+
+  /* Satu putaran 16 detik: 4 adegan × 4 detik. */
+  .scene,
+  .bar,
+  .after,
+  .before,
+  .time {
+    animation-duration: 16s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-out;
+  }
+  .scene {
+    opacity: 0;
+    animation-name: scene;
+  }
+  .bar {
+    width: 0;
+    animation-name: bar;
+  }
+  .after {
+    opacity: 0;
+    animation-name: after;
+  }
+  .before {
+    animation-name: before;
+  }
+  .time {
+    opacity: 0;
+    animation-name: after;
+  }
+  .scene:nth-child(2),
+  .scene:nth-child(2) * {
+    animation-delay: 4s;
+  }
+  .scene:nth-child(3),
+  .scene:nth-child(3) * {
+    animation-delay: 8s;
+  }
+  .scene:nth-child(4),
+  .scene:nth-child(4) * {
+    animation-delay: 12s;
+  }
+
+  /* Penanda adegan di kaki kartu. */
+  .dot {
+    background: var(--rule);
+    animation: dot 16s infinite;
+  }
+  .dot:nth-child(2) {
+    animation-delay: 4s;
+  }
+  .dot:nth-child(3) {
+    animation-delay: 8s;
+  }
+  .dot:nth-child(4) {
+    animation-delay: 12s;
+  }
+  .live {
+    animation: live 2s ease-in-out infinite;
+  }
+
+  @keyframes dot {
+    0%,
+    24% {
+      background: var(--c);
+    }
+    25%,
+    100% {
+      background: var(--rule);
+    }
+  }
+  @keyframes live {
+    50% {
+      opacity: 0.3;
+    }
+  }
+  @keyframes scene {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    3%,
+    22% {
+      opacity: 1;
+      transform: none;
+    }
+    25%,
+    100% {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+  }
+  @keyframes bar {
+    0%,
+    4% {
+      width: 0;
+    }
+    12%,
+    100% {
+      width: 100%;
+    }
+  }
+  @keyframes after {
+    0%,
+    12% {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    14%,
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes before {
+    0%,
+    12% {
+      opacity: 1;
+    }
+    14%,
+    100% {
+      opacity: 0.45;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scene,
+    .scene *,
+    .dot,
+    .live {
+      animation: none !important;
+    }
+    .dot:first-child {
+      background: var(--c);
+    }
+    .scene:first-child,
+    .scene:first-child .after,
+    .scene:first-child .time {
+      opacity: 1;
+    }
+    .scene:first-child .bar {
+      width: 100%;
+    }
+    .scene:first-child .before {
+      opacity: 0.45;
+    }
+  }
+</style>
