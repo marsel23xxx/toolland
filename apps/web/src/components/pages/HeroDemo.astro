@@ -1,101 +1,205 @@
 ---
 /**
- * Hiasan beranda: kartu file yang berganti tiap 4 detik dan menunjukkan apa yang dikerjakan
- * Toolland (file besar menjadi kecil, HEIC menjadi JPG, dst.). Murni CSS, tanpa JavaScript.
- * Jika pengguna memilih "kurangi animasi", hanya adegan pertama yang tampil dalam keadaan selesai.
+ * Hiasan beranda: kartu "sebelum → sesudah" yang berganti tiap 4 detik, dengan foto asli.
+ * Potongan cangkir dibuat dengan tool Hapus Background Toolland sendiri.
+ * Foto: Unsplash License (Fernando Hernandez, Niklas Weiss, Rowan Heuvel).
+ * Animasi murni CSS. Jika pengguna memilih "kurangi animasi", adegan pertama tampil diam.
  */
+import { Image } from 'astro:assets';
 import type { Locale } from '../../i18n';
 import type { CategoryId } from '../../lib/categories';
+import cangkir from '../../assets/hero/cangkir.jpg';
+import cangkirTanpaBg from '../../assets/hero/cangkir-tanpa-bg.png';
+import kelapa from '../../assets/hero/kelapa.jpg';
+import sawah from '../../assets/hero/sawah.jpg';
 
 interface Props {
   locale: Locale;
 }
 
+type Kind = 'background' | 'compress' | 'heic' | 'merge' | 'audio';
+
 interface Scene {
+  kind: Kind;
   cat: CategoryId;
   tool: string;
   time: string;
-  from: { name: string; ext: string; size: string };
-  to: { name: string; ext: string; size: string };
-  note: string;
+  from: { name: string; size: string };
+  to: { name: string; size: string };
 }
 
 const { locale } = Astro.props;
 const en = locale === 'en';
+const n = (s: string) => (en ? s.replace(',', '.') : s);
 
 const scenes: Scene[] = [
   {
+    kind: 'background',
+    cat: 'gambar',
+    tool: en ? 'Remove background' : 'Hapus background',
+    time: en ? '1.8 s' : '1,8 dtk',
+    from: { name: en ? 'product.jpg' : 'produk.jpg', size: n('1,6 MB') },
+    to: { name: en ? 'product-no-bg.png' : 'produk-tanpa-bg.png', size: '820 KB' },
+  },
+  {
+    kind: 'compress',
     cat: 'gambar',
     tool: en ? 'Compress image' : 'Kompres gambar',
     time: en ? '0.4 s' : '0,4 dtk',
-    from: { name: en ? 'holiday.jpg' : 'foto-liburan.jpg', ext: 'JPG', size: '4,2 MB' },
-    to: { name: en ? 'holiday-small.jpg' : 'foto-liburan-kecil.jpg', ext: 'JPG', size: '380 KB' },
-    note: '−91%',
+    from: { name: en ? 'rice-field.jpg' : 'sawah.jpg', size: n('4,2 MB') },
+    to: { name: en ? 'rice-field-small.jpg' : 'sawah-kecil.jpg', size: '380 KB' },
   },
   {
+    kind: 'heic',
     cat: 'gambar',
     tool: en ? 'HEIC to JPG' : 'HEIC ke JPG',
     time: en ? '0.9 s' : '0,9 dtk',
-    from: { name: 'IMG_0412.HEIC', ext: 'HEIC', size: '3,1 MB' },
-    to: { name: 'IMG_0412.jpg', ext: 'JPG', size: '1,2 MB' },
-    note: en ? 'opens anywhere' : 'bisa dibuka di mana saja',
+    from: { name: 'IMG_0412.HEIC', size: n('3,1 MB') },
+    to: { name: 'IMG_0412.jpg', size: n('1,2 MB') },
   },
   {
+    kind: 'merge',
     cat: 'pdf',
     tool: en ? 'Merge PDF' : 'Gabung PDF',
     time: en ? '0.3 s' : '0,3 dtk',
-    from: { name: en ? 'id, diploma, cv' : 'ktp, ijazah, cv', ext: '3×PDF', size: '2,4 MB' },
-    to: { name: en ? 'merged.pdf' : 'gabungan.pdf', ext: 'PDF', size: '2,4 MB' },
-    note: en ? '12 pages' : '12 halaman',
+    from: { name: en ? 'id, diploma, cv' : 'ktp, ijazah, cv', size: en ? '3 files' : '3 file' },
+    to: { name: en ? 'merged.pdf' : 'gabungan.pdf', size: en ? '12 pages' : '12 halaman' },
   },
   {
+    kind: 'audio',
     cat: 'media',
     tool: en ? 'Video to MP3' : 'Video ke MP3',
     time: en ? '6.2 s' : '6,2 dtk',
-    from: { name: en ? 'lecture.mp4' : 'rekaman-kuliah.mp4', ext: 'MP4', size: '180 MB' },
-    to: { name: en ? 'lecture.mp3' : 'rekaman-kuliah.mp3', ext: 'MP3', size: '12 MB' },
-    note: en ? 'audio only' : 'suaranya saja',
+    from: { name: en ? 'lecture.mp4' : 'rekaman-kuliah.mp4', size: '180 MB' },
+    to: { name: en ? 'lecture.mp3' : 'rekaman-kuliah.mp3', size: '12 MB' },
   },
 ];
-const fmt = (s: string) => (en ? s.replace(',', '.') : s);
+
+// Tinggi batang gelombang suara. Ditulis lengkap agar Tailwind menemukan kelasnya.
+const wave = [
+  'h-[35%]',
+  'h-[60%]',
+  'h-[45%]',
+  'h-[80%]',
+  'h-[55%]',
+  'h-[95%]',
+  'h-[70%]',
+  'h-[40%]',
+  'h-[65%]',
+  'h-[85%]',
+  'h-[50%]',
+  'h-[30%]',
+  'h-[75%]',
+  'h-[90%]',
+  'h-[60%]',
+  'h-[45%]',
+  'h-[70%]',
+  'h-[35%]',
+  'h-[55%]',
+  'h-[25%]',
+];
+const img = { width: 400, height: 320, format: 'webp', quality: 72, loading: 'lazy' } as const;
+const pageLines = ['w-4/5', 'w-3/5', 'w-4/5', 'w-2/5'];
 ---
 
 <div
-  class="flex h-64 flex-col overflow-hidden rounded-md border border-ink bg-paper-2"
+  class="flex h-[19rem] flex-col overflow-hidden rounded-md border border-ink bg-paper-2"
   aria-hidden="true"
 >
   <div class="relative flex-1">
     {scenes.map((s) => (
-      <div class="scene absolute inset-0 flex flex-col p-5" data-cat={s.cat}>
+      <div class="scene absolute inset-0 flex flex-col gap-3 p-5" data-cat={s.cat}>
         <div class="flex items-center justify-between">
           <span class="eyebrow flex items-center gap-2">
             <span class="size-2 bg-brand-600" />
             {s.tool}
           </span>
-          <span class="time eyebrow">{s.time}</span>
+          <span class="reveal eyebrow">{s.time}</span>
         </div>
 
-        <div class="mt-4 flex items-center gap-3">
-          <span class="file-icon">{s.from.ext}</span>
-          <span class="before min-w-0 flex-1">
-            <span class="block truncate text-sm font-semibold">{s.from.name}</span>
-            <span class="font-mono text-xs text-ink-3">{fmt(s.from.size)}</span>
+        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          {/* Sebelum */}
+          <div class="panel">
+            {s.kind === 'background' && <Image src={cangkir} alt="" {...img} />}
+            {s.kind === 'compress' && <Image src={sawah} alt="" {...img} />}
+            {s.kind === 'heic' && (
+              <div class="flex h-full flex-col items-center justify-center gap-1.5 bg-paper text-ink-3">
+                <span class="font-display text-3xl leading-none">?</span>
+                <span class="eyebrow">{en ? 'cannot open' : 'tidak bisa dibuka'}</span>
+              </div>
+            )}
+            {s.kind === 'merge' && (
+              <div class="relative flex h-full items-center justify-center bg-paper">
+                {[0, 1, 2].map((i) => (
+                  <div class={`sheet absolute sheet-${i}`}>
+                    {pageLines.map((w) => (
+                      <span class={`block h-0.5 ${w} bg-rule`} />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+            {s.kind === 'audio' && (
+              <div class="relative h-full">
+                <Image src={kelapa} alt="" {...img} />
+                <span class="absolute inset-0 flex items-center justify-center bg-black/30">
+                  <span class="flex size-9 items-center justify-center rounded-full bg-white/90 text-sm text-black">
+                    ▶
+                  </span>
+                </span>
+                <span class="absolute right-1.5 bottom-1.5 bg-black/60 px-1 font-mono text-[0.6rem] text-white">
+                  1:24:07
+                </span>
+              </div>
+            )}
+          </div>
+
+          <span class="font-display text-xl text-ink-3">→</span>
+
+          {/* Sesudah: muncul dengan sapuan dari kiri ke kanan */}
+          <div class="panel">
+            <div class="wipe h-full">
+              {s.kind === 'background' && (
+                <div class="checker h-full">
+                  <Image src={cangkirTanpaBg} alt="" {...img} />
+                </div>
+              )}
+              {s.kind === 'compress' && <Image src={sawah} alt="" {...img} />}
+              {s.kind === 'heic' && <Image src={kelapa} alt="" {...img} />}
+              {s.kind === 'merge' && (
+                <div class="relative flex h-full items-center justify-center bg-paper">
+                  <div class="sheet sheet-done">
+                    {pageLines.map((w) => (
+                      <span class={`block h-0.5 ${w} bg-brand-600/40`} />
+                    ))}
+                    <span class="mt-auto self-end font-mono text-[0.5rem] text-brand-700 dark:text-brand-300">
+                      1–12
+                    </span>
+                  </div>
+                </div>
+              )}
+              {s.kind === 'audio' && (
+                <div class="flex h-full items-center justify-center gap-[3px] bg-paper px-3">
+                  {wave.map((h) => (
+                    <span class={`wave ${h} w-1 bg-brand-600 dark:bg-brand-400`} />
+                  ))}
+                </div>
+              )}
+            </div>
+            <span class="wipe-line" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-[1fr_auto_1fr] gap-3 text-xs">
+          <span class="min-w-0">
+            <span class="block truncate font-semibold text-ink-2">{s.from.name}</span>
+            <span class="font-mono text-ink-3">{s.from.size}</span>
           </span>
-        </div>
-
-        <div class="my-3 h-px bg-rule">
-          <div class="bar h-px bg-brand-600" />
-        </div>
-
-        <div class="after flex items-center gap-3">
-          <span class="file-icon file-icon-done">{s.to.ext}</span>
-          <span class="min-w-0 flex-1">
-            <span class="block truncate text-sm font-semibold">{s.to.name}</span>
-            <span class="font-mono text-xs text-ink-3">
-              {fmt(s.to.size)} · <span class="text-brand-700 dark:text-brand-300">{s.note}</span>
-            </span>
+          <span class="w-5" />
+          <span class="reveal min-w-0">
+            <span class="block truncate font-semibold">{s.to.name}</span>
+            <span class="font-mono text-brand-700 dark:text-brand-300">{s.to.size} ✓</span>
           </span>
-          <span class="text-lg text-brand-600 dark:text-brand-400">✓</span>
         </div>
       </div>
     ))}
@@ -114,73 +218,98 @@ const fmt = (s: string) => (en ? s.replace(',', '.') : s);
 </div>
 
 <style>
-  /* Ikon file: kertas kecil dengan sudut terlipat, warna mengikuti kategori adegan. */
-  .file-icon {
+  .panel {
     position: relative;
-    display: inline-flex;
-    flex: none;
-    align-items: flex-end;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.75rem;
-    padding-bottom: 0.3rem;
-    border: 1px solid var(--ink);
-    background: var(--paper);
-    clip-path: polygon(0 0, 70% 0, 100% 22%, 100% 100%, 0 100%);
-    font-family: ui-monospace, monospace;
-    font-size: 0.55rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    color: var(--ink-2);
+    aspect-ratio: 5 / 4;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    border-radius: 0.25rem;
   }
-  .file-icon::after {
-    content: '';
-    position: absolute;
-    top: -1px;
-    right: -1px;
-    width: 30%;
-    height: 22%;
-    background: var(--ink);
-    clip-path: polygon(0 0, 100% 100%, 0 100%);
-  }
-  .file-icon-done {
-    border-color: var(--c);
-    background: var(--c);
-    color: var(--paper);
-  }
-  .file-icon-done::after {
-    background: var(--c-dark);
+  .panel :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
-  /* Satu putaran 16 detik: 4 adegan × 4 detik. */
+  /* Lembar PDF dari CSS. */
+  .sheet {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    width: 2.6rem;
+    height: 3.4rem;
+    padding: 0.45rem 0.4rem;
+    border: 1px solid var(--ink-3);
+    background: var(--paper-2);
+    box-shadow: 0 1px 0 var(--rule);
+  }
+  .sheet-0 {
+    transform: translateX(-2.2rem) rotate(-8deg);
+  }
+  .sheet-2 {
+    transform: translateX(2.2rem) rotate(7deg);
+  }
+  .sheet-done {
+    width: 3rem;
+    height: 3.9rem;
+    border-color: var(--c);
+    box-shadow:
+      3px 3px 0 -1px var(--paper-2),
+      3px 3px 0 0 var(--c),
+      6px 6px 0 -1px var(--paper-2),
+      6px 6px 0 0 var(--c);
+  }
+
+  /* Satu putaran 20 detik: 5 adegan × 4 detik. */
   .scene,
-  .bar,
-  .after,
-  .before,
-  .time {
-    animation-duration: 16s;
+  .wipe,
+  .wipe-line,
+  .reveal,
+  .sheet-0,
+  .sheet-2 {
+    animation-duration: 20s;
     animation-iteration-count: infinite;
-    animation-timing-function: ease-out;
+    animation-timing-function: ease-in-out;
   }
   .scene {
     opacity: 0;
     animation-name: scene;
   }
-  .bar {
-    width: 0;
-    animation-name: bar;
+  .wipe {
+    clip-path: inset(0 100% 0 0);
+    animation-name: wipe;
   }
-  .after {
+  .wipe-line {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 2px;
+    background: var(--c);
     opacity: 0;
-    animation-name: after;
+    animation-name: wipe-line;
   }
-  .before {
-    animation-name: before;
-  }
-  .time {
+  .reveal {
     opacity: 0;
-    animation-name: after;
+    animation-name: reveal;
   }
+  .sheet-0 {
+    animation-name: gather-left;
+  }
+  .sheet-2 {
+    animation-name: gather-right;
+  }
+  .wave {
+    transform-origin: center;
+    animation: wave 1.1s ease-in-out infinite alternate;
+  }
+  .wave:nth-child(3n) {
+    animation-duration: 0.8s;
+  }
+  .wave:nth-child(3n + 1) {
+    animation-duration: 1.4s;
+  }
+
   .scene:nth-child(2),
   .scene:nth-child(2) * {
     animation-delay: 4s;
@@ -193,11 +322,15 @@ const fmt = (s: string) => (en ? s.replace(',', '.') : s);
   .scene:nth-child(4) * {
     animation-delay: 12s;
   }
+  .scene:nth-child(5),
+  .scene:nth-child(5) * {
+    animation-delay: 16s;
+  }
 
   /* Penanda adegan di kaki kartu. */
   .dot {
     background: var(--rule);
-    animation: dot 16s infinite;
+    animation: dot 20s infinite;
   }
   .dot:nth-child(2) {
     animation-delay: 4s;
@@ -208,16 +341,102 @@ const fmt = (s: string) => (en ? s.replace(',', '.') : s);
   .dot:nth-child(4) {
     animation-delay: 12s;
   }
+  .dot:nth-child(5) {
+    animation-delay: 16s;
+  }
   .live {
     animation: live 2s ease-in-out infinite;
   }
 
+  @keyframes scene {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    2.5%,
+    18% {
+      opacity: 1;
+      transform: none;
+    }
+    20%,
+    100% {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+  }
+  @keyframes wipe {
+    0%,
+    4% {
+      clip-path: inset(0 100% 0 0);
+    }
+    10%,
+    100% {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @keyframes wipe-line {
+    0%,
+    4% {
+      left: 0;
+      opacity: 0;
+    }
+    5% {
+      opacity: 1;
+    }
+    10% {
+      left: calc(100% - 2px);
+      opacity: 1;
+    }
+    11%,
+    100% {
+      left: calc(100% - 2px);
+      opacity: 0;
+    }
+  }
+  @keyframes reveal {
+    0%,
+    9% {
+      opacity: 0;
+    }
+    11%,
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes gather-left {
+    0%,
+    4% {
+      transform: translateX(-2.2rem) rotate(-8deg);
+    }
+    9%,
+    100% {
+      transform: translateX(-0.4rem) rotate(-2deg);
+    }
+  }
+  @keyframes gather-right {
+    0%,
+    4% {
+      transform: translateX(2.2rem) rotate(7deg);
+    }
+    9%,
+    100% {
+      transform: translateX(0.4rem) rotate(2deg);
+    }
+  }
+  @keyframes wave {
+    from {
+      transform: scaleY(0.35);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
   @keyframes dot {
     0%,
-    24% {
+    19% {
       background: var(--c);
     }
-    25%,
+    20%,
     100% {
       background: var(--rule);
     }
@@ -225,54 +444,6 @@ const fmt = (s: string) => (en ? s.replace(',', '.') : s);
   @keyframes live {
     50% {
       opacity: 0.3;
-    }
-  }
-  @keyframes scene {
-    0% {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    3%,
-    22% {
-      opacity: 1;
-      transform: none;
-    }
-    25%,
-    100% {
-      opacity: 0;
-      transform: translateY(-8px);
-    }
-  }
-  @keyframes bar {
-    0%,
-    4% {
-      width: 0;
-    }
-    12%,
-    100% {
-      width: 100%;
-    }
-  }
-  @keyframes after {
-    0%,
-    12% {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    14%,
-    100% {
-      opacity: 1;
-      transform: none;
-    }
-  }
-  @keyframes before {
-    0%,
-    12% {
-      opacity: 1;
-    }
-    14%,
-    100% {
-      opacity: 0.45;
     }
   }
 
@@ -283,19 +454,15 @@ const fmt = (s: string) => (en ? s.replace(',', '.') : s);
     .live {
       animation: none !important;
     }
-    .dot:first-child {
-      background: var(--c);
-    }
     .scene:first-child,
-    .scene:first-child .after,
-    .scene:first-child .time {
+    .scene:first-child .reveal {
       opacity: 1;
     }
-    .scene:first-child .bar {
-      width: 100%;
+    .scene:first-child .wipe {
+      clip-path: none;
     }
-    .scene:first-child .before {
-      opacity: 0.45;
+    .dot:first-child {
+      background: var(--c);
     }
   }
 </style>
