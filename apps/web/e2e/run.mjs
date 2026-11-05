@@ -112,7 +112,10 @@ async function context(urlPath) {
           const cards = [...document.querySelectorAll('li.card')].filter((c) =>
             c.querySelector('button[aria-label^="Hapus"], button[aria-label^="Remove"]'),
           );
-          return cards.length >= n && cards.every((c) => !c.querySelector('progress'));
+          return (
+            cards.length >= n &&
+            cards.every((c) => !c.querySelector('progress, [role=progressbar]'))
+          );
         },
         { timeout },
         n,

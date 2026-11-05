@@ -6,7 +6,8 @@
  */
 import { expose, transfer } from 'comlink';
 
-export type Progress = (stage: 'download' | 'process', current: number, total: number) => void;
+/** key dari imgly: `fetch:<file>` (byte) atau `compute:decode|inference|mask|encode` (langkah). */
+export type Progress = (key: string, current: number, total: number) => void;
 
 async function hasWebGpu(): Promise<boolean> {
   try {
@@ -39,8 +40,9 @@ const api = {
       model: device === 'gpu' ? 'isnet_fp16' : 'isnet_quint8',
       proxyToWorker: false,
       output: { format: 'image/png' },
+      // Jangan kembalikan Promise dari proxy Comlink ke imgly: cukup panggil lalu lanjut.
       progress: (key: string, current: number, total: number) => {
-        onProgress(key.startsWith('compute') ? 'process' : 'download', current, total);
+        void onProgress(key, current, total);
       },
     });
     const png = await blob.arrayBuffer();

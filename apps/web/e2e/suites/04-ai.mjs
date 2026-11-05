@@ -15,11 +15,14 @@ export const tests = [
       );
       const t0 = Date.now();
       await h.upload('wajah.jpg');
-      await h.page.waitForFunction(() => document.querySelectorAll('.checker img').length === 1, {
-        timeout: 180000,
-      });
+      await h.page.waitForFunction(
+        () => document.querySelectorAll('ul.grid .checker img').length === 1,
+        {
+          timeout: 180000,
+        },
+      );
       const first = (Date.now() - t0) / 1000;
-      const out = await h.page.$eval('.checker img', async (img) => {
+      const out = await h.page.$eval('ul.grid .checker img', async (img) => {
         await img.decode();
         const c = document.createElement('canvas');
         c.width = img.naturalWidth;

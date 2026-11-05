@@ -15,7 +15,7 @@ faq:
   - q: 'Are my photos uploaded to a server?'
     a: 'No. The AI model (ISNet) runs directly in your browser using WebGPU or WebAssembly. Photos never leave your device.'
   - q: 'Why is the first run slow?'
-    a: 'An AI model of about 44–88 MB downloads once and is stored in your browser. After that, processing starts instantly.'
+    a: 'The first time you use it on a device, the AI needs to get ready: the model is about 44 MB, or 88 MB if your browser can use the GPU. After that it is kept in your browser, so later uses start right away.'
   - q: 'How long does it take?'
     a: 'With WebGPU (recent Chrome or Edge), usually a few seconds per photo. Without a GPU it runs on the CPU and can take longer.'
   - q: 'Can I use a red or blue background for ID photos?'

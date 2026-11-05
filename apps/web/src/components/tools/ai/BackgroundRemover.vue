@@ -4,7 +4,7 @@ import type { Remote } from 'comlink';
 import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue';
 import type { Messages } from '../../../i18n';
 import { downloadBlob } from '../../../lib/download';
-import { fill, formatBytes } from '../../../lib/format';
+import { fill } from '../../../lib/format';
 import { canvasToBlob } from '../../../lib/pdf/render';
 import { withSuffix } from '../../../lib/results';
 import { VENDOR } from '../../../lib/vendor';
@@ -33,7 +33,13 @@ interface Item {
 }
 
 const items = ref<Item[]>([]);
-const progress = ref<{ label: string; value?: number } | null>(null);
+/** Foto yang sedang diproses: pratinjau, tahap, dan progres gabungan 0–100. */
+const current = ref<{ name: string; thumb: string; stage: Stage; value: number } | null>(null);
+type Stage = 'prepare' | 'almost' | 'detect' | 'refine';
+const stageLabel = computed(() => {
+  const k = current.value?.stage ?? 'prepare';
+  return props.t[`stage${k[0]!.toUpperCase()}${k.slice(1)}` as keyof Messages<'ai'>];
+});
 const device = ref<'gpu' | 'cpu' | null>(null);
 const errors = ref<string[]>([]);
 const background = ref<'transparent' | 'white' | 'custom'>('transparent');
@@ -43,6 +49,7 @@ let worker: Worker | undefined;
 let api: Remote<BgWorkerApi> | undefined;
 let nextId = 0;
 const queue: File[] = [];
+const queueLeft = ref(0);
 let running = false;
 
 async function getApi() {
@@ -86,26 +93,51 @@ async function pump() {
   try {
     while (queue.length) {
       const file = queue.shift()!;
-      progress.value = { label: fill(props.t.processing, { name: file.name }) };
+      queueLeft.value = queue.length;
+      current.value = {
+        name: file.name,
+        thumb: URL.createObjectURL(file),
+        stage: 'prepare',
+        value: 0,
+      };
+      // Satu progres gabungan: menyiapkan 0–40%, mengenali objek 40–88%, merapikan 90–100%.
+      // Tahap inferensi tidak melaporkan kemajuan, jadi progres merayap pelan agar tidak terlihat macet.
+      const fetched = new Map<string, [number, number]>();
+      const STEPS: Record<string, [Stage, number]> = {
+        'compute:decode': ['detect', 40],
+        'compute:inference': ['detect', 45],
+        'compute:mask': ['refine', 90],
+        'compute:encode': ['refine', 95],
+      };
+      const set = (stage: Stage, value: number) => {
+        const c = current.value;
+        // Hanya maju, tidak pernah mundur.
+        if (c && value >= c.value) current.value = { ...c, stage, value };
+      };
+      const report = (key: string, done: number, total: number) => {
+        if (key.startsWith('fetch:')) {
+          fetched.set(key, [done, total]);
+          let d = 0;
+          let t = 0;
+          for (const [a, b] of fetched.values()) {
+            d += a;
+            t += b;
+          }
+          const ratio = t ? d / t : 0;
+          set(ratio < 0.6 ? 'prepare' : 'almost', ratio * 40);
+        } else if (STEPS[key]) {
+          const [stage, at] = STEPS[key];
+          set(stage, key === 'compute:encode' && done >= total ? 100 : at);
+        }
+      };
+      const creep = setInterval(() => {
+        const c = current.value;
+        if (c?.stage === 'detect' && c.value < 88) set('detect', c.value + (88 - c.value) * 0.04);
+      }, 150);
       try {
         const r = await (
           await getApi()
-        ).remove(
-          file,
-          new URL(VENDOR.imgly, location.href).href,
-          proxy((stage, current, total) => {
-            progress.value =
-              stage === 'download' && total > 0
-                ? {
-                    label: fill(props.t.downloading, {
-                      current: formatBytes(current),
-                      total: formatBytes(total),
-                    }),
-                    value: (current / total) * 100,
-                  }
-                : { label: fill(props.t.processing, { name: file.name }) };
-          }),
-        );
+        ).remove(file, new URL(VENDOR.imgly, location.href).href, proxy(report));
         device.value = r.device;
         const png = new Blob([r.png], { type: 'image/png' });
         const out = await compose(png);
@@ -118,16 +150,20 @@ async function pump() {
         });
       } catch {
         errors.value.push(fill(props.t.error, { name: file.name }));
+      } finally {
+        clearInterval(creep);
+        if (current.value) URL.revokeObjectURL(current.value.thumb);
+        current.value = null;
       }
     }
   } finally {
     running = false;
-    progress.value = null;
   }
 }
 
 function add(list: File[]) {
   queue.push(...list);
+  if (running) queueLeft.value = queue.length;
   void pump();
 }
 
@@ -155,6 +191,7 @@ const zipEntries = computed(() => items.value.map((i) => ({ name: outName(i.name
 
 onBeforeUnmount(() => {
   worker?.terminate();
+  if (current.value) URL.revokeObjectURL(current.value.thumb);
   items.value.forEach((i) => URL.revokeObjectURL(i.url));
 });
 </script>
@@ -162,14 +199,8 @@ onBeforeUnmount(() => {
 <template>
   <div class="space-y-4">
     <Dropzone :messages="dropzone" accept="image/*,.heic,.heif" @files="add" @prefetch="getApi()" />
-    <p class="text-sm text-slate-600 dark:text-slate-400">
-      {{
-        device === 'gpu'
-          ? t.deviceGpu
-          : device === 'cpu'
-            ? t.deviceCpu
-            : fill(t.firstRunNote, { size: '44–88 MB' })
-      }}
+    <p v-if="device" class="text-sm text-slate-600 dark:text-slate-400">
+      {{ device === 'gpu' ? t.deviceGpu : t.deviceCpu }}
     </p>
 
     <div class="flex flex-wrap items-end gap-3">
@@ -206,7 +237,25 @@ onBeforeUnmount(() => {
       />
     </div>
 
-    <ProgressBar v-if="progress" :label="progress.label" :value="progress.value" />
+    <div v-if="current" class="card flex items-center gap-4 p-3" aria-live="polite">
+      <div class="checker relative size-20 shrink-0 overflow-hidden rounded-md">
+        <img
+          v-if="current.thumb"
+          :src="current.thumb"
+          alt=""
+          class="size-full object-cover"
+          @error="current.thumb = ''"
+        />
+        <span class="scan-line" aria-hidden="true" />
+      </div>
+      <div class="min-w-0 flex-1 space-y-1.5">
+        <ProgressBar :label="stageLabel" :value="current.value" />
+        <p class="truncate text-xs text-ink-3">
+          {{ current.name
+          }}<template v-if="queueLeft"> · {{ fill(t.queued, { n: queueLeft }) }}</template>
+        </p>
+      </div>
+    </div>
     <ul v-if="errors.length" class="space-y-1" aria-live="polite">
       <li v-for="e in errors" :key="e" class="error-text">{{ e }}</li>
     </ul>
@@ -241,3 +290,27 @@ onBeforeUnmount(() => {
     </ul>
   </div>
 </template>
+
+<style scoped>
+/* Garis pemindai di atas pratinjau foto selama AI bekerja. */
+.scan-line {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 2px;
+  background: var(--c);
+  box-shadow: 0 0 12px 2px color-mix(in oklab, var(--c) 60%, transparent);
+  animation: scan 1.6s ease-in-out infinite alternate;
+}
+@keyframes scan {
+  to {
+    top: calc(100% - 2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-line {
+    animation: none;
+    top: 50%;
+  }
+}
+</style>

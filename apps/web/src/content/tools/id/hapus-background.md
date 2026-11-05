@@ -14,7 +14,7 @@ faq:
   - q: 'Apakah foto saya diunggah ke server?'
     a: 'Tidak. Model AI (ISNet) berjalan langsung di browser kamu memakai WebGPU atau WebAssembly. Foto tidak pernah meninggalkan perangkat.'
   - q: 'Kenapa pertama kali lama?'
-    a: 'Model AI berukuran sekitar 44–88 MB diunduh sekali, lalu disimpan di browser. Pemakaian berikutnya langsung memproses tanpa mengunduh lagi.'
+    a: 'Saat pertama kali dipakai di perangkatmu, AI perlu disiapkan dulu: modelnya sekitar 44 MB, atau 88 MB jika browser bisa memakai GPU. Setelah itu model tersimpan di browser, jadi pemakaian berikutnya langsung memproses.'
   - q: 'Berapa lama prosesnya?'
     a: 'Dengan WebGPU (Chrome atau Edge terbaru), biasanya beberapa detik per foto. Tanpa GPU prosesnya memakai CPU dan bisa lebih lama.'
   - q: 'Bisakah mengganti latar menjadi merah atau biru untuk pas foto?'
