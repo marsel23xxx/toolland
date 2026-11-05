@@ -205,9 +205,6 @@ importers:
       '@lezer/highlight':
         specifier: ^1.2.5
         version: 1.2.5
-      '@mediapipe/tasks-vision':
-        specifier: 1.2.0
-        version: 1.2.0
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.3.5(@types/node@24.19.2)(jiti@2.7.0)(yaml@2.9.1))
@@ -217,9 +214,6 @@ importers:
       comlink:
         specifier: ^4.4.2
         version: 4.4.2
-      cropperjs:
-        specifier: ^2.3.1
-        version: 2.3.1
       diff:
         specifier: ^9.0.0
         version: 9.0.0
@@ -656,39 +650,6 @@ packages:
   '@codemirror/view@6.43.15':
     resolution: {integrity: sha512-HHsfpqFeHyXLs983pSRe38Xajs0vFWZQ2BuX0m7Ki8w3jZ5iD8cuR3lBz2/5/X53Dhf32SBHKh6rtSTB6tKeGw==}
 
-  '@cropper/element-canvas@2.3.1':
-    resolution: {integrity: sha512-UH3VMyjn58PdwYkPiTHuvRUjGzmyKr6E2pYWxTxN/04wnjgYLA77B5u5c1HhV6vD1ZKSvxJ/i9TkiySR9P1D6A==}
-
-  '@cropper/element-crosshair@2.3.1':
-    resolution: {integrity: sha512-Vz2heRwr2nd2rZ161vKyE4JwYV3eSodGCGGZq39TR0LICGOOeggLq0R664Af/eFB9PU8+tfJ42lWLoUdxQlVJQ==}
-
-  '@cropper/element-grid@2.3.1':
-    resolution: {integrity: sha512-6LDaUDxH2xdA7biTcqnihPQVHjlT4bXysA403s9rU4jo5f4pPnFHtNbB+FQTYKNz5EKun52WgVtR+6oWbmbxlg==}
-
-  '@cropper/element-handle@2.3.1':
-    resolution: {integrity: sha512-ygLw89PWu9k8SuKW7rjRBpD6ZfmtVr5ayWux9YKHU7PxX0SeL5kbCD+PpOxQB1ycW4UcyH0tHt77EWnsdSoOHw==}
-
-  '@cropper/element-image@2.3.1':
-    resolution: {integrity: sha512-rPE7OX/BPTw66+DjpN5aOuPb1xSAjQMgAJZXdRgmeJnn0YcDDhfGQm8VwcL8/PMLxtWFcKEM+aUiezbO01j4fg==}
-
-  '@cropper/element-selection@2.3.1':
-    resolution: {integrity: sha512-b8sabaFbHeQYY459uItDIeDY0IisZBO/wF+SYhKvAgI8TExj/f2mNcBZXjPHYCkWel2+1BSUTTNZxy+tR8sDEA==}
-
-  '@cropper/element-shade@2.3.1':
-    resolution: {integrity: sha512-X5ceZsy7iBxuIRhsL05H9+cPYzxZuvM7/9j5irXIbNsDiNwTedxIHdjhEhPbUYa+FaNn9wsKId24AEyH43JTGw==}
-
-  '@cropper/element-viewer@2.3.1':
-    resolution: {integrity: sha512-EdrYDbnkj0IOl/kyWKzzvcDRobr7Tfzho7FkVu8mpSk1ILDHmVf8pfZrYVwou8l4znLqp8ZqwuabAezJPfC2Yg==}
-
-  '@cropper/element@2.3.1':
-    resolution: {integrity: sha512-CgrLOx0qERWlfJK1Ed6ePq7SXcB6gLHtj3mtDVypyzti70fJdmNxrFm5Ucbq8vpp2Yo3tW2L6uDI0IBDoiT17A==}
-
-  '@cropper/elements@2.3.1':
-    resolution: {integrity: sha512-+D5rFlfFlWSL1lp0vPYI59/R6XM2vMnTSX0/B1zKRvmkc0t0N0m9lxVsaDb+9RkHx6PwAkBBNPZSRUeau33jMg==}
-
-  '@cropper/utils@2.3.1':
-    resolution: {integrity: sha512-b5qFTwws/osx0asIGLK1V//hdL08frGvfpi6s+p6zj5XH05ofVcz0Xl+Tot7sUx12pbfhhAlsquQTOJ1IsOoFw==}
-
   '@csstools/color-helpers@6.1.2':
     resolution: {integrity: sha512-grhRy3OKmniaAEKXMjua5z/EODX0MSqBGjunw8+j/3HQjOnahs2AGhvEOIYVUWcU6ScApbhLhVrQTX8XqrMrow==}
     engines: {node: '>=20.19.0'}
@@ -1091,9 +1052,6 @@ packages:
 
   '@marijn/find-cluster-break@1.0.4':
     resolution: {integrity: sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ==}
-
-  '@mediapipe/tasks-vision@1.2.0':
-    resolution: {integrity: sha512-7+dr9GbGyTtcuLh11wE5TOn4dNFRncIT9oAWs72620WX99KW5FfzF6rFJ/ChTgXG9vJ6dCiE9FrEEY4CnwPWKQ==}
 
   '@napi-rs/canvas-android-arm64@1.1.0':
     resolution: {integrity: sha512-mKrSmRyhWK4q699Q1xthbZIZi7JBvLtsRNnOZAeFaLPOFT1yo8y82aRC2nNZbXTGJXU7fVDONgGQPr0vo3kerw==}
@@ -1956,9 +1914,6 @@ packages:
 
   crelt@1.0.7:
     resolution: {integrity: sha512-aK6BbWfhf4U/wCcLHKPJl/xa6VkVstRaPywWtMKGwuOLc/wZTyQYuoxgvZnNsBvv7Kg3YTBQYYBCggcviQczuA==}
-
-  cropperjs@2.3.1:
-    resolution: {integrity: sha512-bgy+iHRFjsBxBCriXkTuFuHRJGSGZISuqDGhDQG7gLK0F7qOzhH06bdXzGf4b0bZSQ+mApakybiW9xvKnS9dbg==}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -4289,72 +4244,6 @@ snapshots:
       style-mod: 4.1.4
       w3c-keyname: 2.2.8
 
-  '@cropper/element-canvas@2.3.1':
-    dependencies:
-      '@cropper/element': 2.3.1
-      '@cropper/utils': 2.3.1
-
-  '@cropper/element-crosshair@2.3.1':
-    dependencies:
-      '@cropper/element': 2.3.1
-      '@cropper/utils': 2.3.1
-
-  '@cropper/element-grid@2.3.1':
-    dependencies:
-      '@cropper/element': 2.3.1
-      '@cropper/utils': 2.3.1
-
-  '@cropper/element-handle@2.3.1':
-    dependencies:
-      '@cropper/element': 2.3.1
-      '@cropper/utils': 2.3.1
-
-  '@cropper/element-image@2.3.1':
-    dependencies:
-      '@cropper/element': 2.3.1
-      '@cropper/element-canvas': 2.3.1
-      '@cropper/utils': 2.3.1
-
-  '@cropper/element-selection@2.3.1':
-    dependencies:
-      '@cropper/element': 2.3.1
-      '@cropper/element-canvas': 2.3.1
-      '@cropper/element-image': 2.3.1
-      '@cropper/utils': 2.3.1
-
-  '@cropper/element-shade@2.3.1':
-    dependencies:
-      '@cropper/element': 2.3.1
-      '@cropper/element-canvas': 2.3.1
-      '@cropper/element-selection': 2.3.1
-      '@cropper/utils': 2.3.1
-
-  '@cropper/element-viewer@2.3.1':
-    dependencies:
-      '@cropper/element': 2.3.1
-      '@cropper/element-canvas': 2.3.1
-      '@cropper/element-image': 2.3.1
-      '@cropper/element-selection': 2.3.1
-      '@cropper/utils': 2.3.1
-
-  '@cropper/element@2.3.1':
-    dependencies:
-      '@cropper/utils': 2.3.1
-
-  '@cropper/elements@2.3.1':
-    dependencies:
-      '@cropper/element': 2.3.1
-      '@cropper/element-canvas': 2.3.1
-      '@cropper/element-crosshair': 2.3.1
-      '@cropper/element-grid': 2.3.1
-      '@cropper/element-handle': 2.3.1
-      '@cropper/element-image': 2.3.1
-      '@cropper/element-selection': 2.3.1
-      '@cropper/element-shade': 2.3.1
-      '@cropper/element-viewer': 2.3.1
-
-  '@cropper/utils@2.3.1': {}
-
   '@csstools/color-helpers@6.1.2': {}
 
   '@csstools/css-calc@3.4.3(@csstools/css-parser-algorithms@4.0.2(@csstools/css-tokenizer@4.0.2))(@csstools/css-tokenizer@4.0.2)':
@@ -4687,8 +4576,6 @@ snapshots:
       '@lezer/common': 1.5.5
 
   '@marijn/find-cluster-break@1.0.4': {}
-
-  '@mediapipe/tasks-vision@1.2.0': {}
 
   '@napi-rs/canvas-android-arm64@1.1.0':
     optional: true
@@ -5608,11 +5495,6 @@ snapshots:
   cookie@2.0.1: {}
 
   crelt@1.0.7: {}
-
-  cropperjs@2.3.1:
-    dependencies:
-      '@cropper/elements': 2.3.1
-      '@cropper/utils': 2.3.1
 
   cross-spawn@7.0.6:
     dependencies:

@@ -19,10 +19,10 @@ faq:
   - q: 'How long does it take?'
     a: 'With WebGPU (recent Chrome or Edge), usually a few seconds per photo. Without a GPU it runs on the CPU and can take longer.'
   - q: 'Can I use a red or blue background for ID photos?'
-    a: 'Yes. Choose Other color, pick the color, download, then crop with the Passport Photo tool.'
+    a: 'Yes. Choose Other color, pick the color, then download the result.'
   - q: 'Which photos work best?'
     a: 'A clear main subject with enough contrast against the background, such as products, people, or pets.'
-related: ['passport-photo', 'compress-image', 'blur-faces']
+related: ['jpg-to-pdf', 'compress-image', 'heic-to-jpg']
 ---
 
 ## Product photos and ID photos without editing apps

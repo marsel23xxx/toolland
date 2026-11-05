@@ -1,7 +1,7 @@
 ---
 name: 'JSON ke CSV'
 title: 'Konversi JSON ke CSV dan CSV ke JSON'
-description: 'Ubah JSON ke CSV untuk Excel atau Google Sheets, dan sebaliknya. Mendukung pemisah koma, titik koma, dan tab. Gratis dan privat.'
+description: 'Ubah JSON ke CSV untuk Excel atau Google Sheets, dan sebaliknya. Mendukung pemisah koma, titik koma, dan tab. Diproses di browser.'
 summary: 'Konversi JSON ke CSV untuk Excel, dan sebaliknya.'
 category: 'developer'
 keywords: ['json to csv', 'csv to json', 'json excel', 'konversi csv']

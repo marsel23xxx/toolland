@@ -112,8 +112,3 @@ export function clampRect(rect: Rect, w: number, h: number): Rect {
     height: Math.max(1, Math.min(Math.round(rect.height), h - y)),
   };
 }
-
-/** Ukuran piksel dari ukuran cetak (cm) pada DPI tertentu, misalnya pas foto 3x4 cm pada 300 DPI. */
-export function cmToPx(cm: number, dpi = 300): number {
-  return Math.round((cm / 2.54) * dpi);
-}

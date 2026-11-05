@@ -1,7 +1,7 @@
 ---
 name: 'Tanda Tangan PDF'
 title: 'Tanda Tangan PDF Online'
-description: 'Bubuhkan tanda tangan di PDF: gambar langsung atau unggah foto tanda tangan, lalu tempel di halaman mana pun. Gratis dan tanpa upload ke server.'
+description: 'Bubuhkan tanda tangan di PDF: gambar langsung atau unggah foto tanda tangan, lalu tempel di halaman mana pun. Tanpa upload ke server.'
 summary: 'Tempel tanda tangan di halaman PDF.'
 category: 'pdf'
 keywords: ['sign pdf', 'ttd pdf', 'tanda tangan digital', 'tanda tangan online', 'esign pdf']

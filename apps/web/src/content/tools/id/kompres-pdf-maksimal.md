@@ -1,7 +1,7 @@
 ---
 name: 'Kompres PDF Maksimal'
 title: 'Kompres PDF Maksimal (Ghostscript)'
-description: 'Kompresi PDF paling kuat dengan Ghostscript di server: gambar, font, dan struktur dioptimalkan. Maksimal 15 MB, file langsung dihapus. Gratis.'
+description: 'Kompresi PDF paling kuat dengan Ghostscript di server: gambar, font, dan struktur dioptimalkan. Maksimal 15 MB, file langsung dihapus.'
 summary: 'Kompresi PDF terkuat dengan Ghostscript.'
 category: 'pdf'
 processing: 'server'

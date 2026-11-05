@@ -1,7 +1,7 @@
 ---
 name: 'QR Code'
-title: 'Buat QR Code Gratis Online'
-description: 'Buat QR code untuk link, teks, atau nomor telepon. Atur ukuran, warna, dan koreksi error, lalu unduh PNG atau SVG. Gratis tanpa watermark.'
+title: 'Buat QR Code Online'
+description: 'Buat QR code untuk link, teks, atau nomor telepon. Atur ukuran, warna, dan koreksi error, lalu unduh PNG atau SVG. Tanpa watermark.'
 summary: 'QR code untuk link dan teks, unduh PNG atau SVG.'
 category: 'developer'
 keywords: ['qr code generator', 'generator qr', 'qr code gratis', 'qr link', 'barcode']

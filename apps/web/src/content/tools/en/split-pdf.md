@@ -1,7 +1,7 @@
 ---
 name: 'Split PDF'
 title: 'Split PDF Online'
-description: 'Split a PDF into single pages, page ranges, or extract only the pages you need. Free, fast, and processed on your device.'
+description: 'Split a PDF into single pages, page ranges, or extract only the pages you need. Fast and processed on your device.'
 summary: 'Split a PDF by page or range.'
 category: 'pdf'
 idSlug: 'pisah-pdf'

@@ -5,7 +5,7 @@ export const tests = [
     name: 'EN: beranda dan pencarian',
     path: '/en',
     async run(h) {
-      expect((await h.page.title()).includes('Free, fast, and private'), await h.page.title());
+      expect((await h.page.title()).includes('Fast and private'), await h.page.title());
       expect(await h.bodyHas('Merge PDF'), 'kartu tool bahasa Inggris tidak ada');
       await h.type('#tool-search', 'merge');
       const visible = await h.page.$$eval('[data-search]', (els) =>

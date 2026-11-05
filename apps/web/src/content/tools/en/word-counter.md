@@ -1,7 +1,7 @@
 ---
 name: 'Word Counter'
 title: 'Word and Character Counter'
-description: 'Count words, characters, sentences, paragraphs, and reading time instantly. Free, no sign-up, and your text never leaves your device.'
+description: 'Count words, characters, sentences, paragraphs, and reading time instantly. No sign-up, and your text never leaves your device.'
 summary: 'Words, characters, sentences, and reading time.'
 category: 'teks'
 idSlug: 'hitung-kata'

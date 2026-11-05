@@ -20,7 +20,7 @@ faq:
     a: 'Yes. The rotation stored in the HEIC file is applied, so photos are not sideways after conversion.'
   - q: 'How do I make my iPhone save JPG directly?'
     a: 'Open Settings, Camera, Formats, and choose Most Compatible. New photos will be saved as JPG.'
-related: ['compress-image', 'resize-image', 'avif-to-jpg']
+related: ['compress-image', 'png-to-jpg', 'avif-to-jpg']
 ---
 
 ## iPhone photos that will not open

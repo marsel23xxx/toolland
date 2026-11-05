@@ -1,7 +1,7 @@
 ---
 name: 'Hitung Kata'
 title: 'Hitung Kata dan Karakter Online'
-description: 'Hitung jumlah kata, karakter, kalimat, paragraf, dan waktu baca secara instan. Gratis, tanpa daftar, teks tidak dikirim ke server.'
+description: 'Hitung jumlah kata, karakter, kalimat, paragraf, dan waktu baca secara instan. Tanpa daftar, teks tidak dikirim ke server.'
 summary: 'Jumlah kata, karakter, kalimat, dan waktu baca.'
 category: 'teks'
 keywords: ['word counter', 'character counter', 'jumlah huruf', 'hitung karakter']

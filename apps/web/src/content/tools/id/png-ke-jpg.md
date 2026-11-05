@@ -1,7 +1,7 @@
 ---
 name: 'PNG ke JPG'
 title: 'Konversi PNG ke JPG Online'
-description: 'Ubah PNG ke JPG agar ukuran file lebih kecil, misalnya untuk tangkapan layar dan foto. Latar transparan diganti putih. Gratis dan tanpa upload.'
+description: 'Ubah PNG ke JPG agar ukuran file lebih kecil, misalnya untuk tangkapan layar dan foto. Latar transparan diganti putih. Tanpa upload.'
 summary: 'PNG jadi JPG yang lebih kecil.'
 category: 'gambar'
 group: 'konversi'

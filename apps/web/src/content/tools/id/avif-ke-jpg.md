@@ -1,7 +1,7 @@
 ---
 name: 'AVIF ke JPG'
 title: 'Konversi AVIF ke JPG Online'
-description: 'Ubah gambar AVIF ke JPG agar bisa dibuka dan diedit di aplikasi apa pun. Gratis, banyak file sekaligus, tanpa upload ke server.'
+description: 'Ubah gambar AVIF ke JPG agar bisa dibuka dan diedit di aplikasi apa pun. Banyak file sekaligus, tanpa upload ke server.'
 summary: 'AVIF jadi JPG yang didukung semua aplikasi.'
 category: 'gambar'
 group: 'konversi'

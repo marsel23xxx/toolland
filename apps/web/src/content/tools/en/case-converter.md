@@ -1,7 +1,7 @@
 ---
 name: 'Case Converter'
 title: 'Case Converter: Uppercase, Lowercase, Title Case'
-description: 'Convert text to UPPERCASE, lowercase, Title Case, Sentence case, camelCase, snake_case, and more. Free and instant in your browser.'
+description: 'Convert text to UPPERCASE, lowercase, Title Case, Sentence case, camelCase, snake_case, and more. Instant in your browser.'
 summary: 'UPPERCASE, lowercase, Title Case, camelCase, snake_case.'
 category: 'teks'
 idSlug: 'ubah-huruf'

@@ -1,7 +1,7 @@
 ---
 name: 'Gabung PDF'
 title: 'Gabung PDF Online (Merge PDF)'
-description: 'Gabungkan beberapa file PDF menjadi satu dengan urutan sesuai keinginan. Gratis, tanpa batas jumlah file, diproses di perangkatmu tanpa upload.'
+description: 'Gabungkan beberapa file PDF menjadi satu dengan urutan sesuai keinginan. Tanpa batas jumlah file, diproses di perangkatmu tanpa upload.'
 summary: 'Satukan banyak PDF jadi satu file.'
 category: 'pdf'
 popular: true

@@ -1,7 +1,7 @@
 ---
 name: 'PNG to JPG'
 title: 'Convert PNG to JPG Online'
-description: 'Convert PNG to JPG for much smaller screenshots and photos. Transparent areas become white. Free and no upload.'
+description: 'Convert PNG to JPG for much smaller screenshots and photos. Transparent areas become white. No upload.'
 summary: 'PNG to a smaller JPG.'
 category: 'gambar'
 group: 'konversi'

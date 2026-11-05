@@ -1,7 +1,7 @@
 ---
 name: 'JPG ke PDF'
 title: 'Konversi JPG ke PDF Online'
-description: 'Gabungkan foto dan hasil scan JPG, PNG, atau HEIC menjadi satu PDF ukuran A4 atau Letter. Gratis, tanpa upload, urutan bisa diatur.'
+description: 'Gabungkan foto dan hasil scan JPG, PNG, atau HEIC menjadi satu PDF ukuran A4 atau Letter. Tanpa upload, urutan bisa diatur.'
 summary: 'Foto dan scan jadi satu file PDF.'
 category: 'pdf'
 keywords: ['jpg to pdf', 'foto ke pdf', 'gambar ke pdf', 'image to pdf', 'png ke pdf', 'scan ke pdf']

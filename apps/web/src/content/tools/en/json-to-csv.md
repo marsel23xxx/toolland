@@ -1,7 +1,7 @@
 ---
 name: 'JSON to CSV'
 title: 'Convert JSON to CSV and CSV to JSON'
-description: 'Convert JSON to CSV for Excel or Google Sheets, and back. Supports comma, semicolon, and tab delimiters. Free and private.'
+description: 'Convert JSON to CSV for Excel or Google Sheets, and back. Supports comma, semicolon, and tab delimiters. Processed in your browser.'
 summary: 'Convert JSON to CSV for Excel, and back.'
 category: 'developer'
 idSlug: 'json-ke-csv'

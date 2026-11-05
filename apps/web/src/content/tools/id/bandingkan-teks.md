@@ -1,7 +1,7 @@
 ---
 name: 'Bandingkan Teks'
 title: 'Bandingkan Teks Online (Diff Checker)'
-description: 'Cari perbedaan dua teks per baris, kata, atau karakter. Bagian yang ditambah dan dihapus disorot otomatis. Gratis dan privat.'
+description: 'Cari perbedaan dua teks per baris, kata, atau karakter. Bagian yang ditambah dan dihapus disorot otomatis. Teks tidak dikirim ke server.'
 summary: 'Temukan perbedaan dua teks per baris, kata, atau karakter.'
 category: 'teks'
 keywords: ['diff checker', 'compare text', 'cek perbedaan teks', 'perbandingan teks']

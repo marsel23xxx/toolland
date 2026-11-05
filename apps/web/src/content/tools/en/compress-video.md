@@ -1,7 +1,7 @@
 ---
 name: 'Compress Video'
 title: 'Compress Video Online (Reduce Video Size)'
-description: 'Shrink videos up to 1 GB without uploading them: choose quality and resolution, and get an MP4 that plays anywhere. Free and private.'
+description: 'Shrink videos up to 1 GB without uploading them: choose quality and resolution, and get an MP4 that plays anywhere.'
 summary: 'Shrink video size, MP4 output.'
 category: 'media'
 idSlug: 'kompres-video'

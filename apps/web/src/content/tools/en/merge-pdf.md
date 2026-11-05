@@ -1,7 +1,7 @@
 ---
 name: 'Merge PDF'
 title: 'Merge PDF Files Online'
-description: 'Combine several PDF files into one in the order you choose. Free, no file limit, processed on your device with no upload.'
+description: 'Combine several PDF files into one in the order you choose. No file limit, processed on your device with no upload.'
 summary: 'Combine many PDFs into one file.'
 category: 'pdf'
 popular: true

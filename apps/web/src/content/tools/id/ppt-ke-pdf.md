@@ -1,7 +1,7 @@
 ---
 name: 'PowerPoint ke PDF'
 title: 'Konversi PowerPoint ke PDF Online (PPTX ke PDF)'
-description: 'Ubah presentasi PowerPoint PPT dan PPTX ke PDF, satu slide per halaman. Maksimal 15 MB, diproses di server lalu langsung dihapus. Gratis.'
+description: 'Ubah presentasi PowerPoint PPT dan PPTX ke PDF, satu slide per halaman. Maksimal 15 MB, diproses di server lalu langsung dihapus.'
 summary: 'Slide PPT dan PPTX jadi PDF.'
 category: 'pdf'
 processing: 'server'

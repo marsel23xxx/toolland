@@ -1,7 +1,7 @@
 ---
 name: 'Kompres Video'
 title: 'Kompres Video Online (Perkecil Ukuran Video)'
-description: 'Perkecil ukuran video sampai 1 GB tanpa upload: pilih kualitas dan resolusi, hasil MP4 yang bisa diputar di mana saja. Gratis dan privat.'
+description: 'Perkecil ukuran video sampai 1 GB tanpa upload: pilih kualitas dan resolusi, hasil MP4 yang bisa diputar di mana saja.'
 summary: 'Perkecil ukuran video, hasil MP4.'
 category: 'media'
 keywords: ['compress video', 'kecilkan video', 'perkecil video', 'kompres mp4', 'video whatsapp']

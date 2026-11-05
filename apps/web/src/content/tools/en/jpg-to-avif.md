@@ -1,7 +1,7 @@
 ---
 name: 'JPG to AVIF'
 title: 'Convert JPG to AVIF Online'
-description: 'Convert JPG to AVIF, the most efficient image format today: up to 50% smaller than JPG. Free, processed in your browser with no upload.'
+description: 'Convert JPG to AVIF, the most efficient image format today: up to 50% smaller than JPG. Processed in your browser with no upload.'
 summary: 'AVIF, up to half the size of JPG.'
 category: 'gambar'
 group: 'konversi'

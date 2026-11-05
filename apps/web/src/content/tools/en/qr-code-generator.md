@@ -1,6 +1,6 @@
 ---
 name: 'QR Code Generator'
-title: 'Free QR Code Generator'
+title: 'QR Code Generator'
 description: 'Create QR codes for links, text, or phone numbers. Choose size, colors, and error correction, then download PNG or SVG. No watermark.'
 summary: 'QR codes for links and text, PNG or SVG.'
 category: 'developer'

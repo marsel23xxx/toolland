@@ -1,7 +1,7 @@
 ---
 name: 'WebP to PNG'
 title: 'Convert WebP to PNG Online'
-description: 'Convert WebP to lossless PNG with transparency preserved. Free, batch processing, processed on your device.'
+description: 'Convert WebP to lossless PNG with transparency preserved. Batch processing, processed on your device.'
 summary: 'WebP to lossless PNG with transparency.'
 category: 'gambar'
 group: 'konversi'
@@ -20,7 +20,7 @@ faq:
     a: 'For logos, icons, screenshots, transparent images, or anything you will edit in a design app.'
   - q: 'Are my images uploaded to a server?'
     a: 'No. Conversion runs in your browser with WebAssembly, so your images never leave your device.'
-related: ['webp-to-jpg', 'png-to-webp', 'resize-image']
+related: ['webp-to-jpg', 'png-to-webp', 'compress-image']
 ---
 
 ## WebP to PNG for design work

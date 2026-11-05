@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { outputName, sniffFormat } from './format';
-import { clampRect, cmToPx, planResize } from './geometry';
+import { clampRect, planResize } from './geometry';
 
 const bytes = (...parts: (number[] | string)[]) =>
   new Uint8Array(
@@ -73,7 +73,7 @@ describe('planResize', () => {
   });
 });
 
-describe('clampRect dan cmToPx', () => {
+describe('clampRect', () => {
   it('membatasi kotak di dalam gambar', () => {
     expect(clampRect({ x: -5, y: 10.4, width: 200, height: 50 }, 100, 100)).toEqual({
       x: 0,
@@ -81,9 +81,6 @@ describe('clampRect dan cmToPx', () => {
       width: 100,
       height: 50,
     });
-  });
-  it('pas foto 3x4 dan 4x6 pada 300 DPI', () => {
-    expect([cmToPx(3), cmToPx(4), cmToPx(6)]).toEqual([354, 472, 709]);
   });
 });
 
@@ -115,42 +112,5 @@ describe('jpegOrientation', async () => {
   it('tanpa EXIF atau bukan JPEG = 1', () => {
     expect(jpegOrientation(new Uint8Array([0xff, 0xd8, 0xff, 0xdb, 0, 2]).buffer)).toBe(1);
     expect(jpegOrientation(new Uint8Array([1, 2, 3]).buffer)).toBe(1);
-  });
-});
-
-describe('regions', async () => {
-  const { expand, iou, mergeDetections, tiles } = await import('./regions');
-  it('iou', () => {
-    expect(iou({ x: 0, y: 0, width: 10, height: 10 }, { x: 0, y: 0, width: 10, height: 10 })).toBe(
-      1,
-    );
-    expect(iou({ x: 0, y: 0, width: 10, height: 10 }, { x: 20, y: 0, width: 10, height: 10 })).toBe(
-      0,
-    );
-  });
-  it('mergeDetections membuang duplikat dari potongan', () => {
-    const r = mergeDetections([
-      { x: 0, y: 0, width: 100, height: 100, score: 0.9 },
-      { x: 5, y: 5, width: 95, height: 95, score: 0.8 },
-      { x: 10, y: 10, width: 40, height: 40, score: 0.95 },
-      { x: 300, y: 300, width: 50, height: 50, score: 0.7 },
-    ]);
-    // kotak 0.8 hampir sama dengan kotak 0.9 sehingga dibuang
-    expect(r.map((b) => b.score)).toEqual([0.95, 0.9, 0.7]);
-  });
-  it('tiles menutup seluruh gambar', () => {
-    const t = tiles(1000, 600, 2);
-    expect(t).toHaveLength(4);
-    expect(Math.max(...t.map((r) => r.x + r.width))).toBe(1000);
-    expect(Math.max(...t.map((r) => r.y + r.height))).toBe(600);
-    expect(Math.min(...t.map((r) => r.x))).toBe(0);
-  });
-  it('expand tetap di dalam gambar', () => {
-    expect(expand({ x: 0, y: 0, width: 100, height: 100 }, 1.5, 120, 120)).toEqual({
-      x: 0,
-      y: 0,
-      width: 120,
-      height: 120,
-    });
   });
 });

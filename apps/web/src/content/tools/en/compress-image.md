@@ -22,7 +22,7 @@ faq:
     a: 'Lower the quality to 60–70 and limit the longest side to 1920 or 1280 pixels. Phone photos usually drop to 200–500 KB.'
   - q: 'Are PNG files compressed too?'
     a: 'Yes. PNGs are optimized with OxiPNG without changing a single pixel. For bigger savings, convert to WebP.'
-related: ['resize-image', 'jpg-to-webp', 'heic-to-jpg']
+related: ['remove-background', 'jpg-to-webp', 'heic-to-jpg']
 ---
 
 ## Why compress images?

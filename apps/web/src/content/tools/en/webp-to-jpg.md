@@ -1,7 +1,7 @@
 ---
 name: 'WebP to JPG'
 title: 'Convert WebP to JPG Online'
-description: 'Convert WebP images to JPG so they open in any app, can be edited, or printed. Free, fast, batch processing, no upload.'
+description: 'Convert WebP images to JPG so they open in any app, can be edited, or printed. Fast, batch processing, no upload.'
 summary: 'WebP to JPG that opens anywhere.'
 category: 'gambar'
 group: 'konversi'

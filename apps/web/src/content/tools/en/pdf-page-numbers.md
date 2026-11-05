@@ -1,7 +1,7 @@
 ---
 name: 'PDF Page Numbers'
 title: 'Add Page Numbers to PDF Online'
-description: 'Add page numbers to a PDF in the position and format you choose, such as Page 1 of 10. Can skip the cover. Free, no upload.'
+description: 'Add page numbers to a PDF in the position and format you choose, such as Page 1 of 10. Can skip the cover. No upload.'
 summary: 'Automatic page numbers for PDFs.'
 category: 'pdf'
 idSlug: 'nomor-halaman-pdf'

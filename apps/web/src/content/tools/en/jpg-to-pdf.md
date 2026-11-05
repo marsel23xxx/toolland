@@ -1,7 +1,7 @@
 ---
 name: 'JPG to PDF'
 title: 'Convert JPG to PDF Online'
-description: 'Combine photos and scans in JPG, PNG, or HEIC into one A4 or Letter PDF. Free, no upload, and you choose the order.'
+description: 'Combine photos and scans in JPG, PNG, or HEIC into one A4 or Letter PDF. No upload, and you choose the order.'
 summary: 'Photos and scans into one PDF.'
 category: 'pdf'
 idSlug: 'jpg-ke-pdf'

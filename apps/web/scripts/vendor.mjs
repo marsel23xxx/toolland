@@ -2,7 +2,6 @@
 // public/vendor/<nama>/<versi>/...  (folder ini tidak masuk git)
 //
 // - pdf.js: cmaps, standard_fonts, wasm, iccs (dari node_modules)
-// - MediaPipe: wasm (dari node_modules) + model deteksi wajah (unduh)
 // - ffmpeg core single-thread dan multi-thread (dari node_modules)
 // - @imgly/background-removal: runtime ONNX + model isnet_fp16 & isnet_quint8 (unduh, diverifikasi SHA-256)
 //
@@ -57,7 +56,6 @@ async function fetchCached(url, to, expectedSha) {
 
 const v = {
   pdfjs: await version('pdfjs-dist'),
-  mediapipe: await version('@mediapipe/tasks-vision'),
   ffmpegCore: await version('@ffmpeg/core'),
   ffmpegCoreMt: await version('@ffmpeg/core-mt'),
   imgly: await version('@imgly/background-removal'),
@@ -65,7 +63,6 @@ const v = {
 
 const paths = {
   pdfjs: `/vendor/pdfjs/${v.pdfjs}/`,
-  mediapipe: `/vendor/mediapipe/${v.mediapipe}/`,
   ffmpegCore: `/vendor/ffmpeg-core/${v.ffmpegCore}/`,
   ffmpegCoreMt: `/vendor/ffmpeg-core-mt/${v.ffmpegCoreMt}/`,
   imgly: `/vendor/imgly/${v.imgly}/`,
@@ -85,16 +82,6 @@ for (const p of Object.values(paths)) {
 for (const dir of ['cmaps', 'standard_fonts', 'wasm', 'iccs']) {
   await copy(path.join(pkgDir('pdfjs-dist'), dir), path.join(dest(paths.pdfjs), dir));
 }
-
-// MediaPipe
-await copy(
-  path.join(pkgDir('@mediapipe/tasks-vision'), 'wasm'),
-  path.join(dest(paths.mediapipe), 'wasm'),
-);
-await fetchCached(
-  'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',
-  path.join(dest(paths.mediapipe), 'blaze_face_short_range.tflite'),
-);
 
 // ffmpeg core
 await copy(path.join(pkgDir('@ffmpeg/core'), 'dist/esm'), dest(paths.ffmpegCore));

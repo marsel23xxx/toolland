@@ -21,7 +21,7 @@ faq:
     a: 'Turunkan kualitas ke 60–70 dan batasi sisi terpanjang ke 1920 atau 1280 piksel. Foto kamera HP biasanya turun jadi 200–500 KB.'
   - q: 'Apakah PNG juga dikompres?'
     a: 'Ya. PNG dioptimalkan dengan OxiPNG tanpa mengubah satu piksel pun. Untuk penghematan lebih besar, ubah format ke WebP.'
-related: ['ubah-ukuran-gambar', 'jpg-ke-webp', 'heic-ke-jpg']
+related: ['hapus-background', 'jpg-ke-webp', 'heic-ke-jpg']
 ---
 
 ## Kenapa perlu kompres gambar?

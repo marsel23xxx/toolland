@@ -1,7 +1,7 @@
 ---
 name: 'Base64 & URL Encode'
 title: 'Base64 Encode/Decode, URL Encode, and Image to Base64'
-description: 'Encode and decode Base64 (UTF-8, URL-safe), URL-encode text, or turn images into Base64 Data URLs. One page, free, processed in your browser.'
+description: 'Encode and decode Base64 (UTF-8, URL-safe), URL-encode text, or turn images into Base64 Data URLs. One page, processed in your browser.'
 summary: 'Base64, URL encoding, and image to Data URL.'
 category: 'developer'
 idSlug: 'base64-encode-decode'

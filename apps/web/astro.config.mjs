@@ -109,7 +109,6 @@ export default defineConfig({
         '@ffmpeg/util',
         '@imgly/background-removal',
         'onnxruntime-web',
-        '@mediapipe/tasks-vision',
       ],
     },
   },

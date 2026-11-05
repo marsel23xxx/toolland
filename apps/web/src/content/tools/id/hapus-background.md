@@ -18,10 +18,10 @@ faq:
   - q: 'Berapa lama prosesnya?'
     a: 'Dengan WebGPU (Chrome atau Edge terbaru), biasanya beberapa detik per foto. Tanpa GPU prosesnya memakai CPU dan bisa lebih lama.'
   - q: 'Bisakah mengganti latar menjadi merah atau biru untuk pas foto?'
-    a: 'Bisa. Pilih Warna lain, tentukan warnanya, lalu unduh. Setelah itu potong dengan tool Pas Foto.'
+    a: 'Bisa. Pilih Warna lain, tentukan warnanya, lalu unduh hasilnya.'
   - q: 'Foto seperti apa yang hasilnya paling bagus?'
     a: 'Objek utama yang jelas dengan kontras cukup terhadap latar, misalnya foto produk, orang, atau hewan.'
-related: ['pas-foto', 'kompres-gambar', 'blur-wajah']
+related: ['jpg-ke-pdf', 'kompres-gambar', 'heic-ke-jpg']
 ---
 
 ## Foto produk dan pas foto tanpa aplikasi edit

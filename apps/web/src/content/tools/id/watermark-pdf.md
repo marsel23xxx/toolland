@@ -1,7 +1,7 @@
 ---
 name: 'Watermark PDF'
 title: 'Tambah Watermark PDF Online'
-description: 'Tambahkan watermark teks seperti RAHASIA atau DRAFT ke semua halaman PDF. Atur ukuran, warna, transparansi, dan kemiringan. Gratis tanpa upload.'
+description: 'Tambahkan watermark teks seperti RAHASIA atau DRAFT ke semua halaman PDF. Atur ukuran, warna, transparansi, dan kemiringan. Tanpa upload.'
 summary: 'Watermark teks di semua halaman PDF.'
 category: 'pdf'
 keywords: ['watermark pdf', 'tambah watermark', 'pdf rahasia', 'stempel pdf', 'draft pdf']

@@ -1,7 +1,7 @@
 ---
 name: 'Compress PDF'
 title: 'Compress PDF Online (Reduce PDF Size)'
-description: 'Reduce the size of scanned and photo-heavy PDFs so they fit upload limits. Free, batch processing, processed on your device.'
+description: 'Reduce the size of scanned and photo-heavy PDFs so they fit upload limits. Batch processing, processed on your device.'
 summary: 'Shrink scanned and photo-heavy PDFs.'
 category: 'pdf'
 popular: true

@@ -1,11 +1,11 @@
 ---
 name: 'Extract Audio'
-title: 'Extract Audio from Video (MP4 to MP3)'
+title: 'Convert Video to MP3: Extract Audio from Video'
 description: 'Extract the sound from MP4, MOV, or MKV videos and save it as MP3, M4A, or WAV. Videos up to 1 GB, processed on your device.'
-summary: 'Extract sound from video to MP3.'
+summary: 'Convert video to MP3.'
 category: 'media'
 idSlug: 'ekstrak-audio'
-keywords: ['mp4 to mp3', 'video to mp3', 'extract audio', 'convert mp3']
+keywords: ['mp4 to mp3', 'video to mp3', 'convert video to mp3', 'video to audio', 'mov to mp3', 'extract audio', 'convert mp3']
 howTo:
   - 'Choose or drag a video into the box above.'
   - 'Choose the audio format: MP3, M4A, or WAV.'
@@ -17,6 +17,8 @@ faq:
     a: 'No. The audio is extracted with ffmpeg.wasm in your browser.'
   - q: 'What if the video has no sound?'
     a: 'Toolland tells you that the file contains no audio.'
+  - q: 'Can I use a YouTube link?'
+    a: 'No. Toolland only processes video files on your device, such as your own recordings or videos from your phone.'
   - q: 'What is the size limit?'
     a: 'Up to 1 GB per file.'
 related: ['cut-audio', 'compress-video', 'video-to-gif']

@@ -1,7 +1,7 @@
 ---
 name: 'Watermark PDF'
 title: 'Add a Watermark to PDF Online'
-description: 'Add a text watermark such as CONFIDENTIAL or DRAFT to every PDF page. Set size, color, opacity, and angle. Free, no upload.'
+description: 'Add a text watermark such as CONFIDENTIAL or DRAFT to every PDF page. Set size, color, opacity, and angle. No upload.'
 summary: 'Text watermark on every PDF page.'
 category: 'pdf'
 idSlug: 'watermark-pdf'

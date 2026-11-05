@@ -21,7 +21,7 @@ faq:
     a: 'Bisa. Pilih semua foto sekaligus lalu unduh hasilnya dalam satu file ZIP.'
   - q: 'Bagaimana agar iPhone langsung menyimpan JPG?'
     a: 'Buka Pengaturan, Kamera, Format, lalu pilih Paling Kompatibel. Foto berikutnya akan tersimpan sebagai JPG.'
-related: ['kompres-gambar', 'ubah-ukuran-gambar', 'avif-ke-jpg']
+related: ['kompres-gambar', 'png-ke-jpg', 'avif-ke-jpg']
 ---
 
 ## Foto iPhone yang tidak bisa dibuka

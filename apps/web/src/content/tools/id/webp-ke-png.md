@@ -1,7 +1,7 @@
 ---
 name: 'WebP ke PNG'
 title: 'Konversi WebP ke PNG Online'
-description: 'Ubah WebP ke PNG tanpa kehilangan kualitas, transparansi tetap terjaga. Gratis, banyak file sekaligus, diproses di perangkatmu.'
+description: 'Ubah WebP ke PNG tanpa kehilangan kualitas, transparansi tetap terjaga. Banyak file sekaligus, diproses di perangkatmu.'
 summary: 'WebP jadi PNG lossless dengan transparansi.'
 category: 'gambar'
 group: 'konversi'
@@ -19,7 +19,7 @@ faq:
     a: 'Pilih PNG untuk logo, ikon, tangkapan layar, dan gambar transparan, atau bila gambar akan diedit ulang di aplikasi desain.'
   - q: 'Apakah file saya aman?'
     a: 'Ya. Semua proses berjalan di browser, tanpa upload ke server.'
-related: ['webp-ke-jpg', 'png-ke-webp', 'ubah-ukuran-gambar']
+related: ['webp-ke-jpg', 'png-ke-webp', 'kompres-gambar']
 ---
 
 ## WebP ke PNG untuk desain

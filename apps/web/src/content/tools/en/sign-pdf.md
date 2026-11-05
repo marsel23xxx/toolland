@@ -1,7 +1,7 @@
 ---
 name: 'Sign PDF'
 title: 'Sign PDF Online'
-description: 'Add your signature to a PDF: draw it or upload a photo of it, then place it on any page. Free and with no upload to a server.'
+description: 'Add your signature to a PDF: draw it or upload a photo of it, then place it on any page. No upload to a server.'
 summary: 'Place your signature on PDF pages.'
 category: 'pdf'
 idSlug: 'tanda-tangan-pdf'

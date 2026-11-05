@@ -1,7 +1,7 @@
 ---
 name: 'Nomor Halaman PDF'
 title: 'Tambah Nomor Halaman PDF Online'
-description: 'Tambahkan nomor halaman ke PDF dengan posisi dan format pilihan, misalnya Halaman 1 dari 10. Bisa lewati sampul. Gratis tanpa upload.'
+description: 'Tambahkan nomor halaman ke PDF dengan posisi dan format pilihan, misalnya Halaman 1 dari 10. Bisa lewati sampul. Tanpa upload.'
 summary: 'Nomor halaman otomatis untuk PDF.'
 category: 'pdf'
 keywords: ['nomor halaman pdf', 'page number pdf', 'beri nomor pdf', 'penomoran halaman']

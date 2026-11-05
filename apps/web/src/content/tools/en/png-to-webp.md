@@ -1,7 +1,7 @@
 ---
 name: 'PNG to WebP'
 title: 'Convert PNG to WebP Online'
-description: 'Convert PNG to WebP with transparency preserved and a much smaller file size. Free, batch processing, no upload to a server.'
+description: 'Convert PNG to WebP with transparency preserved and a much smaller file size. Batch processing, no upload to a server.'
 summary: 'PNG to WebP, transparency preserved.'
 category: 'gambar'
 group: 'konversi'

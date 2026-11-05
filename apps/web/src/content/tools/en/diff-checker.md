@@ -1,7 +1,7 @@
 ---
 name: 'Diff Checker'
 title: 'Diff Checker: Compare Two Texts Online'
-description: 'Find the differences between two texts by line, word, or character. Additions and deletions are highlighted. Free and private.'
+description: 'Find the differences between two texts by line, word, or character. Additions and deletions are highlighted. Your text stays on your device.'
 summary: 'Find differences between two texts.'
 category: 'teks'
 idSlug: 'bandingkan-teks'

@@ -1,7 +1,7 @@
 ---
 name: 'PDF ke JPG'
 title: 'Konversi PDF ke JPG Online'
-description: 'Ubah setiap halaman PDF menjadi gambar JPG atau PNG dengan resolusi sampai 300 DPI. Gratis, banyak file sekaligus, tanpa upload ke server.'
+description: 'Ubah setiap halaman PDF menjadi gambar JPG atau PNG dengan resolusi sampai 300 DPI. Banyak file sekaligus, tanpa upload ke server.'
 summary: 'Setiap halaman PDF jadi gambar JPG atau PNG.'
 category: 'pdf'
 keywords: ['pdf to jpg', 'pdf ke gambar', 'pdf to png', 'convert pdf to image', 'ubah pdf jadi foto']

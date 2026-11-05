@@ -1,7 +1,7 @@
 ---
 name: 'Ubah Huruf'
 title: 'Ubah Huruf Besar Kecil Online'
-description: 'Ubah teks ke HURUF BESAR, huruf kecil, Kapital Tiap Kata, kapital awal kalimat, camelCase, snake_case, dan lainnya. Gratis dan langsung di browser.'
+description: 'Ubah teks ke HURUF BESAR, huruf kecil, Kapital Tiap Kata, kapital awal kalimat, camelCase, snake_case, dan lainnya. Langsung di browser.'
 summary: 'HURUF BESAR, kecil, kapital, camelCase, snake_case.'
 category: 'teks'
 keywords: ['case converter', 'uppercase', 'lowercase', 'title case', 'camelcase', 'snake case', 'kapital']

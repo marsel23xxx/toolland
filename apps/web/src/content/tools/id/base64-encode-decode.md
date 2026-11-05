@@ -1,7 +1,7 @@
 ---
 name: 'Base64 & URL Encode'
 title: 'Base64 Encode/Decode, URL Encode, dan Gambar ke Base64'
-description: 'Encode dan decode Base64 (UTF-8, URL-safe), encode URL, atau ubah gambar jadi Data URL Base64. Satu halaman, gratis, diproses di browser.'
+description: 'Encode dan decode Base64 (UTF-8, URL-safe), encode URL, atau ubah gambar jadi Data URL Base64. Satu halaman, diproses di browser.'
 summary: 'Base64, URL encode, dan gambar ke Data URL.'
 category: 'developer'
 keywords: ['base64 encoder', 'base64 decoder', 'url encode', 'url decode', 'gambar ke base64', 'data url', 'encodeURIComponent']

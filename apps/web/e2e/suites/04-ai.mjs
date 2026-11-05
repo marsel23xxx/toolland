@@ -38,22 +38,4 @@ export const tests = [
       return [`${out.w}×${out.h}, ${device}, ${first.toFixed(1)} dtk termasuk memuat model`];
     },
   },
-  {
-    name: 'blur wajah (MediaPipe)',
-    path: '/tools/blur-wajah',
-    async run(h) {
-      if (!hasFace(h)) return ['dilewati: foto uji tidak tersedia (offline)'];
-      await h.upload('wajah.jpg');
-      await h.page.waitForFunction(() => /\d+ wajah terdeteksi/.test(document.body.innerText), {
-        timeout: 60000,
-      });
-      const found = await h.page.evaluate(
-        () => /(\d+) wajah terdeteksi/.exec(document.body.innerText)[1],
-      );
-      expect(found === '1', `wajah terdeteksi: ${found}`);
-      await h.click('Terapkan dan simpan');
-      const [c] = await h.results(1);
-      expect(c.includes('wajah-blur.jpg'), c);
-    },
-  },
 ];

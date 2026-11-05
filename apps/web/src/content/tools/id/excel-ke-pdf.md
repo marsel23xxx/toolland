@@ -1,7 +1,7 @@
 ---
 name: 'Excel ke PDF'
 title: 'Konversi Excel ke PDF Online (XLSX ke PDF)'
-description: 'Ubah spreadsheet Excel XLS dan XLSX ke PDF siap kirim atau cetak. Maksimal 15 MB, diproses di server lalu langsung dihapus. Gratis.'
+description: 'Ubah spreadsheet Excel XLS dan XLSX ke PDF siap kirim atau cetak. Maksimal 15 MB, diproses di server lalu langsung dihapus.'
 summary: 'XLS dan XLSX jadi PDF siap cetak.'
 category: 'pdf'
 processing: 'server'

@@ -1,7 +1,7 @@
 ---
 name: 'PDF to JPG'
 title: 'Convert PDF to JPG Online'
-description: 'Turn every page of a PDF into a JPG or PNG image at up to 300 DPI. Free, batch processing, no upload to a server.'
+description: 'Turn every page of a PDF into a JPG or PNG image at up to 300 DPI. Batch processing, no upload to a server.'
 summary: 'Every PDF page as a JPG or PNG image.'
 category: 'pdf'
 idSlug: 'pdf-ke-jpg'

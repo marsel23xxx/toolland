@@ -1,7 +1,7 @@
 ---
 name: 'Pisah PDF'
 title: 'Pisah PDF Online (Split PDF)'
-description: 'Pisahkan PDF per halaman, per rentang halaman, atau ambil halaman tertentu saja. Gratis, cepat, dan diproses di perangkatmu tanpa upload.'
+description: 'Pisahkan PDF per halaman, per rentang halaman, atau ambil halaman tertentu saja. Cepat dan diproses di perangkatmu tanpa upload.'
 summary: 'Pisahkan PDF per halaman atau rentang.'
 category: 'pdf'
 keywords: ['split pdf', 'pisahkan pdf', 'ambil halaman pdf', 'potong pdf', 'extract pdf']
