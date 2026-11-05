@@ -4,6 +4,7 @@ title: 'Konversi WebP ke JPG Online'
 description: 'Ubah gambar WebP ke JPG agar bisa dibuka di semua aplikasi, diedit, atau dicetak. Gratis, cepat, banyak file sekaligus, tanpa upload.'
 summary: 'WebP jadi JPG yang bisa dibuka di mana saja.'
 category: 'gambar'
+group: 'konversi'
 keywords: ['webp to jpg', 'webp ke jpeg', 'convert webp', 'buka file webp']
 howTo:
   - 'Tarik file WebP ke kotak di atas atau pilih dari perangkat.'

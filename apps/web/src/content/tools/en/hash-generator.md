@@ -19,7 +19,7 @@ faq:
     a: 'MD5 and SHA-1 are no longer secure for cryptography, but they are still fine for detecting corrupted files. For security, use SHA-256 or higher.'
   - q: 'Can a hash be reversed to the original text?'
     a: 'No. Hashes are one-way. To store passwords, use a dedicated algorithm such as Argon2 or bcrypt, not a plain hash.'
-related: ['password-generator', 'base64-encode-decode', 'uuid-generator']
+related: ['base64-encode-decode']
 ---
 
 ## Make sure files are intact

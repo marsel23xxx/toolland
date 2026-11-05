@@ -19,7 +19,7 @@ faq:
     a: 'Error correction keeps a QR code readable even if part of it is covered or damaged. Higher levels are more robust but make the pattern denser.'
   - q: 'What is the difference between PNG and SVG?'
     a: 'PNG is a regular image ready to share. SVG is a vector image that stays sharp at any size, ideal for banners and print.'
-related: ['url-encode-decode', 'uuid-generator', 'password-generator']
+related: ['base64-encode-decode']
 ---
 
 ## QR codes for business and events

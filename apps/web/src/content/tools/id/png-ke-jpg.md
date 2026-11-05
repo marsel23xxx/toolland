@@ -4,6 +4,7 @@ title: 'Konversi PNG ke JPG Online'
 description: 'Ubah PNG ke JPG agar ukuran file lebih kecil, misalnya untuk tangkapan layar dan foto. Latar transparan diganti putih. Gratis dan tanpa upload.'
 summary: 'PNG jadi JPG yang lebih kecil.'
 category: 'gambar'
+group: 'konversi'
 keywords: ['png to jpg', 'png ke jpeg', 'convert png', 'ubah png ke jpg']
 howTo:
   - 'Tarik file PNG ke kotak di atas atau pilih dari perangkat.'

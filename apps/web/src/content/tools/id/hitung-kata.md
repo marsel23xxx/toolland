@@ -20,7 +20,7 @@ faq:
     a: 'Waktu baca diperkirakan dengan kecepatan rata-rata 200 kata per menit, lalu dibulatkan ke atas.'
   - q: 'Apakah ada batas panjang teks?'
     a: 'Tidak ada batas khusus. Teks yang sangat panjang tetap bisa dihitung, hanya hasilnya diperbarui dengan jeda singkat agar mengetik tetap lancar.'
-related: ['ubah-huruf', 'bandingkan-teks', 'lorem-ipsum']
+related: ['ubah-huruf', 'bandingkan-teks']
 ---
 
 ## Kapan perlu menghitung kata?

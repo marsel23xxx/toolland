@@ -1,0 +1,22 @@
+---
+/** Tanda Toolland: ubin terakota dengan sudut terlipat, seperti kertas yang siap diolah. */
+interface Props {
+  class?: string;
+}
+const { class: cls = 'size-6' } = Astro.props;
+---
+
+<svg viewBox="0 0 24 24" class={cls} aria-hidden="true">
+  <path
+    d="M2 3a1 1 0 0 1 1-1h13l6 6v13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"
+    class="fill-terakota"
+  ></path>
+  <path d="M16 2v5a1 1 0 0 0 1 1h5z" class="fill-paper opacity-70"></path>
+  <path
+    d="M7 11h8M11 11v7"
+    class="stroke-paper"
+    stroke-width="2.4"
+    stroke-linecap="round"
+    fill="none"
+  ></path>
+</svg>

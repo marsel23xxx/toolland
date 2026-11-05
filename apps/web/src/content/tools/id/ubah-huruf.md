@@ -18,7 +18,7 @@ faq:
     a: 'Gaya ini dipakai programmer untuk nama variabel, kolom database, dan URL. Setiap baris diubah terpisah, jadi daftar nama tetap rapi.'
   - q: 'Apakah huruf beraksen dan huruf non-Latin didukung?'
     a: 'Ya. Perubahan huruf memakai aturan Unicode, sehingga huruf seperti é atau ñ ikut berubah dengan benar.'
-related: ['hitung-kata', 'lorem-ipsum', 'bandingkan-teks']
+related: ['hitung-kata', 'bandingkan-teks']
 ---
 
 ## Mengubah huruf tanpa mengetik ulang

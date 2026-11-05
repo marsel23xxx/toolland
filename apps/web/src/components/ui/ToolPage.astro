@@ -74,18 +74,22 @@ const jsonLdText = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
   title={data.title}
   description={data.description}
   processing={data.processing}
+  category={data.category}
   alternates={alternates}
 >
   <script slot="head" type="application/ld+json" is:inline set:html={jsonLdText} />
   <slot />
 
-  <ol slot="how-to" class="grid gap-3 sm:grid-cols-3">
+  <ol slot="how-to" class="grid border-t border-ink sm:grid-cols-3">
     {data.howTo.map((step, i) => (
-      <li class="card flex gap-3">
-        <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">
+      <li class="flex gap-4 border-b border-rule py-5 sm:border-b-0 sm:py-6 sm:pr-6 sm:not-first:border-l sm:not-first:pl-6">
+        <span
+          class="font-display text-5xl leading-none text-brand-600 dark:text-brand-400"
+          aria-hidden="true"
+        >
           {i + 1}
         </span>
-        <span>{step}</span>
+        <span class="pt-1 leading-relaxed text-ink-2">{step}</span>
       </li>
     ))}
   </ol>
@@ -94,29 +98,42 @@ const jsonLdText = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
     <Content />
   </Fragment>
 
-  <div
-    slot="faq"
-    class="divide-y divide-slate-200 rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800"
-  >
+  <div slot="faq" class="border-t border-ink">
     {data.faq.map(({ q, a }) => (
-      <details class="group px-4 py-3">
-        <summary class="cursor-pointer font-semibold marker:text-brand-600">{q}</summary>
-        <p class="mt-2 text-slate-600 dark:text-slate-400">{a}</p>
+      <details class="group border-b border-rule">
+        <summary class="flex cursor-pointer list-none items-start justify-between gap-6 py-4 text-lg font-semibold [&::-webkit-details-marker]:hidden">
+          <span>{q}</span>
+          <span
+            class="mt-0.5 font-display text-2xl leading-none text-brand-600 transition-transform group-open:rotate-45 dark:text-brand-400"
+            aria-hidden="true"
+          >
+            +
+          </span>
+        </summary>
+        <p class="max-w-2xl pb-5 leading-relaxed text-ink-2">{a}</p>
       </details>
     ))}
   </div>
 
   {related.length > 0 && (
-    <ul slot="related" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <ul slot="related" class="grid gap-x-10 border-t border-ink sm:grid-cols-2">
       {related.map((r) => (
-        <li>
+        <li data-cat={r.data.category}>
           <a
             href={toolPath(locale, r.id.split('/')[1])}
-            class="card block h-full hover:border-brand-500"
+            class="group flex items-baseline justify-between gap-4 border-b border-rule py-4"
           >
-            <span class="font-semibold">{r.data.name}</span>
-            <span class="mt-1 block text-sm text-slate-600 dark:text-slate-400">
-              {r.data.summary}
+            <span>
+              <span class="font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-300">
+                {r.data.name}
+              </span>
+              <span class="mt-0.5 block text-sm text-ink-3">{r.data.summary}</span>
+            </span>
+            <span
+              class="text-brand-600 transition-transform group-hover:translate-x-1 dark:text-brand-400"
+              aria-hidden="true"
+            >
+              →
             </span>
           </a>
         </li>

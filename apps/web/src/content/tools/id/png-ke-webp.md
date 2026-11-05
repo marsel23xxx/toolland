@@ -4,6 +4,7 @@ title: 'Konversi PNG ke WebP Online'
 description: 'Ubah PNG ke WebP dengan transparansi tetap terjaga dan ukuran jauh lebih kecil. Gratis, banyak file sekaligus, tanpa upload ke server.'
 summary: 'PNG jadi WebP, transparansi tetap terjaga.'
 category: 'gambar'
+group: 'konversi'
 keywords: ['png to webp', 'convert png webp', 'webp transparan', 'ubah png']
 howTo:
   - 'Tarik file PNG ke kotak di atas atau pilih dari perangkat.'

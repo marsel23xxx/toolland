@@ -4,6 +4,7 @@ title: 'Convert Word to PDF Online (DOCX to PDF)'
 description: 'Convert Word DOC and DOCX documents to PDF with the layout intact. Up to 15 MB, processed on the server and deleted right away. Free.'
 summary: 'DOC and DOCX to a clean PDF.'
 category: 'pdf'
+popular: true
 processing: 'server'
 idSlug: 'word-ke-pdf'
 keywords: ['word to pdf', 'docx to pdf', 'doc to pdf', 'convert word']

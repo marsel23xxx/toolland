@@ -19,7 +19,7 @@ faq:
     a: 'Programmers use them for variable names, database columns, and URLs. Each line is converted separately so lists stay tidy.'
   - q: 'Are accented letters supported?'
     a: 'Yes. Conversion follows Unicode rules, so letters like é or ñ change correctly.'
-related: ['word-counter', 'lorem-ipsum', 'diff-checker']
+related: ['word-counter', 'diff-checker']
 ---
 
 ## Fix capitalization without retyping

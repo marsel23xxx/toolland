@@ -4,6 +4,7 @@ title: 'Gabung PDF Online (Merge PDF)'
 description: 'Gabungkan beberapa file PDF menjadi satu dengan urutan sesuai keinginan. Gratis, tanpa batas jumlah file, diproses di perangkatmu tanpa upload.'
 summary: 'Satukan banyak PDF jadi satu file.'
 category: 'pdf'
+popular: true
 keywords: ['merge pdf', 'gabungkan pdf', 'satukan pdf', 'combine pdf', 'jadikan satu pdf']
 howTo:
   - 'Pilih atau tarik beberapa file PDF ke kotak di atas.'

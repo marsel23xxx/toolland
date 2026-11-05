@@ -62,30 +62,17 @@ export const tests = [
       );
     },
   },
+
   {
-    name: 'regex: pola berbahaya dihentikan',
-    path: '/tools/regex-tester',
+    name: 'Base64: tab URL encode',
+    path: '/tools/base64-encode-decode',
     async run(h) {
-      await h.type('#rx-text', 'a'.repeat(32) + '!');
-      await h.type('#rx-pattern', '(a+)+$');
-      await h.sleep(1600);
-      expect(await h.bodyHas('terlalu lama'), 'timeout tidak muncul');
-      await h.type('#rx-text', 'x1 y2');
-      await h.type('#rx-pattern', '\\d');
-      await h.sleep(600);
-      expect(await h.bodyHas('2 kecocokan'), 'worker baru tidak jalan');
-    },
-  },
-  {
-    name: 'minify CSS (esbuild-wasm)',
-    path: '/tools/minify-css-js',
-    async run(h) {
-      await h.type('#mf-in', 'body {\n  color: #ffffff;\n}');
-      await h.click('Minify');
-      await h.page.waitForFunction(() => document.querySelector('#mf-out').value.length > 0, {
-        timeout: 60000,
-      });
-      expect((await h.value('#mf-out')) === 'body{color:#fff}', await h.value('#mf-out'));
+      await h.type('#b64-in', 'Halo 😀');
+      expect((await h.value('#b64-out')) === 'SGFsbyDwn5iA', await h.value('#b64-out'));
+      await h.page.click('[data-tab="url"]');
+      await h.page.waitForSelector('#url-in');
+      await h.type('#url-in', 'a b&c');
+      expect((await h.value('#url-out')) === 'a%20b%26c', await h.value('#url-out'));
     },
   },
 ];

@@ -4,6 +4,7 @@ title: 'Hapus Background Foto Otomatis (AI)'
 description: 'Hapus latar belakang foto otomatis dengan AI yang berjalan di browser. Hasil PNG transparan atau latar warna. Foto tidak diunggah ke server.'
 summary: 'Latar foto hilang otomatis dengan AI.'
 category: 'gambar'
+popular: true
 keywords: ['remove background', 'hapus latar', 'remove bg', 'background transparan', 'foto produk', 'ganti background']
 howTo:
   - 'Pilih atau tarik foto ke kotak di atas.'

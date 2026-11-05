@@ -19,7 +19,7 @@ faq:
     a: 'Yes. Emoji, including those with skin tones, and accented letters count as one character, the way you see them on screen.'
   - q: 'How is reading time calculated?'
     a: 'Reading time assumes an average of 200 words per minute, rounded up.'
-related: ['case-converter', 'diff-checker', 'lorem-ipsum']
+related: ['case-converter', 'diff-checker']
 ---
 
 ## When do you need a word count?

@@ -15,3 +15,17 @@ export const CATEGORY_NAMES: Record<CategoryId, Record<Locale, string>> = {
 export function toolPath(locale: Locale, slug: string): string {
   return locale === 'id' ? `/tools/${slug}` : `/en/tools/${slug}`;
 }
+
+/** Keterangan singkat kategori untuk beranda. */
+export const CATEGORY_NOTES: Record<CategoryId, Record<Locale, string>> = {
+  gambar: { id: 'Foto, grafis, dan AI', en: 'Photos, graphics, and AI' },
+  pdf: { id: 'Dokumen dan formulir', en: 'Documents and forms' },
+  teks: { id: 'Tulisan dan caption', en: 'Writing and captions' },
+  developer: { id: 'Data dan kode', en: 'Data and code' },
+  media: { id: 'Video dan audio', en: 'Video and audio' },
+};
+
+/** Judul kelompok di beranda. */
+export const GROUP_NAMES: Record<'konversi', Record<Locale, string>> = {
+  konversi: { id: 'Konversi format', en: 'Convert formats' },
+};

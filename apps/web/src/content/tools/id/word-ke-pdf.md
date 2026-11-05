@@ -4,6 +4,7 @@ title: 'Konversi Word ke PDF Online (DOCX ke PDF)'
 description: 'Ubah dokumen Word DOC dan DOCX ke PDF dengan tata letak tetap rapi. Maksimal 15 MB, diproses di server lalu langsung dihapus. Gratis.'
 summary: 'DOC dan DOCX jadi PDF yang rapi.'
 category: 'pdf'
+popular: true
 processing: 'server'
 keywords: ['word to pdf', 'docx ke pdf', 'doc ke pdf', 'convert word', 'ubah word jadi pdf']
 howTo:

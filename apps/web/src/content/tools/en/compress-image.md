@@ -4,6 +4,7 @@ title: 'Compress Images Online (JPG, PNG, WebP)'
 description: 'Shrink JPG, PNG, and WebP photos by up to 80% with no visible difference. Batch processing, no upload, no watermark.'
 summary: 'Shrink photos with no visible difference.'
 category: 'gambar'
+popular: true
 idSlug: 'kompres-gambar'
 keywords: ['compress image', 'reduce image size', 'compress jpg', 'compress png', 'image optimizer']
 howTo:

@@ -8,12 +8,12 @@ memproses file langsung di perangkat pengguna; file tidak pernah disimpan.
 
 | Kategori  | Tools                                                                                                    | Diproses di |
 | --------- | -------------------------------------------------------------------------------------------------------- | ----------- |
-| Gambar    | konversi JPG/PNG/WebP/AVIF/HEIC, kompres, ubah ukuran, potong, pas foto, gambar ke Base64                | browser     |
+| Gambar    | konversi JPG/PNG/WebP/AVIF/HEIC, kompres, ubah ukuran & potong, pas foto | browser     |
 | Gambar AI | hapus background (ISNet, WebGPU/WASM), blur wajah (MediaPipe)                                            | browser     |
 | PDF       | gabung, pisah, kompres cepat, PDF ke JPG, JPG ke PDF, tanda tangan, watermark, nomor halaman             | browser     |
 | PDF       | Word/Excel/PowerPoint ke PDF (Gotenberg), kompres PDF maksimal (Ghostscript), maks 15 MB                 | server      |
-| Teks      | hitung kata, ubah huruf, Lorem Ipsum, bandingkan teks                                                    | browser     |
-| Developer | JSON formatter, JSON↔CSV, Base64, URL encode, UUID, password, hash, regex, minify CSS/JS, QR code       | browser     |
+| Teks      | hitung kata, ubah huruf, bandingkan teks | browser     |
+| Developer | JSON formatter, JSON↔CSV, Base64 & URL encode (termasuk gambar ke Base64), hash, QR code | browser     |
 | Media     | video ke GIF, kompres video, potong audio, ekstrak audio (ffmpeg.wasm, sampai 1 GB)                      | browser     |
 
 ## Struktur

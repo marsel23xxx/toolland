@@ -19,7 +19,7 @@ faq:
     a: 'No. Blurred or pixelated areas are permanently replaced in the output image, so the original details cannot be recovered from that file.'
   - q: 'Are small faces in group photos detected?'
     a: 'Toolland scans the whole image and also in sections so smaller faces are found. If any are missed, add them manually.'
-related: ['remove-background', 'crop-image', 'compress-image']
+related: ['remove-background', 'resize-image', 'compress-image']
 ---
 
 ## Protect privacy before sharing

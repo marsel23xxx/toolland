@@ -1,10 +1,15 @@
 ---
-import ImageResizer from '../../../components/tools/ImageResizer.vue';
+import ResizeOrCrop from '../../../components/tools/ResizeOrCrop.vue';
 import ToolPage from '../../../components/ui/ToolPage.astro';
 import { messages } from '../../../i18n';
 import { imageToolProps } from '../../../lib/image/props';
 ---
 
 <ToolPage slug="resize-image">
-  <ImageResizer client:visible {...imageToolProps('en')} t={messages('en', 'resize')} />
+  <ResizeOrCrop
+    client:visible
+    {...imageToolProps('en')}
+    t={messages('en', 'resize')}
+    crop={messages('en', 'crop')}
+  />
 </ToolPage>

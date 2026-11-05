@@ -178,6 +178,9 @@ importers:
       '@fontsource-variable/plus-jakarta-sans':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/fraunces':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@imgly/background-removal':
         specifier: 1.7.0
         version: 1.7.0(onnxruntime-web@1.21.0)
@@ -220,9 +223,6 @@ importers:
       diff:
         specifier: ^9.0.0
         version: 9.0.0
-      esbuild-wasm:
-        specifier: ^0.28.2
-        version: 0.28.2
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
@@ -834,6 +834,9 @@ packages:
 
   '@fontsource-variable/plus-jakarta-sans@5.3.0':
     resolution: {integrity: sha512-/l/4r0yyWK9JzAlmA0LiYgGgmJe/Gswt4jTJEzr5QhJfwMbvJZDmYWyW0M4X7yCK69BajMVlV/Lx8g7WDc1+sw==}
+
+  '@fontsource/fraunces@5.3.0':
+    resolution: {integrity: sha512-LEHTOBiZufQzAvnAe2rZ8ZknbDS28Q9kzwb0L+gZJEmjLGr8hhZ/5NuHXwDuHBWhVXYoiGGXmrb0H6Ko/RrHTg==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2115,11 +2118,6 @@ packages:
 
   es-module-lexer@3.0.4:
     resolution: {integrity: sha512-BldNY5mwkVu+cQ5Ymn3e6hB9Sx8XHx4ZevWbiUyZbfKxJxYO27Hf0wfzkxIaD5CAJMaGl3YspKELj0ff/7nCMA==}
-
-  esbuild-wasm@0.28.2:
-    resolution: {integrity: sha512-GccVwhv3mmOUVQHCQm2Ox/rby8n/EqUwvZxE6Pjfikrq/lWw9g9WX/u9EykWnpot3Ko6j426DgQdea2xWKIAQA==}
-    engines: {node: '>=18'}
-    hasBin: true
 
   escalade@3.2.0:
     resolution: {integrity: sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==}
@@ -4483,6 +4481,8 @@ snapshots:
 
   '@fontsource-variable/plus-jakarta-sans@5.3.0': {}
 
+  '@fontsource/fraunces@5.3.0': {}
+
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -5752,8 +5752,6 @@ snapshots:
   es-module-lexer@2.3.2: {}
 
   es-module-lexer@3.0.4: {}
-
-  esbuild-wasm@0.28.2: {}
 
   escalade@3.2.0: {}
 

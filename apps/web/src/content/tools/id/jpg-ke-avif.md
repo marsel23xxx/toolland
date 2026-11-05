@@ -4,6 +4,7 @@ title: 'Konversi JPG ke AVIF Online'
 description: 'Ubah JPG ke AVIF, format gambar paling hemat saat ini: bisa 50% lebih kecil dari JPG. Gratis, diproses di browser, tanpa upload.'
 summary: 'Format AVIF, bisa setengah ukuran JPG.'
 category: 'gambar'
+group: 'konversi'
 keywords: ['jpg to avif', 'convert avif', 'avif encoder', 'format avif']
 howTo:
   - 'Tarik foto JPG ke kotak di atas atau pilih dari perangkat.'

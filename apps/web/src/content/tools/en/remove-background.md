@@ -4,6 +4,7 @@ title: 'Remove Image Background Automatically (AI)'
 description: 'Remove photo backgrounds automatically with AI running in your browser. Get a transparent PNG or a colored background. No upload.'
 summary: 'Remove photo backgrounds automatically with AI.'
 category: 'gambar'
+popular: true
 idSlug: 'hapus-background'
 keywords: ['remove background', 'background remover', 'remove bg', 'transparent background', 'product photo']
 howTo:

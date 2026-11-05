@@ -4,6 +4,7 @@ title: 'Kompres PDF Online (Perkecil Ukuran PDF)'
 description: 'Perkecil ukuran PDF hasil scan dan berisi foto agar lolos batas upload. Gratis, banyak file sekaligus, diproses di perangkatmu tanpa upload.'
 summary: 'Perkecil ukuran PDF hasil scan dan foto.'
 category: 'pdf'
+popular: true
 keywords: ['compress pdf', 'kecilkan pdf', 'perkecil pdf', 'kompres pdf 1 mb', 'reduce pdf size']
 howTo:
   - 'Pilih atau tarik file PDF ke kotak di atas.'

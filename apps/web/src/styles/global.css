@@ -1,6 +1,12 @@
 @import 'tailwindcss';
 
-/* Plus Jakarta Sans, self-host, hanya subset Latin. */
+/*
+ * Toolland: "Editorial Nusantara".
+ * Kertas hangat + tinta, judul serif, warna kategori dari bahan Nusantara
+ * (terakota, nila, kunyit, daun, secang). Sudut tegas, garis tipis, tanpa gradien.
+ */
+
+/* Plus Jakarta Sans (teks), self-host, subset Latin. */
 @font-face {
   font-family: 'Plus Jakarta Sans Variable';
   font-style: normal;
@@ -13,56 +19,186 @@
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* Fraunces (judul), self-host, subset Latin: 600 tegak dan 400 miring untuk aksen. */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('../../node_modules/@fontsource/fraunces/files/fraunces-latin-600-normal.woff2')
+    format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url('../../node_modules/@fontsource/fraunces/files/fraunces-latin-400-italic.woff2')
+    format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ---------- Token warna (berganti otomatis di mode gelap) ---------- */
+:root {
+  --paper: #f3eee4;
+  --paper-2: #faf7f1;
+  --ink: #1b1814;
+  --ink-2: #4a433a;
+  --ink-3: #635b50;
+  --rule: #ddd4c4;
+
+  /* Warna kategori: [utama, gelap (hover/teks tebal), terang (mode gelap)] */
+  --terakota: #a8461f;
+  --terakota-dark: #87381a;
+  --terakota-light: #e8916a;
+  --nila: #2c4a86;
+  --nila-dark: #213a6b;
+  --nila-light: #94aee6;
+  --kunyit: #8f5e0a;
+  --kunyit-dark: #6f4908;
+  --kunyit-light: #eab54d;
+  --daun: #3c6a33;
+  --daun-dark: #2e5227;
+  --daun-light: #93c584;
+  --secang: #9a2e3f;
+  --secang-dark: #7a2432;
+  --secang-light: #e98a98;
+
+  /* Aksen aktif (default terakota; halaman tool memakai warna kategorinya) */
+  --c: var(--terakota);
+  --c-dark: var(--terakota-dark);
+  --c-light: var(--terakota-light);
+
+  /* Editor kode */
+  --cm-property: #87381a;
+  --cm-string: #3c6a33;
+  --cm-number: #2c4a86;
+  --cm-keyword: #9a2e3f;
+  --cm-punctuation: #635b50;
+  --cm-gutter: #9a9083;
+  --cm-placeholder: #635b50;
+  --cm-active-line: rgb(27 24 20 / 0.04);
+  --cm-selection: rgb(168 70 31 / 0.18);
+}
+
+[data-cat='gambar'] {
+  --c: var(--terakota);
+  --c-dark: var(--terakota-dark);
+  --c-light: var(--terakota-light);
+}
+[data-cat='pdf'] {
+  --c: var(--nila);
+  --c-dark: var(--nila-dark);
+  --c-light: var(--nila-light);
+}
+[data-cat='teks'] {
+  --c: var(--kunyit);
+  --c-dark: var(--kunyit-dark);
+  --c-light: var(--kunyit-light);
+}
+[data-cat='developer'] {
+  --c: var(--daun);
+  --c-dark: var(--daun-dark);
+  --c-light: var(--daun-light);
+}
+[data-cat='media'] {
+  --c: var(--secang);
+  --c-dark: var(--secang-dark);
+  --c-light: var(--secang-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #15120e;
+    --paper-2: #1e1a15;
+    --ink: #efe8db;
+    --ink-2: #cfc6b6;
+    --ink-3: #a59b8d;
+    --rule: #3a3329;
+
+    --cm-property: #e8916a;
+    --cm-string: #93c584;
+    --cm-number: #94aee6;
+    --cm-keyword: #e98a98;
+    --cm-punctuation: #cfc6b6;
+    --cm-gutter: #6f665a;
+    --cm-placeholder: #a59b8d;
+    --cm-active-line: rgb(239 232 219 / 0.05);
+    --cm-selection: rgb(232 145 106 / 0.25);
+  }
+}
+
 @theme {
   --font-sans:
     'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
 
-  /* Warna brand (teal). Kontras teks di atas brand-600 lolos WCAG AA. */
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-300: #5eead4;
-  --color-brand-400: #2dd4bf;
-  --color-brand-500: #14b8a6;
-  --color-brand-600: #0f766e;
-  --color-brand-700: #115e59;
-  --color-brand-900: #134e4a;
+  /* Abu-abu Tailwind dipetakan ke nada kertas/tinta yang hangat */
+  --color-white: #fffdf9;
+  --color-slate-50: #faf7f1;
+  --color-slate-100: #efe9de;
+  --color-slate-200: #ddd4c4;
+  --color-slate-300: #c9bfae;
+  --color-slate-400: #9a9083;
+  --color-slate-500: #7a7166;
+  --color-slate-600: #5f574c;
+  --color-slate-700: #4a433a;
+  --color-slate-800: #3a3329;
+  --color-slate-900: #1e1a15;
+  --color-slate-950: #15120e;
+
+  /* Sudut tegas: tidak ada lagi kartu yang terlalu membulat */
+  --radius-md: 0.375rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.625rem;
 }
 
-/* Warna editor kode (CodeMirror), ikut mode gelap. */
-:root {
-  --cm-property: #a626a4;
-  --cm-string: #2a7d3a;
-  --cm-number: #b35900;
-  --cm-keyword: #1d4ed8;
-  --cm-punctuation: #475569;
-  --cm-gutter: #94a3b8;
-  --cm-placeholder: #475569;
-  --cm-active-line: rgb(15 118 110 / 0.06);
-  --cm-selection: rgb(15 118 110 / 0.2);
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --cm-property: #f0abfc;
-    --cm-string: #86efac;
-    --cm-number: #fdba74;
-    --cm-keyword: #93c5fd;
-    --cm-punctuation: #cbd5e1;
-    --cm-gutter: #64748b;
-    --cm-placeholder: #94a3b8;
-    --cm-active-line: rgb(45 212 191 / 0.08);
-    --cm-selection: rgb(45 212 191 / 0.25);
-  }
+/*
+ * "inline": utilitas memakai var(--c) dan var(--paper) langsung. Tanpa ini Tailwind
+ * menghitung var() sekali di :root, sehingga data-cat per kategori tidak berpengaruh.
+ */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-terakota: var(--terakota);
+  --color-nila: var(--nila);
+  --color-kunyit: var(--kunyit);
+  --color-daun: var(--daun);
+  --color-secang: var(--secang);
+
+  /* Aksen kategori (dipakai komponen lewat kelas brand-*) */
+  --color-brand-50: color-mix(in oklab, var(--c) 9%, var(--paper-2));
+  --color-brand-100: color-mix(in oklab, var(--c) 18%, var(--paper-2));
+  --color-brand-300: var(--c-light);
+  --color-brand-400: var(--c-light);
+  --color-brand-500: var(--c);
+  --color-brand-600: var(--c);
+  --color-brand-700: var(--c-dark);
+  --color-brand-900: color-mix(in oklab, var(--c) 45%, #000);
 }
 
 @layer base {
-  /* Mode gelap otomatis mengikuti sistem (varian dark: Tailwind memakai prefers-color-scheme). */
   html {
     color-scheme: light dark;
   }
 
   body {
-    @apply bg-white font-sans text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+    @apply bg-paper font-sans text-ink antialiased;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--c) 28%, transparent);
   }
 
   :focus-visible {
@@ -73,28 +209,42 @@
 /* Komponen bersama untuk semua tool. */
 @layer components {
   .btn {
-    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md border px-3.5 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply bg-brand-600 text-white hover:bg-brand-700 disabled:hover:bg-brand-600;
+    @apply border-ink bg-ink text-paper hover:border-brand-700 hover:bg-brand-700 disabled:hover:border-ink disabled:hover:bg-ink dark:hover:border-brand-400 dark:hover:bg-brand-400 dark:hover:text-ink;
   }
   .btn-secondary {
-    @apply border border-slate-300 bg-white text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800;
+    @apply border-rule bg-transparent text-ink hover:border-ink;
   }
   .btn-active {
     @apply border-brand-600 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-900/40 dark:text-brand-300;
   }
   .field {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-500 focus:border-brand-600 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-brand-400;
+    @apply w-full rounded-md border border-rule bg-paper-2 px-3 py-2 text-base text-ink placeholder:text-ink-3 focus:border-ink focus:outline-none;
   }
   .label {
-    @apply mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300;
+    @apply mb-1 block text-sm font-medium text-ink-2;
   }
   .card {
-    @apply rounded-xl border border-slate-200 p-4 dark:border-slate-800;
+    @apply rounded-md border border-rule bg-paper-2 p-4;
   }
   .error-text {
-    @apply text-sm text-red-700 dark:text-red-400;
+    @apply text-sm text-secang dark:text-[#e98a98];
+  }
+  .eyebrow {
+    @apply font-mono text-xs text-ink-3;
+  }
+
+  /* Tab gaya editorial: garis bawah, bukan pil */
+  .tabs {
+    @apply flex gap-1 overflow-x-auto border-b border-rule;
+  }
+  .tab {
+    @apply -mb-px cursor-pointer border-b-2 border-transparent px-3 py-2 text-sm font-semibold whitespace-nowrap text-ink-3 hover:text-ink;
+  }
+  .tab[aria-selected='true'] {
+    @apply border-brand-600 text-ink dark:border-brand-400;
   }
 
   /* Latar kotak-kotak untuk pratinjau gambar transparan. */
@@ -106,37 +256,40 @@
 
   /* Isi Markdown konten SEO. */
   .prose-tool {
-    @apply max-w-3xl leading-relaxed text-slate-700 dark:text-slate-300;
+    @apply max-w-2xl text-[1.0625rem] leading-relaxed text-ink-2;
   }
   .prose-tool h2 {
-    @apply mt-8 mb-3 text-xl font-bold text-slate-900 dark:text-slate-100;
+    @apply mt-10 mb-3 font-display text-2xl text-ink;
   }
   .prose-tool h3 {
-    @apply mt-6 mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100;
+    @apply mt-6 mb-2 text-lg font-semibold text-ink;
   }
   .prose-tool p,
   .prose-tool ul,
   .prose-tool ol {
-    @apply mb-3;
+    @apply mb-4;
   }
   .prose-tool ul {
-    @apply list-disc pl-5;
+    @apply list-disc pl-5 marker:text-brand-600;
   }
   .prose-tool ol {
     @apply list-decimal pl-5;
   }
   .prose-tool a:not(.btn) {
-    @apply text-brand-700 underline dark:text-brand-300;
+    @apply text-ink underline decoration-brand-600 decoration-2 underline-offset-4 hover:text-brand-700;
+  }
+  .prose-tool strong {
+    @apply text-ink;
   }
   .prose-tool table {
-    @apply mb-3 border-collapse text-sm;
+    @apply mb-4 border-collapse text-sm;
   }
   .prose-tool th,
   .prose-tool td {
-    @apply border border-slate-200 px-3 py-1.5 text-left dark:border-slate-800;
+    @apply border-b border-rule px-3 py-1.5 text-left;
   }
   .prose-tool th {
-    @apply bg-slate-50 font-semibold dark:bg-slate-900;
+    @apply font-semibold text-ink;
   }
   .prose-tool code {
     @apply rounded bg-slate-100 px-1 py-0.5 font-mono text-sm dark:bg-slate-800;

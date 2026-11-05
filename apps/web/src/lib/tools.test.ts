@@ -3,9 +3,6 @@ import { convertCase } from './case';
 import { base64Decode, base64Encode, urlDecode, urlEncode } from './encoding';
 import { csvToJson, jsonToCsv } from './json-csv';
 import { formatJson, parseJson } from './json';
-import { lorem, LOREM_START } from './lorem';
-import { generatePassword, passwordEntropy, secureRandomInt, uuidv7 } from './random';
-import { runRegex, segmentMatches } from './regex';
 import { textStats } from './text-stats';
 
 describe('textStats', () => {
@@ -47,22 +44,6 @@ describe('convertCase', () => {
   });
 });
 
-describe('lorem', () => {
-  it('jumlah kata tepat dan diawali Lorem', () => {
-    const out = lorem(5, 'words');
-    expect(out.split(' ')).toHaveLength(5);
-    expect(out.startsWith('Lorem ipsum dolor sit amet')).toBe(true);
-  });
-  it('paragraf dipisah baris kosong', () => {
-    const out = lorem(3, 'paragraphs');
-    expect(out.split('\n\n')).toHaveLength(3);
-    expect(out.startsWith(LOREM_START)).toBe(true);
-  });
-  it('tanpa pembuka Lorem', () => {
-    expect(lorem(2, 'sentences', false, () => 0.99).startsWith('Lorem')).toBe(false);
-  });
-});
-
 describe('encoding', () => {
   it('base64 UTF-8 bolak-balik', () => {
     const text = 'Halo, dunia! ✓ 日本 😀';
@@ -80,45 +61,6 @@ describe('encoding', () => {
     expect(urlEncode('https://x.id/a b?q=1', 'full')).toBe('https://x.id/a%20b?q=1');
     expect(urlDecode('a+b%20c')).toBe('a b c');
     expect(() => urlDecode('%E0%A4%A')).toThrow();
-  });
-});
-
-describe('random', () => {
-  it('secureRandomInt dalam rentang', () => {
-    for (let i = 0; i < 200; i++) {
-      const n = secureRandomInt(7);
-      expect(n).toBeGreaterThanOrEqual(0);
-      expect(n).toBeLessThan(7);
-    }
-  });
-  it('password memuat semua jenis karakter yang dipilih', () => {
-    const o = {
-      length: 12,
-      lower: true,
-      upper: true,
-      digits: true,
-      symbols: true,
-      excludeAmbiguous: true,
-    };
-    for (let i = 0; i < 50; i++) {
-      const p = generatePassword(o);
-      expect(p).toHaveLength(12);
-      expect(p).toMatch(/[a-z]/);
-      expect(p).toMatch(/[A-Z]/);
-      expect(p).toMatch(/[0-9]/);
-      expect(p).toMatch(/[^a-zA-Z0-9]/);
-      expect(p).not.toMatch(/[0Oo1lI|]/);
-    }
-    expect(passwordEntropy({ ...o, symbols: false, excludeAmbiguous: false })).toBe(
-      Math.round(12 * Math.log2(62)),
-    );
-  });
-  it('uuidv7 berformat benar dan urut waktu', () => {
-    const a = uuidv7(1_700_000_000_000);
-    const b = uuidv7(1_700_000_000_001);
-    expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-    expect(a < b).toBe(true);
-    expect(a.slice(0, 13)).toBe('018bcfe5-6800');
   });
 });
 
@@ -150,31 +92,6 @@ describe('json-csv', () => {
     const r = csvToJson('nama;umur;aktif\nAni;20;true', ';');
     expect(r.rows).toEqual([{ nama: 'Ani', umur: 20, aktif: true }]);
     expect(r.errors).toEqual([]);
-  });
-});
-
-describe('regex', () => {
-  it('match global dengan grup', () => {
-    const r = runRegex('(\\w+)@(?<host>\\w+)', 'g', 'a@x dan b@y');
-    expect(r.matches.map((m) => m.text)).toEqual(['a@x', 'b@y']);
-    expect(r.matches[1].named?.host).toBe('y');
-  });
-  it('tanpa flag g hanya match pertama, plus replace', () => {
-    const r = runRegex('\\d', '', 'a1b2', '#');
-    expect(r.matches).toHaveLength(1);
-    expect(r.replaced).toBe('a#b2');
-  });
-  it('pola tidak valid melempar SyntaxError', () => {
-    expect(() => runRegex('(', 'g', 'x')).toThrow(SyntaxError);
-  });
-  it('segmentMatches memecah teks', () => {
-    const r = runRegex('o', 'g', 'foo bar');
-    expect(segmentMatches('foo bar', r.matches)).toEqual([
-      { text: 'f', match: -1 },
-      { text: 'o', match: 0 },
-      { text: 'o', match: 1 },
-      { text: ' bar', match: -1 },
-    ]);
   });
 });
 

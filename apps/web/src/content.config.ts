@@ -31,6 +31,10 @@ const tools = defineCollection({
       .max(6),
     /** Slug tools terkait (dalam bahasa yang sama). */
     related: z.array(z.string()).default([]),
+    /** Tampil di deretan "Paling sering dipakai" di beranda. */
+    popular: z.boolean().default(false),
+    /** Kelompok di beranda, misalnya semua konverter format gambar dalam satu baris. */
+    group: z.enum(['konversi']).optional(),
     /** Khusus konten non-Indonesia: slug halaman Indonesia yang sama (untuk hreflang). */
     idSlug: z.string().optional(),
   }),

@@ -4,6 +4,7 @@ title: 'Convert JPG to WebP Online'
 description: 'Convert JPG photos to WebP, 25–35% smaller at the same quality. Batch convert many files, processed on your device with no upload.'
 summary: 'JPG photos to much smaller WebP.'
 category: 'gambar'
+group: 'konversi'
 idSlug: 'jpg-ke-webp'
 keywords: ['jpeg to webp', 'convert to webp', 'webp converter']
 howTo:

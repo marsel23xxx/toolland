@@ -20,7 +20,7 @@ faq:
     a: 'Tidak. Hash adalah fungsi satu arah. Untuk menyimpan password, gunakan algoritma khusus seperti Argon2 atau bcrypt, bukan hash biasa.'
   - q: 'Apakah ada batas ukuran file?'
     a: 'Tidak ada batas tetap. File dibaca per bagian 4 MB, sehingga memori tetap hemat walau file berukuran gigabyte.'
-related: ['generator-password', 'base64-encode-decode', 'generator-uuid']
+related: ['base64-encode-decode']
 ---
 
 ## Memastikan file tetap utuh

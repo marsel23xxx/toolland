@@ -18,7 +18,7 @@ faq:
     a: 'Tidak. Area yang diblur atau dimosaik diganti permanen pada gambar hasil, sehingga detail aslinya tidak bisa dipulihkan dari file tersebut.'
   - q: 'Apakah wajah kecil di foto grup terdeteksi?'
     a: 'Toolland memindai gambar secara keseluruhan dan per bagian agar wajah kecil ikut terdeteksi. Bila masih ada yang terlewat, tambahkan secara manual.'
-related: ['hapus-background', 'potong-gambar', 'kompres-gambar']
+related: ['hapus-background', 'ubah-ukuran-gambar', 'kompres-gambar']
 ---
 
 ## Lindungi privasi sebelum membagikan foto

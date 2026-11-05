@@ -1,9 +1,17 @@
 ---
-import Base64Tool from '../../components/tools/Base64Tool.vue';
+import EncodeTools from '../../components/tools/EncodeTools.vue';
 import ToolPage from '../../components/ui/ToolPage.astro';
-import { toolMessages } from '../../i18n';
+import { messages, toolMessages } from '../../i18n';
 ---
 
 <ToolPage slug="base64-encode-decode">
-  <Base64Tool client:visible m={toolMessages('id', 'base64')} />
+  <EncodeTools
+    client:visible
+    tabs={messages('id', 'encode')}
+    base64={toolMessages('id', 'base64')}
+    url={toolMessages('id', 'urlEncode')}
+    image={messages('id', 'image')}
+    imageText={toolMessages('id', 'base64img')}
+    dropzone={messages('id', 'dropzone')}
+  />
 </ToolPage>

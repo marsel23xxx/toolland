@@ -19,7 +19,7 @@ faq:
     a: 'Use Remove Background first with a custom color, then crop the result here.'
   - q: 'Are my photos uploaded?'
     a: 'No. Photos are processed in your browser and never stored anywhere.'
-related: ['crop-image', 'remove-background', 'resize-image']
+related: ['resize-image', 'remove-background']
 ---
 
 ## ID photos without a studio

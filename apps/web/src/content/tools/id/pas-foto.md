@@ -20,7 +20,7 @@ faq:
     a: 'Unduh JPG lalu cetak di studio foto atau percetakan dengan ukuran sesuai. Karena sudah 300 DPI, hasil cetak tetap tajam.'
   - q: 'Apakah foto saya diunggah?'
     a: 'Tidak. Foto diproses di browser kamu dan tidak disimpan di mana pun.'
-related: ['hapus-background', 'potong-gambar', 'ubah-ukuran-gambar']
+related: ['hapus-background', 'ubah-ukuran-gambar']
 ---
 
 ## Pas foto tanpa ke studio

@@ -20,7 +20,7 @@ faq:
     a: 'PNG adalah gambar biasa yang siap dibagikan. SVG adalah gambar vektor yang tetap tajam di ukuran berapa pun, cocok untuk spanduk dan desain cetak.'
   - q: 'Apakah warna QR code bisa diubah?'
     a: 'Bisa. Pastikan warna QR jauh lebih gelap dari warna latar agar tetap mudah dipindai.'
-related: ['url-encode-decode', 'generator-uuid', 'generator-password']
+related: ['base64-encode-decode']
 ---
 
 ## QR code untuk usaha dan acara

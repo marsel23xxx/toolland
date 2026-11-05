@@ -4,6 +4,7 @@ title: 'Konversi HEIC ke JPG (Foto iPhone)'
 description: 'Ubah foto HEIC dari iPhone ke JPG agar bisa dibuka di Windows, Android, dan formulir online. Banyak foto sekaligus, tanpa upload ke server.'
 summary: 'Foto iPhone HEIC jadi JPG.'
 category: 'gambar'
+popular: true
 keywords: ['heic to jpg', 'heif ke jpg', 'foto iphone', 'convert heic', 'buka file heic']
 howTo:
   - 'Tarik foto HEIC dari iPhone ke kotak di atas atau pilih dari perangkat.'

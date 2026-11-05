@@ -4,6 +4,7 @@ title: 'Convert AVIF to JPG Online'
 description: 'Convert AVIF images to JPG so they open and edit in any app. Free, batch processing, no upload to a server.'
 summary: 'AVIF to JPG supported everywhere.'
 category: 'gambar'
+group: 'konversi'
 idSlug: 'avif-ke-jpg'
 keywords: ['avif to jpeg', 'open avif file', 'convert avif']
 howTo:

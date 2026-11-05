@@ -4,6 +4,7 @@ title: 'Konversi JPG ke WebP Online'
 description: 'Ubah foto JPG ke WebP yang 25–35% lebih kecil dengan kualitas setara. Bisa banyak file sekaligus, diproses di perangkatmu, tanpa upload.'
 summary: 'Foto JPG jadi WebP yang jauh lebih kecil.'
 category: 'gambar'
+group: 'konversi'
 keywords: ['jpg to webp', 'jpeg ke webp', 'convert webp', 'ubah ke webp']
 howTo:
   - 'Tarik foto JPG ke kotak di atas, pilih file, atau tempel dari clipboard.'

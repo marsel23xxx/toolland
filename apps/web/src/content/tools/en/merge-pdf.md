@@ -4,6 +4,7 @@ title: 'Merge PDF Files Online'
 description: 'Combine several PDF files into one in the order you choose. Free, no file limit, processed on your device with no upload.'
 summary: 'Combine many PDFs into one file.'
 category: 'pdf'
+popular: true
 idSlug: 'gabung-pdf'
 keywords: ['merge pdf', 'combine pdf', 'join pdf', 'pdf merger']
 howTo:

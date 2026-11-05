@@ -4,6 +4,7 @@ title: 'Kompres Gambar Online (JPG, PNG, WebP)'
 description: 'Perkecil ukuran foto JPG, PNG, dan WebP hingga 80% tanpa beda yang terlihat. Banyak file sekaligus, tanpa upload, tanpa watermark.'
 summary: 'Perkecil ukuran foto tanpa beda yang terlihat.'
 category: 'gambar'
+popular: true
 keywords: ['compress image', 'kompres foto', 'perkecil ukuran foto', 'kecilkan gambar', 'compress jpg', 'compress png']
 howTo:
   - 'Tarik foto ke kotak di atas, pilih file, atau tempel dari clipboard.'
