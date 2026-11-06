@@ -134,6 +134,48 @@ async fn ctx(max_upload: usize, rate: u32) -> Ctx {
                 }
             }),
         );
+    // Registry RDAP tiruan: daftar IANA berisi .com dan .id, hanya contoh.com yang terdaftar.
+    let mock = mock
+        .route(
+            "/rdap/dns.json",
+            axum::routing::get(|headers: axum::http::HeaderMap| async move {
+                let host = headers["host"].to_str().unwrap().to_owned();
+                axum::Json(serde_json::json!({"services": [
+                    [["com", "id"], [format!("http://{host}/rdap")]]
+                ]}))
+            }),
+        )
+        .route(
+            "/rdap/domain/{name}",
+            axum::routing::get(|axum::extract::Path(name): axum::extract::Path<String>| async move {
+                if name == "contoh.com" {
+                    (
+                        StatusCode::OK,
+                        axum::Json(serde_json::json!({
+                            "ldhName": "CONTOH.COM",
+                            "status": ["client transfer prohibited"],
+                            "events": [
+                                {"eventAction": "registration", "eventDate": "2010-05-01T00:00:00Z"},
+                                {"eventAction": "expiration", "eventDate": "2030-05-01T00:00:00Z"}
+                            ],
+                            "nameservers": [{"ldhName": "NS1.CONTOH.COM"}],
+                            "secureDNS": {"delegationSigned": false},
+                            "entities": [{
+                                "roles": ["registrar"],
+                                "publicIds": [{"type": "IANA Registrar ID", "identifier": "1234"}],
+                                "vcardArray": ["vcard", [["fn", {}, "text", "Registrar Contoh"]]],
+                                "entities": [{
+                                    "roles": ["abuse"],
+                                    "vcardArray": ["vcard", [["email", {}, "text", "abuse@contoh.test"]]]
+                                }]
+                            }]
+                        })),
+                    )
+                } else {
+                    (StatusCode::NOT_FOUND, axum::Json(serde_json::json!({})))
+                }
+            }),
+        );
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     tokio::spawn(async move { axum::serve(listener, mock).await.unwrap() });
@@ -153,6 +195,8 @@ async fn ctx(max_upload: usize, rate: u32) -> Ctx {
         process_timeout: Duration::from_secs(30),
         queue_timeout: Duration::from_secs(5),
         rate_per_minute: rate,
+        lookup_rate_per_minute: rate,
+        rdap_bootstrap_url: format!("http://127.0.0.1:{port}/rdap/dns.json"),
         metrics_port: 0,
     };
     Ctx {
@@ -381,4 +425,63 @@ async fn odt_ke_docx_menolak_file_selain_odt() {
         assert_eq!(resp.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
     }
     assert_eq!(c.leftover_files(), 0);
+}
+
+fn whois(domain: &str) -> Request<Body> {
+    Request::post("/api/tools/v1/whois")
+        .header("content-type", "application/json")
+        .header("x-real-ip", "203.0.113.9")
+        .body(Body::from(
+            serde_json::json!({ "domain": domain }).to_string(),
+        ))
+        .unwrap()
+}
+
+async fn whois_status(app: &Router, domain: &str) -> (StatusCode, String) {
+    let resp = app.clone().oneshot(whois(domain)).await.unwrap();
+    let status = resp.status();
+    let body = to_bytes(resp.into_body(), 1 << 20).await.unwrap();
+    (status, String::from_utf8_lossy(&body).into_owned())
+}
+
+#[tokio::test]
+async fn whois_lewat_rdap_termasuk_subdomain() {
+    let c = ctx(1024, 20).await;
+    let (status, body) = whois_status(&c.app, "WWW.Contoh.com").await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let json: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(json["found"], true);
+    assert_eq!(json["domain"], "contoh.com");
+    assert_eq!(json["registered"], "2010-05-01T00:00:00Z");
+    assert_eq!(json["nameservers"][0], "ns1.contoh.com");
+    assert_eq!(json["registrar"]["name"], "Registrar Contoh");
+    assert_eq!(json["registrar"]["iana_id"], "1234");
+    assert_eq!(json["registrar"]["abuse_email"], "abuse@contoh.test");
+    assert_eq!(json["dnssec"], false);
+}
+
+#[tokio::test]
+async fn whois_kode_error() {
+    let c = ctx(1024, 20).await;
+    let (status, body) = whois_status(&c.app, "belum-ada.com").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains(r#""found":false"#), "{body}");
+    let (status, body) = whois_status(&c.app, "contoh.xyz").await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(body.contains("no_rdap"));
+    let (status, body) = whois_status(&c.app, "127.0.0.1").await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body.contains("bad_request"));
+}
+
+#[tokio::test]
+async fn whois_dibatasi_per_ip() {
+    let c = ctx(1024, 2).await;
+    for _ in 0..2 {
+        assert_eq!(whois_status(&c.app, "contoh.com").await.0, StatusCode::OK);
+    }
+    assert_eq!(
+        whois_status(&c.app, "contoh.com").await.0,
+        StatusCode::TOO_MANY_REQUESTS
+    );
 }

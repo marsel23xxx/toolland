@@ -24,6 +24,15 @@ pub enum ApiError {
     /// PDF tanpa teks (hasil scan/foto), tidak bisa dijadikan dokumen yang bisa diedit.
     #[error("PDF tanpa teks")]
     NoText,
+    /// Domain belum terdaftar (RDAP 404).
+    #[error("domain tidak ditemukan")]
+    NotFound,
+    /// TLD tidak punya server RDAP di daftar IANA.
+    #[error("TLD tanpa RDAP")]
+    NoRdap,
+    /// Server RDAP registry error atau tidak menjawab.
+    #[error("server registry gagal")]
+    Upstream,
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -43,6 +52,9 @@ impl ApiError {
             Self::Timeout => (StatusCode::GATEWAY_TIMEOUT, "timeout"),
             Self::Failed => (StatusCode::UNPROCESSABLE_ENTITY, "failed"),
             Self::NoText => (StatusCode::UNPROCESSABLE_ENTITY, "no_text"),
+            Self::NotFound => (StatusCode::NOT_FOUND, "not_found"),
+            Self::NoRdap => (StatusCode::UNPROCESSABLE_ENTITY, "no_rdap"),
+            Self::Upstream => (StatusCode::BAD_GATEWAY, "upstream"),
             Self::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
         }
     }

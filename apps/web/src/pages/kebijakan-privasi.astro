@@ -42,6 +42,15 @@ import { SITE } from '../lib/site';
       <li>Tidak ada riwayat dan tidak ada link hasil yang bisa dibuka ulang.</li>
     </ul>
 
+    <h2>Cek WHOIS</h2>
+    <p>
+      Tool Cek WHOIS mengirim nama domain yang kamu ketik ke server Toolland, lalu server
+      menanyakannya ke server RDAP resmi milik registry domain tersebut (misalnya Verisign untuk
+      .com atau PANDI untuk .id). Nama domain tidak dicatat di log. Hasilnya disimpan sementara di
+      RAM server paling lama 1 jam agar registry tidak ditanya berulang kali, lalu terhapus. Yang
+      ditampilkan hanya data yang memang dibuka untuk umum oleh registry.
+    </p>
+
     <h2>Log server</h2>
     <p>
       Server hanya mencatat data teknis untuk menjaga layanan tetap berjalan: waktu, metode, alamat
@@ -84,6 +93,6 @@ import { SITE } from '../lib/site';
       Pertanyaan tentang privasi atau laporan celah keamanan bisa dikirim lewat
       <a href={`${SITE.repo}/security`}>halaman Security di GitHub</a>.
     </p>
-    <p class="text-sm">Terakhir diperbarui: 4 November 2026.</p>
+    <p class="text-sm">Terakhir diperbarui: 6 November 2026.</p>
   </div>
 </BaseLayout>

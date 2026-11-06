@@ -49,14 +49,26 @@ pub fn app(state: AppState) -> Router {
         .key_extractor(SmartIpKeyExtractor)
         .finish()
         .expect("konfigurasi rate limit valid");
-    let limiter = governor.limiter().clone();
+    // Cek WHOIS ringan, tapi memanggil registry luar: batasnya terpisah dan lebih ketat.
+    let lookup_governor = GovernorConfigBuilder::default()
+        .period(Duration::from_secs(60) / cfg.lookup_rate_per_minute.max(1))
+        .burst_size(cfg.lookup_rate_per_minute.max(1))
+        .key_extractor(SmartIpKeyExtractor)
+        .finish()
+        .expect("konfigurasi rate limit valid");
+    let limiters = [
+        governor.limiter().clone(),
+        lookup_governor.limiter().clone(),
+    ];
     // Bersihkan catatan IP lama agar memori tidak tumbuh.
     if tokio::runtime::Handle::try_current().is_ok() {
         tokio::spawn(async move {
             let mut tick = tokio::time::interval(Duration::from_secs(60));
             loop {
                 tick.tick().await;
-                limiter.retain_recent();
+                for l in &limiters {
+                    l.retain_recent();
+                }
             }
         });
     }
@@ -70,9 +82,15 @@ pub fn app(state: AppState) -> Router {
         .layer(DefaultBodyLimit::max(cfg.max_upload + 64 * 1024))
         .layer(GovernorLayer::new(Arc::new(governor)));
 
+    let lookup = Router::new()
+        .route("/whois", post(routes::whois::handler))
+        .layer(DefaultBodyLimit::max(1024))
+        .layer(GovernorLayer::new(Arc::new(lookup_governor)));
+
     let v1 = Router::new()
         .route("/health", get(routes::health::health))
         .merge(heavy)
+        .merge(lookup)
         .with_state(state);
 
     Router::new()

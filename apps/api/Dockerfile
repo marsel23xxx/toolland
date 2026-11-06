@@ -14,10 +14,11 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
  && cp target/release/toolland-api /toolland-api
 
 # Debian slim (bukan distroless) karena API menjalankan Ghostscript sebagai proses.
+# ca-certificates untuk HTTPS ke server RDAP (WHOIS).
 # Tetap minimal: tanpa shell login, user non-root, root filesystem read-only di compose.
 FROM debian:bookworm-slim
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ghostscript \
+ && apt-get install -y --no-install-recommends ghostscript ca-certificates \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --uid 65532 --user-group --no-create-home --shell /usr/sbin/nologin nonroot
 COPY --from=build /toolland-api /usr/local/bin/toolland-api

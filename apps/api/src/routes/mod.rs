@@ -2,6 +2,7 @@ pub mod health;
 pub mod office_to_pdf;
 pub mod pdf_compress;
 pub mod to_docx;
+pub mod whois;
 
 use std::time::Instant;
 

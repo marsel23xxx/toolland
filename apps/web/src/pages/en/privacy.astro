@@ -40,6 +40,15 @@ import { SITE } from '../../lib/site';
       <li>There is no history and no link to reopen results.</li>
     </ul>
 
+    <h2>WHOIS lookup</h2>
+    <p>
+      The WHOIS lookup tool sends the domain name you type to the Toolland server, which asks the
+      official RDAP server of that domain's registry (for example Verisign for .com or PANDI for
+      .id). Domain names are not written to the logs. Results are kept in server RAM for at most 1
+      hour so the registry is not asked again and again, then deleted. Only data the registry
+      already publishes is shown.
+    </p>
+
     <h2>Server logs</h2>
     <p>
       The server only records technical data needed to keep the service running: time, method, page
@@ -81,6 +90,6 @@ import { SITE } from '../../lib/site';
       Privacy questions or security reports can be sent through the
       <a href={`${SITE.repo}/security`}>Security page on GitHub</a>.
     </p>
-    <p class="text-sm">Last updated: November 4, 2026.</p>
+    <p class="text-sm">Last updated: November 6, 2026.</p>
   </div>
 </BaseLayout>

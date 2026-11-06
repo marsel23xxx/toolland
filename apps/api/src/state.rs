@@ -5,6 +5,7 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use crate::{
     config::Config,
     error::{ApiError, ApiResult},
+    services::rdap::Rdap,
 };
 
 #[derive(Clone)]
@@ -17,6 +18,8 @@ pub struct AppState {
     pub gs: Arc<Semaphore>,
     /// Batas konversi ke DOCX paralel.
     pub docx: Arc<Semaphore>,
+    /// Pencarian WHOIS (RDAP) dengan cache di memori.
+    pub rdap: Arc<Rdap>,
 }
 
 impl AppState {
@@ -28,6 +31,7 @@ impl AppState {
             office: Arc::new(Semaphore::new(cfg.office_concurrency)),
             gs: Arc::new(Semaphore::new(cfg.gs_concurrency)),
             docx: Arc::new(Semaphore::new(cfg.docx_concurrency)),
+            rdap: Arc::new(Rdap::new(cfg.rdap_bootstrap_url.clone())?),
             cfg: Arc::new(cfg),
         })
     }

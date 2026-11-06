@@ -123,4 +123,25 @@ export const tests = [
       h.problems.length = 0;
     },
   },
+  {
+    name: 'Cek WHOIS (API Rust + RDAP registry, butuh internet)',
+    path: '/tools/cek-whois',
+    async run(h) {
+      if (skip) return ['dilewati: TOOLLAND_API_URL tidak diisi'];
+      await h.type('#whois-domain', 'https://www.julian-marcell.com/tools');
+      await h.page.click('form button[type=submit]');
+      await h.page.waitForSelector('section[aria-label="Hasil WHOIS"]', { timeout: 30000 });
+      const t = await h.text('section[aria-label="Hasil WHOIS"]');
+      expect(
+        t.includes('julian-marcell.com') && /Kedaluwarsa/.test(t) && /sisa \d+ hari/.test(t),
+        t,
+      );
+      await h.type('#whois-domain', 'belum-terdaftar-toolland-0a9z.com');
+      await h.page.click('form button[type=submit]');
+      await h.page.waitForSelector('#whois-free', { timeout: 30000 });
+      const err = await h.text('#whois-free');
+      expect(/belum terdaftar/.test(err), err);
+      return [t.replace(/\s+/g, ' ').slice(0, 160)];
+    },
+  },
 ];

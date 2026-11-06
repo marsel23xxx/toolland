@@ -1,0 +1,9 @@
+---
+import WhoisTool from '../../components/tools/WhoisTool.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../i18n';
+---
+
+<ToolPage slug="cek-whois">
+  <WhoisTool client:visible m={toolMessages('id', 'whois')} />
+</ToolPage>

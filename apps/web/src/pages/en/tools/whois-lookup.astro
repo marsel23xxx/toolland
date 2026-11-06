@@ -1,0 +1,9 @@
+---
+import WhoisTool from '../../../components/tools/WhoisTool.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../../i18n';
+---
+
+<ToolPage slug="whois-lookup">
+  <WhoisTool client:visible m={toolMessages('en', 'whois')} />
+</ToolPage>

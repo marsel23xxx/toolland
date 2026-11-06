@@ -26,6 +26,10 @@ pub struct Config {
     pub queue_timeout: Duration,
     /// Batas request berat per IP per menit.
     pub rate_per_minute: u32,
+    /// Batas cek WHOIS per IP per menit (terpisah dari tool berat).
+    pub lookup_rate_per_minute: u32,
+    /// Daftar server RDAP per TLD dari IANA.
+    pub rdap_bootstrap_url: String,
     /// Port Prometheus metrics (hanya jaringan internal), 0 = mati.
     pub metrics_port: u16,
 }
@@ -64,6 +68,9 @@ impl Config {
             process_timeout: Duration::from_secs(var("TOOLLAND_PROCESS_TIMEOUT_SECS", 60)?),
             queue_timeout: Duration::from_secs(var("TOOLLAND_QUEUE_TIMEOUT_SECS", 20)?),
             rate_per_minute: var("TOOLLAND_RATE_PER_MINUTE", 20)?,
+            lookup_rate_per_minute: var("TOOLLAND_LOOKUP_RATE_PER_MINUTE", 15)?,
+            rdap_bootstrap_url: env::var("RDAP_BOOTSTRAP_URL")
+                .unwrap_or_else(|_| "https://data.iana.org/rdap/dns.json".into()),
             metrics_port: var("TOOLLAND_METRICS_PORT", 9091)?,
         })
     }

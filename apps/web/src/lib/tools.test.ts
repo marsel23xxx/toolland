@@ -4,6 +4,7 @@ import { base64Decode, base64Encode, urlDecode, urlEncode } from './encoding';
 import { csvToJson, jsonToCsv } from './json-csv';
 import { formatJson, parseJson } from './json';
 import { textStats } from './text-stats';
+import { daysUntil, toDomain, yearsSince } from './whois';
 
 describe('textStats', () => {
   it('menghitung kata, karakter, kalimat, paragraf', () => {
@@ -148,5 +149,25 @@ describe('ffmpeg thread limit', async () => {
       T,
       '/out/b.mp4',
     ]);
+  });
+});
+
+describe('whois', () => {
+  it('mengambil domain dari input apa pun', () => {
+    expect(toDomain('Contoh.CO.id')).toBe('contoh.co.id');
+    expect(toDomain(' https://www.contoh.com/halaman?x=1 ')).toBe('www.contoh.com');
+    expect(toDomain('nama@contoh.co.id')).toBe('contoh.co.id');
+    expect(toDomain('contoh.com.')).toBe('contoh.com');
+    expect(toDomain('bücher.de')).toBe('xn--bcher-kva.de');
+    for (const bad of ['', 'localhost', '192.168.1.1', 'contoh com', 'http://[::1]/'])
+      expect(toDomain(bad)).toBeNull();
+  });
+
+  it('menghitung hari dan umur', () => {
+    const now = Date.parse('2026-11-06T00:00:00Z');
+    expect(daysUntil('2026-11-16T00:00:00Z', now)).toBe(10);
+    expect(daysUntil('2026-11-01T00:00:00Z', now)).toBeLessThan(0);
+    expect(yearsSince('2010-11-07T00:00:00Z', new Date(now))).toBe(15);
+    expect(yearsSince('2010-11-06T00:00:00Z', new Date(now))).toBe(16);
   });
 });
