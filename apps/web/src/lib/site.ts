@@ -4,5 +4,5 @@ export const SITE = {
   url: 'https://julian-marcell.com',
   repo: 'https://github.com/marsel23xxx/toolland',
   /** Link donasi Saweria (satu tempat untuk semua bahasa). Kosong = kartu donasi tidak tampil. */
-  saweria: '',
+  saweria: 'https://saweria.co/julianmarcell23',
 } as const;
