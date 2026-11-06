@@ -111,17 +111,10 @@ export const tests = [
     },
   },
   {
-    name: 'tanda tangan PDF: gores miring dirapikan, lalu ditempel',
-    path: '/tools/tanda-tangan-pdf',
+    name: 'buat tanda tangan: gores miring dirapikan, unduh PNG dan PDF',
+    path: '/tools/buat-tanda-tangan',
     async run(h) {
-      // Pembuat tanda tangan sudah tampil sebelum PDF dipilih.
       await h.page.waitForSelector('canvas[aria-label]', { timeout: 10000 });
-      await h.upload('teks.pdf');
-      await h.page.waitForSelector('canvas[aria-label]', { timeout: 20000 });
-      await h.page.waitForFunction(
-        () => document.querySelectorAll('[data-page] img').length === 4,
-        { timeout: 20000 },
-      );
       const pad = await h.page.$('canvas[aria-label]');
       const box = await pad.boundingBox();
       // Goresan mouse yang miring ±20° dan bergetar, seperti ttd pakai mouse.
@@ -166,20 +159,21 @@ export const tests = [
       await h.page.mouse.up();
       await h.page.waitForSelector('img[data-signature]');
 
-      const page2 = await h.page.$('[data-page="2"]');
-      await page2.evaluate((el) => el.scrollIntoView({ block: 'center' }));
-      const b2 = await page2.boundingBox();
-      await h.page.mouse.click(b2.x + b2.width * 0.6, b2.y + b2.height * 0.45);
-      await h.page.waitForSelector('[data-page="2"] [role=group]');
-      await h.click('Simpan PDF');
-      await h.results(1);
-      const out = await h.download('teks-ttd.pdf');
-      expect((await pagesOf(out)) === 4 && out.length > 3000, 'PDF bertanda tangan tidak valid');
+      const png = await h.downloadVia('tanda-tangan.png', () => h.click('Unduh PNG'));
+      expect(png.subarray(1, 4).toString('latin1') === 'PNG', 'bukan PNG');
+      const pdf = await h.downloadVia('tanda-tangan.pdf', () => h.click('Unduh PDF'));
+      const doc = await PDFDocument.load(pdf);
+      const { width, height } = doc.getPage(0).getSize();
+      // Satu halaman seukuran ttd: lebar 180 pt, tinggi mengikuti bentuk ttd.
+      expect(
+        doc.getPageCount() === 1 && Math.round(width) === 180 && height < width,
+        `PDF ttd tidak sesuai: ${doc.getPageCount()} hal, ${width}×${height}`,
+      );
     },
   },
   {
-    name: 'tanda tangan PDF: foto ttd di kertas berbayang',
-    path: '/tools/tanda-tangan-pdf',
+    name: 'buat tanda tangan: foto ttd di kertas berbayang',
+    path: '/tools/buat-tanda-tangan',
     async run(h) {
       // Foto buatan: kertas abu-abu dengan bayangan, ttd miring ±12°, disimpan sebagai JPEG.
       const jpg = await h.page.evaluate(() => {
@@ -205,11 +199,6 @@ export const tests = [
       });
       fs.writeFileSync(h.fixture('ttd-kertas.jpg'), Buffer.from(jpg, 'base64'));
 
-      await h.upload('teks.pdf');
-      await h.page.waitForFunction(
-        () => document.querySelectorAll('[data-page] img').length === 4,
-        { timeout: 20000 },
-      );
       await h.click('Foto ttd');
       const input = await h.page.$('input[type=file][accept="image/*"]');
       await input.uploadFile(h.fixture('ttd-kertas.jpg'));
@@ -233,15 +222,6 @@ export const tests = [
       );
       expect(sig.ratio > 4, `ttd foto tidak diluruskan: rasio ${sig.ratio.toFixed(2)}`);
 
-      const page1 = await h.page.$('[data-page="1"]');
-      await page1.evaluate((el) => el.scrollIntoView({ block: 'center' }));
-      const b1 = await page1.boundingBox();
-      await h.page.mouse.click(b1.x + b1.width * 0.5, b1.y + b1.height * 0.5);
-      await h.page.waitForSelector('[data-page="1"] [role=group]');
-      await h.click('Simpan PDF');
-      await h.results(1);
-      const out = await h.download('teks-ttd.pdf');
-      expect((await pagesOf(out)) === 4, 'PDF bertanda tangan tidak valid');
       const png = await h.downloadVia('tanda-tangan.png', () => h.click('Unduh PNG'));
       expect(png.subarray(1, 4).toString('latin1') === 'PNG', 'bukan PNG');
     },

@@ -1,0 +1,9 @@
+---
+import SignatureMaker from '../../../components/tools/SignatureMaker.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { messages } from '../../../i18n';
+---
+
+<ToolPage slug="signature-maker">
+  <SignatureMaker client:visible t={messages('en', 'sign')} />
+</ToolPage>

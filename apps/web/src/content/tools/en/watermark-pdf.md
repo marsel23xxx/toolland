@@ -19,7 +19,7 @@ faq:
     a: 'Latin letters including accents. Other characters, such as emoji, are replaced with a question mark.'
   - q: 'Are my PDFs uploaded?'
     a: 'No. Everything runs in your browser, so documents never leave your device.'
-related: ['pdf-page-numbers', 'sign-pdf', 'compress-pdf']
+related: ['pdf-page-numbers', 'signature-maker', 'compress-pdf']
 ---
 
 ## Mark documents before sharing

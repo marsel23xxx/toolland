@@ -25,7 +25,6 @@ import {
   type ImagesToPdfOptions,
   type PageNumberOptions,
   type PdfErrorCode,
-  type Placement,
   type WatermarkOptions,
 } from '../lib/pdf/types';
 
@@ -250,23 +249,12 @@ const api = {
     return out(await save(doc));
   },
 
-  async sign(buf: ArrayBuffer, png: ArrayBuffer, placements: Placement[]): Promise<Uint8Array> {
-    const doc = await load(buf);
+  /** PDF satu halaman seukuran tanda tangan (lebar dalam point), latar transparan. */
+  async signaturePdf(png: ArrayBuffer, width: number): Promise<Uint8Array> {
+    const doc = await PDFDocument.create();
     const image = await doc.embedPng(png);
-    const pages = doc.getPages();
-    for (const pl of placements) {
-      const page = pages[pl.page];
-      if (!page) continue;
-      const { box, rotation } = pageFrame(page);
-      const p = visualToUser(box, rotation, pl.x, pl.y);
-      page.drawImage(image, {
-        x: p.x,
-        y: p.y,
-        width: pl.width,
-        height: pl.height,
-        rotate: degrees(rotation),
-      });
-    }
+    const height = (width * image.height) / image.width;
+    doc.addPage([width, height]).drawImage(image, { x: 0, y: 0, width, height });
     return out(await save(doc));
   },
 

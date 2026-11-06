@@ -34,15 +34,6 @@ export interface ImagesToPdfOptions {
   margin: number;
 }
 
-/** Posisi tanda tangan dalam point, koordinat seperti terlihat (origin kiri bawah halaman). */
-export interface Placement {
-  page: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 export type CompressLevel = 'low' | 'medium' | 'high';
 
 /** Pengaturan kompres per level: kualitas JPEG dan sisi terpanjang gambar. */

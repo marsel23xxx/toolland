@@ -18,7 +18,7 @@ faq:
     a: 'Huruf Latin termasuk huruf beraksen. Karakter di luar itu, seperti emoji, diganti dengan tanda tanya.'
   - q: 'Apakah PDF saya diunggah?'
     a: 'Tidak. Watermark ditambahkan di browser kamu.'
-related: ['nomor-halaman-pdf', 'tanda-tangan-pdf', 'kompres-pdf']
+related: ['nomor-halaman-pdf', 'buat-tanda-tangan', 'kompres-pdf']
 ---
 
 ## Tandai dokumen sebelum dibagikan

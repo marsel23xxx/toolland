@@ -19,7 +19,7 @@ faq:
     a: 'Yes. Each file gets its own numbering from the starting number you choose.'
   - q: 'Are my PDFs uploaded?'
     a: 'No. Everything runs in your browser, so documents never leave your device.'
-related: ['watermark-pdf', 'merge-pdf', 'sign-pdf']
+related: ['watermark-pdf', 'merge-pdf', 'signature-maker']
 ---
 
 ## Tidy documents that are easy to reference

@@ -18,7 +18,7 @@ faq:
     a: 'Bisa. Setiap file diberi nomor sendiri mulai dari nomor awal yang dipilih.'
   - q: 'Apakah PDF saya diunggah?'
     a: 'Tidak. Nomor halaman ditambahkan di browser kamu.'
-related: ['watermark-pdf', 'gabung-pdf', 'tanda-tangan-pdf']
+related: ['watermark-pdf', 'gabung-pdf', 'buat-tanda-tangan']
 ---
 
 ## Dokumen yang rapi dan mudah dirujuk

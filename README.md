@@ -10,7 +10,7 @@ memproses file langsung di perangkat pengguna; file tidak pernah disimpan.
 | --------- | -------------------------------------------------------------------------------------------------------- | ----------- |
 | Gambar    | konversi JPG/PNG/WebP/AVIF/HEIC, kompres, ubah ukuran & potong, pas foto | browser     |
 | Gambar AI | hapus background (ISNet, WebGPU/WASM), blur wajah (MediaPipe)                                            | browser     |
-| PDF       | gabung, pisah, kompres cepat, PDF ke JPG, JPG ke PDF, tanda tangan, watermark, nomor halaman             | browser     |
+| PDF       | gabung, pisah, kompres cepat, PDF ke JPG, JPG ke PDF, buat tanda tangan, watermark, nomor halaman            | browser     |
 | PDF       | Word/Excel/PowerPoint ke PDF (Gotenberg), kompres PDF maksimal (Ghostscript), maks 15 MB                 | server      |
 | Teks      | hitung kata, ubah huruf, bandingkan teks | browser     |
 | Developer | JSON formatter, JSON↔CSV, Base64 & URL encode (termasuk gambar ke Base64), hash, QR code | browser     |
