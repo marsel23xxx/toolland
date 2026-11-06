@@ -21,7 +21,7 @@ faq:
     a: 'No. Toolland only processes video files on your device, such as your own recordings or videos from your phone.'
   - q: 'What is the size limit?'
     a: 'Up to 1 GB per file.'
-related: ['cut-audio', 'compress-video', 'video-to-gif']
+related: ['compress-video', 'video-to-gif', 'remove-background']
 ---
 
 ## Listen without watching

@@ -14,7 +14,7 @@ memproses file langsung di perangkat pengguna; file tidak pernah disimpan.
 | PDF       | Word/Excel/PowerPoint ke PDF (Gotenberg), ODT ke DOCX (LibreOffice), PDF ke Word (pdf2docx), kompres PDF maksimal (Ghostscript), maks 15 MB | server      |
 | Teks      | hitung kata, ubah huruf, bandingkan teks | browser     |
 | Developer | JSON formatter, JSON↔CSV, Base64 & URL encode (termasuk gambar ke Base64), hash, QR code | browser     |
-| Media     | video ke GIF, kompres video, potong audio, ekstrak audio (ffmpeg.wasm, sampai 1 GB)                      | browser     |
+| Media     | video ke GIF, kompres video, ekstrak audio (ffmpeg.wasm, sampai 1 GB) | browser     |
 
 ## Struktur
 

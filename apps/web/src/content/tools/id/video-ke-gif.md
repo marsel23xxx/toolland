@@ -18,7 +18,7 @@ faq:
     a: 'MP4, MOV, WebM, MKV, AVI, dan format umum lain yang didukung ffmpeg.'
   - q: 'Kenapa warna GIF sedikit berbeda?'
     a: 'GIF hanya bisa memakai 256 warna. Toolland membuat palet warna khusus untuk setiap klip agar hasilnya tetap sebaik mungkin.'
-related: ['kompres-video', 'ekstrak-audio', 'potong-audio']
+related: ['kompres-video', 'ekstrak-audio', 'hapus-background']
 ---
 
 ## GIF untuk chat, presentasi, dan tutorial

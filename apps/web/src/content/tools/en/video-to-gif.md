@@ -19,7 +19,7 @@ faq:
     a: 'MP4, MOV, WebM, MKV, AVI, and other common formats supported by ffmpeg.'
   - q: 'Why do colors look slightly different?'
     a: 'GIF can only use 256 colors. Toolland builds a custom palette for each clip so it looks as good as possible.'
-related: ['compress-video', 'extract-audio', 'cut-audio']
+related: ['compress-video', 'extract-audio', 'remove-background']
 ---
 
 ## GIFs for chats, slides, and tutorials

@@ -40,23 +40,6 @@ export const tests = [
     },
   },
   {
-    name: 'potong audio',
-    path: '/tools/potong-audio',
-    async run(h) {
-      await ready(h);
-      await h.upload('nada.mp3');
-      await h.page.waitForFunction(() => Number(document.querySelector('#au-end')?.value) > 2.5, {
-        timeout: 15000,
-      });
-      await h.type('#au-start', '1');
-      await h.type('#au-end', '2');
-      await h.click('Potong audio');
-      const [c] = await h.results(1, 120000);
-      expect(c.includes('.mp3'), c);
-      return [c];
-    },
-  },
-  {
     name: 'ekstrak audio dari video',
     path: '/tools/ekstrak-audio',
     async run(h) {

@@ -20,7 +20,7 @@ faq:
     a: 'Tidak. Toolland hanya memproses file video yang ada di perangkatmu, misalnya rekaman sendiri atau video dari HP.'
   - q: 'Berapa batas ukuran video?'
     a: 'Sampai 1 GB per file.'
-related: ['potong-audio', 'kompres-video', 'video-ke-gif']
+related: ['kompres-video', 'video-ke-gif', 'hapus-background']
 ---
 
 ## Dengarkan tanpa menonton
