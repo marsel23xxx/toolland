@@ -302,6 +302,7 @@
   "video.original": "Asli",
   "video.run": "Kompres video",
   "video.hint": "Hasil berformat MP4 (H.264 + AAC) yang bisa diputar di semua perangkat. Kualitas tidak diturunkan otomatis; kamu yang memilih.",
+  "video.unchanged": "Sudah optimal, file asli dipertahankan. Untuk ukuran lebih kecil, pilih resolusi lebih rendah atau kualitas Ukuran kecil.",
   "audio.format": "Format",
   "audio.mp3": "MP3",
   "audio.m4a": "M4A (AAC)",

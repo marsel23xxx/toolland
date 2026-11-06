@@ -22,8 +22,14 @@ async function compare() {
     return;
   }
   const d = await import('diff');
-  const a = original.value;
-  const b = changed.value;
+  // Mode baris: samakan akhir baris (CRLF dari Windows, enter di akhir teks) agar tidak dianggap
+  // perbedaan. Tanpa ini, baris terakhir yang sama tampil sebagai "dihapus" lalu "ditambah".
+  const lineEnds = (s: string) => {
+    const t = s.replace(/\r\n?/g, '\n');
+    return t && !t.endsWith('\n') ? `${t}\n` : t;
+  };
+  const a = mode.value === 'lines' ? lineEnds(original.value) : original.value;
+  const b = mode.value === 'lines' ? lineEnds(changed.value) : changed.value;
   // timeout: hentikan perbandingan yang terlalu berat agar halaman tidak macet
   const opts = { timeout: 2000 };
   const result =

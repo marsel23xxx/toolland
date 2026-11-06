@@ -93,5 +93,19 @@ export async function makeFixtures() {
     }
   }
   if (fs.existsSync(face)) fs.copyFileSync(face, path.join(dir, 'wajah.jpg'));
+
+  // Contoh HEIC resmi dari repo libheif. Tidak di-commit; diunduh sekali ke cache.
+  const heic = path.join(cache, 'contoh.heic');
+  if (!fs.existsSync(heic)) {
+    try {
+      const res = await fetch(
+        'https://raw.githubusercontent.com/strukturag/libheif/master/examples/example.heic',
+      );
+      if (res.ok) fs.writeFileSync(heic, Buffer.from(await res.arrayBuffer()));
+    } catch {
+      /* offline: uji HEIC dilewati */
+    }
+  }
+  if (fs.existsSync(heic)) fs.copyFileSync(heic, path.join(dir, 'contoh.heic'));
   return dir;
 }

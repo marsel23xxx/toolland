@@ -302,6 +302,7 @@
   "video.original": "Original",
   "video.run": "Compress video",
   "video.hint": "The result is an MP4 (H.264 + AAC) that plays on every device. Quality is never lowered automatically; you choose.",
+  "video.unchanged": "Already optimal, original file kept. For a smaller file, choose a lower resolution or the Small size quality.",
   "audio.format": "Format",
   "audio.mp3": "MP3",
   "audio.m4a": "M4A (AAC)",

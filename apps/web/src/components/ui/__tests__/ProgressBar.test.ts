@@ -18,7 +18,11 @@ describe('ProgressBar', () => {
 
   it('mode tak tentu bila value kosong', () => {
     const wrapper = mount(ProgressBar, { props: { label: 'Memuat' } });
-    expect(wrapper.get('progress').attributes('value')).toBeUndefined();
+    // Tanpa <progress>: diganti garis beranimasi dengan role progressbar tanpa aria-valuenow.
+    expect(wrapper.find('progress').exists()).toBe(false);
+    const bar = wrapper.get('[role="progressbar"]');
+    expect(bar.attributes('aria-label')).toBe('Memuat');
+    expect(bar.attributes('aria-valuenow')).toBeUndefined();
     expect(wrapper.text()).not.toContain('%');
   });
 });

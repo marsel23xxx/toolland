@@ -18,6 +18,22 @@ export const tests = [
       return [c];
     },
   },
+  ...[
+    ['Excel ke PDF', '/tools/excel-ke-pdf', 'tabel.xlsx', 'tabel.pdf'],
+    ['PowerPoint ke PDF', '/tools/ppt-ke-pdf', 'slide.pptx', 'slide.pdf'],
+  ].map(([name, path, input, output]) => ({
+    name: `${name} (API Rust + Gotenberg)`,
+    path,
+    async run(h) {
+      if (skip) return ['dilewati: TOOLLAND_API_URL tidak diisi'];
+      await h.upload(input);
+      const [c] = await h.results(1, 90000);
+      expect(c.includes(output), c);
+      const pdf = await h.download(output);
+      expect((await PDFDocument.load(pdf)).getPageCount() >= 1, 'PDF hasil tidak valid');
+      return [c];
+    },
+  })),
   {
     name: 'kompres PDF maksimal (Ghostscript)',
     path: '/tools/kompres-pdf-maksimal',

@@ -57,14 +57,17 @@ async function run() {
       'video/mp4',
     );
     results.clear();
+    // Video yang sudah efisien bisa jadi lebih besar setelah dikompres: berikan file aslinya saja.
+    if (blob.size >= file.size) {
+      results.add(file.name, file, `${formatBytes(file.size)} · ${props.t.unchanged}`);
+      return;
+    }
     const pct = Math.round((1 - blob.size / file.size) * 100);
     const sizes = { before: formatBytes(file.size), after: formatBytes(blob.size) };
     results.add(
       withSuffix(file.name, fileName('small'), '.mp4'),
       blob,
-      pct >= 0
-        ? fill(props.files.saved, { ...sizes, percent: pct })
-        : fill(props.files.larger, { ...sizes, percent: -pct }),
+      fill(props.files.saved, { ...sizes, percent: pct }),
     );
   } catch (e) {
     error.value =

@@ -30,8 +30,11 @@ export const tests = [
       await h.upload('klip.mp4');
       await h.click('Kompres video');
       const [c] = await h.results(1, 120000);
-      expect(c.includes('klip-kecil.mp4'), c);
-      const mp4 = await h.download('klip-kecil.mp4');
+      // Hasil lebih kecil diberi nama -kecil; jika tidak lebih kecil, file asli dipertahankan.
+      expect(!c.includes('lebih besar'), `hasil lebih besar ditawarkan: ${c}`);
+      const name = c.includes('klip-kecil.mp4') ? 'klip-kecil.mp4' : 'klip.mp4';
+      if (name === 'klip.mp4') expect(c.includes('Sudah optimal'), c);
+      const mp4 = await h.download(name);
       expect(mp4.subarray(4, 8).toString('latin1') === 'ftyp', 'bukan MP4');
       return [c];
     },
