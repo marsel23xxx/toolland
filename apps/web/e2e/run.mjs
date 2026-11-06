@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
+import { expect } from './expect.mjs';
 import { makeFixtures } from './fixtures.mjs';
 import { startServer } from './server.mjs';
 
@@ -130,12 +131,19 @@ async function context(urlPath) {
     },
     /** Unduh file hasil dengan nama tertentu lalu kembalikan isinya. */
     async download(name) {
-      const before = new Set(fs.readdirSync(dlDir));
       await page.waitForSelector(`a[download="${name}"]`, { timeout: 60000 });
-      await page.$eval(`a[download="${name}"]`, (a) => a.click());
+      return h.downloadVia(name, () => page.$eval(`a[download="${name}"]`, (a) => a.click()));
+    },
+    /** Jalankan aksi yang memicu unduhan (misalnya klik tombol), lalu kembalikan isi file. */
+    async downloadVia(name, action) {
+      const before = new Set(fs.readdirSync(dlDir));
+      await action();
       for (let i = 0; i < 150; i++) {
         const f = fs.readdirSync(dlDir).find((x) => !before.has(x) && !x.endsWith('.crdownload'));
-        if (f) return fs.readFileSync(path.join(dlDir, f));
+        if (f) {
+          expect(f === name, `nama unduhan ${f}, seharusnya ${name}`);
+          return fs.readFileSync(path.join(dlDir, f));
+        }
         await sleep(100);
       }
       throw new Error(`unduhan ${name} tidak muncul`);

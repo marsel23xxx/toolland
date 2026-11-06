@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { PDFDocument } from 'pdf-lib';
 import { expect } from '../expect.mjs';
 
@@ -110,7 +111,7 @@ export const tests = [
     },
   },
   {
-    name: 'tanda tangan PDF',
+    name: 'tanda tangan PDF: gores miring dirapikan, lalu ditempel',
     path: '/tools/tanda-tangan-pdf',
     async run(h) {
       await h.upload('teks.pdf');
@@ -121,13 +122,48 @@ export const tests = [
       );
       const pad = await h.page.$('canvas[aria-label]');
       const box = await pad.boundingBox();
-      await h.page.mouse.move(box.x + 30, box.y + 80);
+      // Goresan mouse yang miring ±20° dan bergetar, seperti ttd pakai mouse.
+      await h.page.mouse.move(box.x + 30, box.y + 140);
+      await h.page.mouse.down();
+      for (let i = 0; i < 40; i++)
+        await h.page.mouse.move(
+          box.x + 30 + i * 9,
+          box.y + 140 - i * 3.3 + Math.sin(i * 1.3) * 10 + (i % 2 ? 2 : -2),
+        );
+      await h.page.mouse.up();
+      const ratio = () =>
+        h.page.$eval('img[data-signature]', async (img) => {
+          await img.decode();
+          return img.naturalWidth / img.naturalHeight;
+        });
+      await h.page.waitForSelector('img[data-signature]');
+      const tidy = await ratio();
+      await h.page.click('input[type=checkbox]');
+      await h.page.waitForFunction(
+        (r) => {
+          const img = document.querySelector('img[data-signature]');
+          return img?.complete && Math.abs(img.naturalWidth / img.naturalHeight - r) > 0.01;
+        },
+        {},
+        tidy,
+      );
+      const raw = await ratio();
+      // Versi rapi diluruskan, jadi lebih memanjang ke samping daripada goresan aslinya.
+      expect(
+        tidy > raw * 1.4,
+        `rapikan tidak meluruskan: rapi ${tidy.toFixed(2)}, asli ${raw.toFixed(2)}`,
+      );
+      await h.page.click('input[type=checkbox]');
+
+      await h.click('Urungkan');
+      await h.page.waitForFunction(() => !document.querySelector('img[data-signature]'));
+      await h.page.mouse.move(box.x + 30, box.y + 100);
       await h.page.mouse.down();
       for (let i = 0; i < 20; i++)
-        await h.page.mouse.move(box.x + 30 + i * 12, box.y + 80 + Math.sin(i) * 30);
+        await h.page.mouse.move(box.x + 30 + i * 12, box.y + 100 + Math.sin(i) * 30);
       await h.page.mouse.up();
-      await h.click('Pakai tanda tangan ini');
-      await h.page.waitForSelector('img.h-10');
+      await h.page.waitForSelector('img[data-signature]');
+
       const page2 = await h.page.$('[data-page="2"]');
       await page2.evaluate((el) => el.scrollIntoView({ block: 'center' }));
       const b2 = await page2.boundingBox();
@@ -137,6 +173,75 @@ export const tests = [
       await h.results(1);
       const out = await h.download('teks-ttd.pdf');
       expect((await pagesOf(out)) === 4 && out.length > 3000, 'PDF bertanda tangan tidak valid');
+    },
+  },
+  {
+    name: 'tanda tangan PDF: foto ttd di kertas berbayang',
+    path: '/tools/tanda-tangan-pdf',
+    async run(h) {
+      // Foto buatan: kertas abu-abu dengan bayangan, ttd miring ±12°, disimpan sebagai JPEG.
+      const jpg = await h.page.evaluate(() => {
+        const c = document.createElement('canvas');
+        c.width = 900;
+        c.height = 600;
+        const ctx = c.getContext('2d');
+        const g = ctx.createLinearGradient(0, 0, 900, 0);
+        g.addColorStop(0, '#eeeae2');
+        g.addColorStop(1, '#9d988f');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 900, 600);
+        ctx.translate(450, 300);
+        ctx.rotate((-12 * Math.PI) / 180);
+        ctx.strokeStyle = '#1d2333';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-300, 20);
+        for (let x = -300; x <= 300; x += 10) ctx.lineTo(x, 20 + Math.sin(x / 25) * 45);
+        ctx.stroke();
+        return c.toDataURL('image/jpeg', 0.85).split(',')[1];
+      });
+      fs.writeFileSync(h.fixture('ttd-kertas.jpg'), Buffer.from(jpg, 'base64'));
+
+      await h.upload('teks.pdf');
+      await h.page.waitForFunction(
+        () => document.querySelectorAll('[data-page] img').length === 4,
+        { timeout: 20000 },
+      );
+      await h.click('Foto ttd');
+      const input = await h.page.$('input[type=file][accept="image/*"]');
+      await input.uploadFile(h.fixture('ttd-kertas.jpg'));
+      await h.page.waitForSelector('img[data-signature]', { timeout: 15000 });
+      const sig = await h.page.$eval('img[data-signature]', async (img) => {
+        await img.decode();
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth;
+        c.height = img.naturalHeight;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const d = ctx.getImageData(0, 0, c.width, c.height).data;
+        let clear = 0;
+        for (let i = 3; i < d.length; i += 4) if (d[i] === 0) clear++;
+        return { ratio: c.width / c.height, clear: clear / (d.length / 4), corner: d[3] };
+      });
+      // Kertas dan bayangan transparan, ttd diluruskan (lebar jauh melebihi tinggi).
+      expect(
+        sig.corner === 0 && sig.clear > 0.5,
+        `kertas tidak transparan: ${JSON.stringify(sig)}`,
+      );
+      expect(sig.ratio > 4, `ttd foto tidak diluruskan: rasio ${sig.ratio.toFixed(2)}`);
+
+      const page1 = await h.page.$('[data-page="1"]');
+      await page1.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      const b1 = await page1.boundingBox();
+      await h.page.mouse.click(b1.x + b1.width * 0.5, b1.y + b1.height * 0.5);
+      await h.page.waitForSelector('[data-page="1"] [role=group]');
+      await h.click('Simpan PDF');
+      await h.results(1);
+      const out = await h.download('teks-ttd.pdf');
+      expect((await pagesOf(out)) === 4, 'PDF bertanda tangan tidak valid');
+      const png = await h.downloadVia('tanda-tangan.png', () => h.click('Unduh PNG'));
+      expect(png.subarray(1, 4).toString('latin1') === 'PNG', 'bukan PNG');
     },
   },
 ];
