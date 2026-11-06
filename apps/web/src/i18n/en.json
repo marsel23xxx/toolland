@@ -350,6 +350,8 @@
   "home.headlineEm": "don’t peek.",
   "home.lead": "Compress photos, merge PDFs, turn iPhone photos into JPG. Everything runs right on your device, so your files are never uploaded anywhere.",
   "home.popular": "Most used",
+  "home.pause": "Pause",
+  "home.play": "Play",
   "home.all": "All tools",
   "home.count": "{n} tools",
   "home.fact1": "Files never uploaded",

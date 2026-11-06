@@ -51,6 +51,15 @@ cd infra && WEB_ROOT=/tmp API_IMAGE=toolland-api:local docker compose up -d --bu
 TOOLLAND_API_URL=http://127.0.0.1:8082 pnpm --filter web e2e server
 ```
 
+### Screenshot etalase beranda
+
+Gambar di bagian "Paling sering dipakai" (`apps/web/src/assets/shots/`) diambil otomatis dari
+tool aslinya. Buat ulang bila tampilan tool berubah (setelah `pnpm build`, dengan API lokal hidup):
+
+```sh
+TOOLLAND_API_URL=http://127.0.0.1:8082 node apps/web/scripts/shots.mjs
+```
+
 ### Aset vendor
 
 Model AI, ffmpeg core, serta wasm pdf.js dan MediaPipe (sekitar 260 MB) tidak disimpan di git.
