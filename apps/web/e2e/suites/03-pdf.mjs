@@ -114,6 +114,8 @@ export const tests = [
     name: 'tanda tangan PDF: gores miring dirapikan, lalu ditempel',
     path: '/tools/tanda-tangan-pdf',
     async run(h) {
+      // Pembuat tanda tangan sudah tampil sebelum PDF dipilih.
+      await h.page.waitForSelector('canvas[aria-label]', { timeout: 10000 });
       await h.upload('teks.pdf');
       await h.page.waitForSelector('canvas[aria-label]', { timeout: 20000 });
       await h.page.waitForFunction(

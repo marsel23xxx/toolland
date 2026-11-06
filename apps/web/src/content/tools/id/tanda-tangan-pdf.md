@@ -6,8 +6,8 @@ summary: 'Tempel tanda tangan di halaman PDF.'
 category: 'pdf'
 keywords: ['sign pdf', 'ttd pdf', 'tanda tangan digital', 'tanda tangan online', 'esign pdf', 'buat tanda tangan online', 'signature maker', 'ttd transparan', 'tanda tangan png']
 howTo:
-  - 'Pilih file PDF yang akan ditandatangani.'
   - 'Pilih Gores untuk membuat tanda tangan dengan mouse atau jari, atau Foto ttd untuk memakai foto tanda tangan di kertas.'
+  - 'Pilih file PDF yang akan ditandatangani.'
   - 'Klik halaman untuk menempelkan tanda tangan, atur posisinya, lalu klik Simpan PDF.'
 faq:
   - q: 'Apakah dokumen saya aman?'

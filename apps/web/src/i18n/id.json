@@ -257,6 +257,7 @@
   "pdf.sign.pageLabel": "Halaman {n}",
   "pdf.sign.change": "Ganti file",
   "pdf.sign.title": "Buat tanda tangan",
+  "pdf.sign.pickPdf": "Lalu pilih PDF yang akan ditandatangani",
   "pdf.sign.sourceDraw": "Gores",
   "pdf.sign.sourcePhoto": "Foto ttd",
   "pdf.sign.undo": "Urungkan",

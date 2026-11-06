@@ -7,8 +7,8 @@ category: 'pdf'
 idSlug: 'tanda-tangan-pdf'
 keywords: ['sign pdf', 'electronic signature', 'pdf signature', 'esign pdf', 'signature maker', 'transparent signature', 'signature png']
 howTo:
-  - 'Choose the PDF to sign.'
   - 'Choose Draw to sign with a mouse or finger, or Photo to use a picture of your signature on paper.'
+  - 'Choose the PDF to sign.'
   - 'Click a page to place it, adjust the position, then click Save PDF.'
 faq:
   - q: 'Is my document safe?'

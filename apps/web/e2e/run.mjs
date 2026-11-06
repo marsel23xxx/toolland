@@ -72,7 +72,8 @@ async function context(urlPath) {
     fixture: (name) => path.join(fixtures, name),
     downloads: dlDir,
     async upload(...names) {
-      const input = await page.$('input[type=file]');
+      // Kotak upload utama (Dropzone) diutamakan; tool bisa punya input file lain.
+      const input = (await page.$('input.peer[type=file]')) ?? (await page.$('input[type=file]'));
       await input.uploadFile(...names.map(h.fixture));
     },
     async type(selector, value) {

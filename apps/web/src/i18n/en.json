@@ -257,6 +257,7 @@
   "pdf.sign.pageLabel": "Page {n}",
   "pdf.sign.change": "Change file",
   "pdf.sign.title": "Create your signature",
+  "pdf.sign.pickPdf": "Then choose the PDF to sign",
   "pdf.sign.sourceDraw": "Draw",
   "pdf.sign.sourcePhoto": "Photo",
   "pdf.sign.undo": "Undo",

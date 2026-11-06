@@ -5,7 +5,7 @@
  */
 import { fileName } from '../../../lib/names';
 import type SignaturePad from 'signature_pad';
-import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import IconX from '~icons/lucide/x';
 import type { Messages } from '../../../i18n';
 import { downloadBlob } from '../../../lib/download';
@@ -276,7 +276,8 @@ watch([color, weight], () => {
   refreshPhoto();
 });
 watch(tidy, refreshDrawn);
-watch(source, (v) => v === 'draw' && file.value && initPad());
+watch(source, (v) => v === 'draw' && initPad());
+onMounted(initPad);
 watch(straighten, refreshPhoto);
 
 // ---------- PDF ----------
@@ -304,8 +305,6 @@ async function load(list: File[]) {
   } finally {
     loading.value = false;
   }
-  // Kanvas tanda tangan baru dirender setelah loading selesai.
-  if (file.value) await initPad();
 }
 
 function place(page: Page, e: MouseEvent) {
@@ -418,11 +417,7 @@ async function save() {
 }
 
 function reset() {
-  // Kanvas lama ikut hilang saat file diganti, jadi signature_pad dibuat ulang.
-  pad?.off();
-  pad = null;
-  strokeCount.value = 0;
-  setSig(drawn, null);
+  // Tanda tangan tetap disimpan saat PDF diganti.
   pages.value.forEach((p) => URL.revokeObjectURL(p.url));
   pages.value = [];
   stamps.value = [];
@@ -436,11 +431,134 @@ onBeforeUnmount(() => {
   setSig(drawn, null);
   setSig(fromPhoto, null);
   photo?.close();
+  pad?.off();
 });
 </script>
 
 <template>
   <div class="space-y-4">
+    <div class="card space-y-4">
+      <p class="font-semibold">{{ t['sign.title'] }}</p>
+
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-for="opt in ['draw', 'photo'] as const"
+          :key="opt"
+          type="button"
+          class="btn btn-secondary"
+          :class="{ 'btn-active': source === opt }"
+          :aria-pressed="source === opt"
+          @click="source = opt"
+        >
+          {{ opt === 'draw' ? t['sign.sourceDraw'] : t['sign.sourcePhoto'] }}
+        </button>
+      </div>
+
+      <div class="space-y-3" :class="{ hidden: source !== 'draw' }">
+        <canvas
+          ref="padCanvas"
+          class="h-44 w-full max-w-xl touch-none rounded-lg border border-dashed border-slate-300 bg-white dark:border-slate-600"
+          :aria-label="t['sign.padLabel']"
+        />
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" class="btn btn-secondary" :disabled="!strokeCount" @click="undo">
+            {{ t['sign.undo'] }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            :disabled="!strokeCount"
+            @click="clearPad"
+          >
+            {{ t['sign.clear'] }}
+          </button>
+        </div>
+        <label class="flex items-start gap-2 text-sm">
+          <input v-model="tidy" type="checkbox" class="mt-1" />
+          <span>
+            <span class="font-medium">{{ t['sign.tidy'] }}</span>
+            <span class="block text-slate-600 dark:text-slate-400">{{ t['sign.tidyHint'] }}</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="space-y-3" :class="{ hidden: source !== 'photo' }">
+        <label class="btn btn-secondary cursor-pointer">
+          {{ t['sign.photoPick'] }}
+          <input
+            type="file"
+            accept="image/*"
+            class="sr-only"
+            @change="pickPhoto([...(($event.target as HTMLInputElement).files ?? [])])"
+          />
+        </label>
+        <p class="text-sm text-slate-600 dark:text-slate-400">{{ t['sign.photoHint'] }}</p>
+        <label class="flex items-center gap-2 text-sm">
+          <input v-model="straighten" type="checkbox" />
+          <span class="font-medium">{{ t['sign.straighten'] }}</span>
+        </label>
+        <ProgressBar v-if="photoBusy" :label="t['sign.photoBusy']" />
+        <p v-if="photoError" class="error-text" aria-live="polite">{{ photoError }}</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
+        <div class="flex items-center gap-2" role="group" :aria-label="t['sign.color']">
+          <span>{{ t['sign.color'] }}</span>
+          <button
+            v-for="(hex, key) in COLORS"
+            :key="key"
+            type="button"
+            class="btn btn-secondary px-3 py-1.5"
+            :class="{ 'btn-active': color === key }"
+            :aria-pressed="color === key"
+            @click="color = key"
+          >
+            <span
+              class="inline-block size-3 rounded-full"
+              :class="
+                key === 'blue' ? 'bg-[#0b2a8a]' : 'bg-[#111827] dark:ring-1 dark:ring-white/40'
+              "
+              aria-hidden="true"
+            />
+            {{ t[`sign.${key}`] }}
+          </button>
+        </div>
+        <div
+          class="flex items-center gap-2"
+          :class="{ hidden: source !== 'draw' }"
+          role="group"
+          :aria-label="t['sign.weight']"
+        >
+          <span>{{ t['sign.weight'] }}</span>
+          <button
+            v-for="key in ['thin', 'medium', 'bold'] as const"
+            :key="key"
+            type="button"
+            class="btn btn-secondary px-3 py-1.5"
+            :class="{ 'btn-active': weight === key }"
+            :aria-pressed="weight === key"
+            @click="weight = key"
+          >
+            {{ t[`sign.${key}`] }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="signature" class="flex flex-wrap items-center gap-3">
+        <span class="text-sm font-medium">{{ t['sign.result'] }}</span>
+        <img
+          :src="signature.url"
+          :alt="t['sign.result']"
+          data-signature
+          class="h-16 max-w-full rounded border border-slate-200 bg-white object-contain px-3 py-1 dark:border-slate-700"
+        />
+        <button type="button" class="btn btn-secondary" @click="downloadSignature">
+          {{ t['sign.downloadPng'] }}
+        </button>
+      </div>
+    </div>
+
+    <p v-if="!file" class="font-semibold">{{ t['sign.pickPdf'] }}</p>
     <Dropzone
       v-if="!file"
       :messages="dropzone"
@@ -452,132 +570,12 @@ onBeforeUnmount(() => {
     <ProgressBar v-if="loading" :label="t['sign.loading']" />
 
     <template v-if="file && !loading">
-      <div class="card space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <p class="font-semibold">{{ t['sign.title'] }}</p>
-          <button type="button" class="btn btn-secondary" @click="reset">
-            {{ t['sign.change'] }}
-          </button>
-        </div>
-
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-for="opt in ['draw', 'photo'] as const"
-            :key="opt"
-            type="button"
-            class="btn btn-secondary"
-            :class="{ 'btn-active': source === opt }"
-            :aria-pressed="source === opt"
-            @click="source = opt"
-          >
-            {{ opt === 'draw' ? t['sign.sourceDraw'] : t['sign.sourcePhoto'] }}
-          </button>
-        </div>
-
-        <div v-show="source === 'draw'" class="space-y-3">
-          <canvas
-            ref="padCanvas"
-            class="h-44 w-full max-w-xl touch-none rounded-lg border border-dashed border-slate-300 bg-white dark:border-slate-600"
-            :aria-label="t['sign.padLabel']"
-          />
-          <div class="flex flex-wrap items-center gap-2">
-            <button type="button" class="btn btn-secondary" :disabled="!strokeCount" @click="undo">
-              {{ t['sign.undo'] }}
-            </button>
-            <button
-              type="button"
-              class="btn btn-secondary"
-              :disabled="!strokeCount"
-              @click="clearPad"
-            >
-              {{ t['sign.clear'] }}
-            </button>
-          </div>
-          <label class="flex items-start gap-2 text-sm">
-            <input v-model="tidy" type="checkbox" class="mt-1" />
-            <span>
-              <span class="font-medium">{{ t['sign.tidy'] }}</span>
-              <span class="block text-slate-600 dark:text-slate-400">{{ t['sign.tidyHint'] }}</span>
-            </span>
-          </label>
-        </div>
-
-        <div v-show="source === 'photo'" class="space-y-3">
-          <label class="btn btn-secondary cursor-pointer">
-            {{ t['sign.photoPick'] }}
-            <input
-              type="file"
-              accept="image/*"
-              class="sr-only"
-              @change="pickPhoto([...(($event.target as HTMLInputElement).files ?? [])])"
-            />
-          </label>
-          <p class="text-sm text-slate-600 dark:text-slate-400">{{ t['sign.photoHint'] }}</p>
-          <label class="flex items-center gap-2 text-sm">
-            <input v-model="straighten" type="checkbox" />
-            <span class="font-medium">{{ t['sign.straighten'] }}</span>
-          </label>
-          <ProgressBar v-if="photoBusy" :label="t['sign.photoBusy']" />
-          <p v-if="photoError" class="error-text" aria-live="polite">{{ photoError }}</p>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
-          <div class="flex items-center gap-2" role="group" :aria-label="t['sign.color']">
-            <span>{{ t['sign.color'] }}</span>
-            <button
-              v-for="(hex, key) in COLORS"
-              :key="key"
-              type="button"
-              class="btn btn-secondary px-3 py-1.5"
-              :class="{ 'btn-active': color === key }"
-              :aria-pressed="color === key"
-              @click="color = key"
-            >
-              <span
-                class="inline-block size-3 rounded-full"
-                :class="
-                  key === 'blue' ? 'bg-[#0b2a8a]' : 'bg-[#111827] dark:ring-1 dark:ring-white/40'
-                "
-                aria-hidden="true"
-              />
-              {{ t[`sign.${key}`] }}
-            </button>
-          </div>
-          <div
-            v-show="source === 'draw'"
-            class="flex items-center gap-2"
-            role="group"
-            :aria-label="t['sign.weight']"
-          >
-            <span>{{ t['sign.weight'] }}</span>
-            <button
-              v-for="key in ['thin', 'medium', 'bold'] as const"
-              :key="key"
-              type="button"
-              class="btn btn-secondary px-3 py-1.5"
-              :class="{ 'btn-active': weight === key }"
-              :aria-pressed="weight === key"
-              @click="weight = key"
-            >
-              {{ t[`sign.${key}`] }}
-            </button>
-          </div>
-        </div>
-
-        <div v-if="signature" class="flex flex-wrap items-center gap-3">
-          <span class="text-sm font-medium">{{ t['sign.result'] }}</span>
-          <img
-            :src="signature.url"
-            :alt="t['sign.result']"
-            data-signature
-            class="h-16 max-w-full rounded border border-slate-200 bg-white object-contain px-3 py-1 dark:border-slate-700"
-          />
-          <button type="button" class="btn btn-secondary" @click="downloadSignature">
-            {{ t['sign.downloadPng'] }}
-          </button>
-        </div>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="truncate font-medium">{{ file.name }}</p>
+        <button type="button" class="btn btn-secondary" @click="reset">
+          {{ t['sign.change'] }}
+        </button>
       </div>
-
       <p class="text-sm text-slate-600 dark:text-slate-400">{{ t['sign.placeHint'] }}</p>
 
       <div class="space-y-6">
