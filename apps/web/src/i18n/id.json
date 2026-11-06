@@ -208,6 +208,7 @@
   "pdf.toImage.rendering": "Merender halaman {n} dari {total}…",
   "pdf.toImage.page": "halaman {n}",
   "pdf.toImage.run": "Ubah ke gambar",
+  "pdf.toImage.pagesFailed": "{n} halaman gagal diubah (mungkin rusak atau terlalu berat).",
   "pdf.fromImage.pageSize": "Ukuran halaman",
   "pdf.fromImage.a4": "A4",
   "pdf.fromImage.letter": "Letter",

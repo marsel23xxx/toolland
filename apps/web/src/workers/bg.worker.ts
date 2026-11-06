@@ -33,18 +33,29 @@ const api = {
     onProgress: Progress,
   ): Promise<{ png: ArrayBuffer; device: 'gpu' | 'cpu' }> {
     const { removeBackground } = await import('@imgly/background-removal');
-    const device = await api.device();
-    const blob = await removeBackground(file, {
-      publicPath,
-      device,
-      model: device === 'gpu' ? 'isnet_fp16' : 'isnet_quint8',
-      proxyToWorker: false,
-      output: { format: 'image/png' },
-      // Jangan kembalikan Promise dari proxy Comlink ke imgly: cukup panggil lalu lanjut.
-      progress: (key: string, current: number, total: number) => {
-        void onProgress(key, current, total);
-      },
-    });
+    const run = (device: 'gpu' | 'cpu') =>
+      removeBackground(file, {
+        publicPath,
+        device,
+        model: device === 'gpu' ? 'isnet_fp16' : 'isnet_quint8',
+        proxyToWorker: false,
+        output: { format: 'image/png' },
+        // Jangan kembalikan Promise dari proxy Comlink ke imgly: cukup panggil lalu lanjut.
+        progress: (key: string, current: number, total: number) => {
+          void onProgress(key, current, total);
+        },
+      });
+    let device = await api.device();
+    let blob: Blob;
+    try {
+      blob = await run(device);
+    } catch (e) {
+      if (device !== 'gpu') throw e;
+      // Sebagian HP melaporkan WebGPU tapi gagal saat model dijalankan: pakai CPU seterusnya.
+      gpu = Promise.resolve(false);
+      device = 'cpu';
+      blob = await run(device);
+    }
     const png = await blob.arrayBuffer();
     return transfer({ png, device }, [png]);
   },

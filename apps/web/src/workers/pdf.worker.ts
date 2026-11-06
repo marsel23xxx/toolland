@@ -79,6 +79,21 @@ function pageFrame(page: PDFPage) {
 
 // ---------- kompres gambar JPEG di dalam PDF ----------
 
+/** Jumlah kanal warna (1 abu-abu, 3 RGB) bila aman dikompres ulang, selain itu undefined. */
+function components(doc: PDFDocument, cs: unknown): 1 | 3 | undefined {
+  const obj = doc.context.lookup(cs as never);
+  if (obj === PDFName.of('DeviceGray')) return 1;
+  if (obj === PDFName.of('DeviceRGB')) return 3;
+  // [/ICCBased <<... /N 3>>]: profil ICC dengan 1 atau 3 kanal
+  if (obj instanceof PDFArray && obj.size() === 2 && obj.get(0) === PDFName.of('ICCBased')) {
+    const icc = doc.context.lookup(obj.get(1));
+    const n = icc instanceof PDFRawStream ? icc.dict.get(PDFName.of('N')) : undefined;
+    if (n instanceof PDFNumber && (n.asNumber() === 1 || n.asNumber() === 3))
+      return n.asNumber() as 1 | 3;
+  }
+  return undefined;
+}
+
 async function recompressJpeg(
   bytes: Uint8Array,
   gray: boolean,
@@ -275,8 +290,12 @@ const api = {
         filter === name('DCTDecode') ||
         (filter instanceof PDFArray && filter.size() === 1 && filter.get(0) === name('DCTDecode'));
       if (!isJpeg || dict.get(name('ImageMask')) || dict.get(name('Mask'))) continue;
+      // Hanya RGB/abu-abu biasa. CMYK, Decode terbalik, atau ruang warna khusus dilewati:
+      // setelah didekode ulang browser, warnanya bisa berubah (misalnya jadi negatif).
+      const comps = components(doc, dict.get(name('ColorSpace')));
+      if (comps === undefined || dict.get(name('Decode'))) continue;
 
-      const gray = dict.get(name('ColorSpace')) === name('DeviceGray');
+      const gray = comps === 1;
       const result = await recompressJpeg(obj.contents, gray, quality, maxSide);
       if (!result || result.data.byteLength >= obj.contents.byteLength * 0.95) continue;
 

@@ -56,6 +56,7 @@ export function useFfmpeg() {
   const ffmpeg = shallowRef<FFmpeg | null>(null);
   let loadPromise: Promise<FFmpeg> | null = null;
   let lastLog: string[] = [];
+  let cancelled = false;
 
   function load(): Promise<FFmpeg> {
     loadPromise ??= (async () => {
@@ -102,6 +103,7 @@ export function useFfmpeg() {
     mime: string,
   ): Promise<Blob> {
     const ff = await load();
+    cancelled = false;
     running.value = true;
     progress.value = 0;
     lastLog = [];
@@ -118,6 +120,7 @@ export function useFfmpeg() {
       await ff.deleteFile(out).catch(() => {});
       return new Blob([data as Uint8Array<ArrayBuffer>], { type: mime });
     } catch (e) {
+      if (cancelled) throw new Error('cancelled', { cause: e });
       const msg = (e as Error)?.message ?? String(e);
       if (['memory', 'unsupported', 'failed', 'cancelled'].includes(msg)) throw e;
       throw new Error(classify(`${msg}\n${lastLog.join('\n')}`), { cause: e });
@@ -148,6 +151,7 @@ export function useFfmpeg() {
 
   /** Batalkan proses: worker ffmpeg dihentikan dan dimuat ulang saat dipakai lagi. */
   function cancel() {
+    cancelled = true;
     ffmpeg.value?.terminate();
     ffmpeg.value = null;
     loadPromise = null;

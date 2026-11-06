@@ -51,17 +51,32 @@ function penOptions() {
   return { penColor: COLORS[color.value], minWidth: w * 0.45, maxWidth: w * 1.15 };
 }
 
+let resizer: ResizeObserver | null = null;
+const dpr = () => Math.max(1, window.devicePixelRatio || 1);
+
+function sizeCanvas(c: HTMLCanvasElement) {
+  c.width = Math.round(c.offsetWidth * dpr());
+  c.height = Math.round(c.offsetHeight * dpr());
+  c.getContext('2d')!.scale(dpr(), dpr());
+}
+
 async function initPad() {
   await nextTick();
   // Kanvas yang tersembunyi (tab Foto) belum punya ukuran; dibuat saat tab Gores dibuka.
   if (!padCanvas.value || pad || !padCanvas.value.offsetWidth) return;
   const { default: Pad } = await import('signature_pad');
   const c = padCanvas.value;
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
-  c.width = c.offsetWidth * dpr;
-  c.height = c.offsetHeight * dpr;
-  c.getContext('2d')!.scale(dpr, dpr);
+  sizeCanvas(c);
   pad = new Pad(c, penOptions());
+  // HP diputar atau jendela diubah: ukuran piksel kanvas disesuaikan dan goresan digambar ulang,
+  // supaya coretan berikutnya tidak bergeser dari posisi jari/mouse.
+  resizer = new ResizeObserver(() => {
+    if (!pad || !c.offsetWidth || c.width === Math.round(c.offsetWidth * dpr())) return;
+    const data = pad.toData();
+    sizeCanvas(c);
+    pad.fromData(data);
+  });
+  resizer.observe(c);
   pad.addEventListener('endStroke', () => {
     strokeCount.value = pad!.toData().length;
     refreshDrawn();
@@ -266,6 +281,7 @@ onBeforeUnmount(() => {
   setSig(fromPhoto, null);
   photo?.close();
   pad?.off();
+  resizer?.disconnect();
 });
 watch(straighten, refreshPhoto);
 </script>

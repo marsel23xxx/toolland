@@ -68,6 +68,13 @@ async function run() {
   results.clear();
   errors.value = [];
   busy.value = true;
+  // Kolom angka yang dikosongkan atau diisi di luar batas dikembalikan ke nilai wajar.
+  const clamp = (v: unknown, min: number, max: number, fallback: number) =>
+    typeof v === 'number' && Number.isFinite(v)
+      ? Math.min(max, Math.max(min, Math.round(v)))
+      : fallback;
+  nums.value.start = clamp(nums.value.start, 0, 9999, 1);
+  nums.value.fontSize = clamp(nums.value.fontSize, 6, 48, 11);
   const opts = JSON.parse(JSON.stringify(props.mode === 'watermark' ? wm.value : nums.value));
   try {
     for (const file of sources.value) {

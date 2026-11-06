@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import { rawNumber } from './json';
 
 export type Delimiter = ',' | ';' | '\t';
 
@@ -10,7 +11,9 @@ export function flatten(
 ) {
   for (const [k, v] of Object.entries(obj)) {
     const key = prefix ? `${prefix}.${k}` : k;
-    if (v && typeof v === 'object' && !Array.isArray(v))
+    const raw = rawNumber(v);
+    if (raw !== undefined) out[key] = raw;
+    else if (v && typeof v === 'object' && !Array.isArray(v))
       flatten(v as Record<string, unknown>, key, out);
     else out[key] = Array.isArray(v) ? JSON.stringify(v) : v;
   }
@@ -22,9 +25,9 @@ export function jsonToCsv(json: unknown, delimiter: Delimiter = ','): string {
   const rows = Array.isArray(json) ? json : [json];
   if (rows.length === 0) return '';
   const flat: Record<string, unknown>[] = rows.map((r) =>
-    r && typeof r === 'object' && !Array.isArray(r)
+    r && typeof r === 'object' && !Array.isArray(r) && rawNumber(r) === undefined
       ? flatten(r as Record<string, unknown>)
-      : { value: r },
+      : { value: rawNumber(r) ?? r },
   );
   // gabungan semua kolom, urut kemunculan
   const columns = [...new Set(flat.flatMap((r) => Object.keys(r)))];
@@ -39,12 +42,27 @@ export interface CsvResult {
   errors: { row?: number; message: string }[];
 }
 
+/**
+ * Teks sel ke angka/boolean/null hanya bila tidak ada yang hilang: "0812..." (nomor HP), "007",
+ * "1.50", atau angka sangat panjang (NIK, nomor rekening) tetap teks.
+ */
+export function cellValue(v: string): unknown {
+  if (v === '') return null;
+  if (v === 'true' || v === 'TRUE') return true;
+  if (v === 'false' || v === 'FALSE') return false;
+  if (/^-?(0|[1-9]\d*)(\.\d*[1-9])?$/.test(v)) {
+    const n = Number(v);
+    if (Number.isSafeInteger(n) || (!Number.isInteger(n) && String(n) === v)) return n;
+  }
+  return v;
+}
+
 /** CSV ke array objek; baris pertama sebagai header, angka dan boolean dikenali otomatis. */
 export function csvToJson(csv: string, delimiter?: Delimiter): CsvResult {
   const result = Papa.parse<Record<string, unknown>>(csv.trim(), {
     header: true,
     delimiter: delimiter ?? '',
-    dynamicTyping: true,
+    transform: cellValue,
     skipEmptyLines: true,
   });
   return {

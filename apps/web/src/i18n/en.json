@@ -208,6 +208,7 @@
   "pdf.toImage.rendering": "Rendering page {n} of {total}…",
   "pdf.toImage.page": "page {n}",
   "pdf.toImage.run": "Convert to images",
+  "pdf.toImage.pagesFailed": "{n} page(s) could not be converted (damaged or too heavy).",
   "pdf.fromImage.pageSize": "Page size",
   "pdf.fromImage.a4": "A4",
   "pdf.fromImage.letter": "Letter",

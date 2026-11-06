@@ -23,6 +23,11 @@ const crf = ref(28);
 const height = ref(0);
 const error = ref('');
 
+/** "720p" berlaku untuk sisi pendek: video tegak 1080×1920 menjadi 720×1280, bukan 405×720. */
+function shortSide(p: number) {
+  return `scale='if(gt(iw,ih),-2,min(${p},iw))':'if(gt(iw,ih),min(${p},ih),-2)'`;
+}
+
 async function run() {
   const file = shell.value?.file;
   if (!file) return;
@@ -42,7 +47,7 @@ async function run() {
         'rc-lookahead=5',
         '-crf',
         String(crf.value),
-        ...(height.value ? ['-vf', `scale=-2:'min(${height.value},ih)'`] : []),
+        ...(height.value ? ['-vf', shortSide(height.value)] : []),
         '-pix_fmt',
         'yuv420p',
         '-c:a',

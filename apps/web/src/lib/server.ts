@@ -51,6 +51,7 @@ export function postFile(
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onUpload((e.loaded / e.total) * 100);
     };
+    xhr.upload.onload = () => onUpload(100);
     xhr.onload = async () => {
       if (xhr.status === 200) {
         resolve({

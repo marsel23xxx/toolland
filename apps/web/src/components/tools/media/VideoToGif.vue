@@ -33,9 +33,9 @@ async function run() {
       file,
       (input) => [
         '-ss',
-        String(start.value),
+        String(Math.max(0, Number(start.value) || 0)),
         '-t',
-        String(Math.min(60, Math.max(0.5, length.value))),
+        String(Math.min(60, Math.max(0.5, Number(length.value) || 5))),
         '-i',
         input,
         '-vf',

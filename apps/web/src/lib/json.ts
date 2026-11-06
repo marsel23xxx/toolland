@@ -13,10 +13,29 @@ export function positionToLineCol(text: string, pos: number): { line: number; co
   return { line, column: pos - before.lastIndexOf('\n') };
 }
 
+type RawJson = { rawJSON(text: string): unknown; isRawJSON(v: unknown): boolean };
+const RAW = (JSON as unknown as Partial<RawJson>).rawJSON ? (JSON as unknown as RawJson) : null;
+
+/** Angka besar hasil parseJson (lihat keepBigNumbers) sebagai teks aslinya, atau undefined. */
+export function rawNumber(v: unknown): string | undefined {
+  return RAW?.isRawJSON(v) ? (v as { rawJSON: string }).rawJSON : undefined;
+}
+
+/**
+ * Angka yang tidak muat di number JavaScript (ID 64-bit, NIK, angka desimal panjang) disimpan
+ * persis seperti tulisan aslinya, supaya tidak berubah saat diformat. Butuh JSON.rawJSON
+ * (browser baru); di browser lama angka tetap dibulatkan seperti biasa.
+ */
+function keepBigNumbers(_key: string, value: unknown, ctx?: { source?: string }) {
+  if (RAW && typeof value === 'number' && ctx?.source && String(value) !== ctx.source)
+    return RAW.rawJSON(ctx.source);
+  return value;
+}
+
 /** Parse JSON dengan lokasi error (baris/kolom) bila ada. */
 export function parseJson(text: string): JsonResult {
   try {
-    return { ok: true, value: JSON.parse(text) };
+    return { ok: true, value: JSON.parse(text, RAW ? (keepBigNumbers as never) : undefined) };
   } catch (e) {
     const message = (e as Error).message;
     const lc = /line (\d+) column (\d+)/.exec(message);
@@ -29,7 +48,7 @@ export function parseJson(text: string): JsonResult {
 
 function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeysDeep);
-  if (value && typeof value === 'object') {
+  if (value && typeof value === 'object' && !RAW?.isRawJSON(value)) {
     return Object.fromEntries(
       Object.keys(value)
         .sort()

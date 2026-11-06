@@ -127,6 +127,22 @@ export const tests = [
     },
   },
   {
+    name: 'CSV ke JSON: nomor HP dan angka panjang tidak berubah',
+    path: '/tools/json-ke-csv',
+    async run(h) {
+      await h.click('CSV ke JSON');
+      await h.type('#jc-in', 'nama,hp,nik,umur\nAni,081234567890,3201234567890123456,20');
+      await h.page.waitForFunction(() => document.querySelector('#jc-out').value.includes('Ani'), {
+        timeout: 5000,
+      });
+      const [row] = JSON.parse(await h.value('#jc-out'));
+      expect(
+        row.hp === '081234567890' && row.nik === '3201234567890123456' && row.umur === 20,
+        JSON.stringify(row),
+      );
+    },
+  },
+  {
     name: 'QR code terbaca kembali (jsQR) dan unduh SVG',
     path: '/tools/buat-qr-code',
     async run(h) {

@@ -78,6 +78,13 @@ describe('json', () => {
     if (r.ok) return;
     expect(r.error.line).toBe(3);
   });
+  it.runIf('rawJSON' in JSON)('angka besar tidak dibulatkan', () => {
+    const src = '{"id":12345678901234567890,"x":1.10,"n":2}';
+    const r = parseJson(src);
+    if (!r.ok) throw new Error('parse');
+    expect(formatJson(r.value, 0, true)).toBe('{"id":12345678901234567890,"n":2,"x":1.10}');
+    expect(jsonToCsv(r.value).split('\r\n')[1]).toBe('12345678901234567890,1.10,2');
+  });
 });
 
 describe('json-csv', () => {
@@ -92,6 +99,21 @@ describe('json-csv', () => {
     const r = csvToJson('nama;umur;aktif\nAni;20;true', ';');
     expect(r.rows).toEqual([{ nama: 'Ani', umur: 20, aktif: true }]);
     expect(r.errors).toEqual([]);
+  });
+  it('nomor HP, kode, dan angka panjang tetap teks', () => {
+    const r = csvToJson(
+      'hp,kode,nik,harga,nilai,kosong\n081234567890,007,3201234567890123456,1.50,-2.5,',
+    );
+    expect(r.rows).toEqual([
+      {
+        hp: '081234567890',
+        kode: '007',
+        nik: '3201234567890123456',
+        harga: '1.50',
+        nilai: -2.5,
+        kosong: null,
+      },
+    ]);
   });
 });
 

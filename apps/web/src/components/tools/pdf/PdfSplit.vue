@@ -42,7 +42,8 @@ async function load(list: File[]) {
 }
 
 function label(group: number[]) {
-  return group.length === 1 ? `hal-${group[0]}` : `hal-${group[0]}-${group[group.length - 1]}`;
+  const first = `${fileName('page')}${group[0]}`;
+  return group.length === 1 ? first : `${first}-${group[group.length - 1]}`;
 }
 
 async function run() {
@@ -67,7 +68,7 @@ async function run() {
     outputs.forEach((bytes, i) => {
       const name = withSuffix(
         file.value!.name,
-        mode.value === 'extract' ? fileName('selection') : `-${label(groups[i])}`,
+        mode.value === 'extract' ? fileName('selection') : label(groups[i]),
         '.pdf',
       );
       results.add(

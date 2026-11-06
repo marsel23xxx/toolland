@@ -39,6 +39,21 @@ export const tests = [
     },
   },
   {
+    name: 'EN: split PDF, nama file bahasa Inggris',
+    path: '/en/tools/split-pdf',
+    async run(h) {
+      await h.upload('teks.pdf');
+      await h.page.waitForSelector('#sp-ranges');
+      await h.type('#sp-ranges', '1-2, 4');
+      await h.click('Split PDF');
+      const cards = await h.results(2);
+      expect(
+        cards[0].includes('teks-page-1-2.pdf') && cards[1].includes('teks-page-4.pdf'),
+        cards.join(' | '),
+      );
+    },
+  },
+  {
     name: 'EN: halaman media cross-origin isolated',
     path: '/en/tools/video-to-gif',
     async run(h) {

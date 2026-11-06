@@ -23,38 +23,66 @@ const results = useFileResults();
 const progress = ref<{ label: string; value: number } | null>(null);
 const errors = ref<string[]>([]);
 let cancelled = false;
+let running = false;
+const pending: File[] = [];
+
+/** Batas piksel per halaman (sekitar 16 juta, aman untuk Safari di iPhone). */
+const MAX_PIXELS = 16_000_000;
 
 async function process(list: File[]) {
+  pending.push(...list);
+  if (running) return;
+  running = true;
   cancelled = false;
-  for (const file of list) {
-    let doc;
-    try {
-      doc = await openPdf(await file.arrayBuffer());
-    } catch (e) {
-      errors.value.push(
-        `${file.name}: ${(e as Error).name === 'PasswordException' ? props.t['error.encrypted'] : props.t['error.invalid']}`,
-      );
-      continue;
-    }
-    const total = doc.numPages;
+  try {
+    while (pending.length && !cancelled) await processFile(pending.shift()!);
+  } finally {
+    pending.length = 0;
+    running = false;
+    progress.value = null;
+  }
+}
+
+async function processFile(file: File) {
+  let doc;
+  try {
+    doc = await openPdf(await file.arrayBuffer());
+  } catch (e) {
+    errors.value.push(
+      `${file.name}: ${(e as Error).name === 'PasswordException' ? props.t['error.encrypted'] : props.t['error.invalid']}`,
+    );
+    return;
+  }
+  const total = doc.numPages;
+  let failed = 0;
+  try {
     for (let n = 1; n <= total && !cancelled; n++) {
       progress.value = {
         label: `${file.name} · ${fill(props.t['toImage.rendering'], { n, total })}`,
         value: ((n - 1) / total) * 100,
       };
-      const canvas = await renderPage(doc, n, dpi.value / 72);
-      const blob = await canvasToBlob(
-        canvas,
-        format.value === 'png' ? 'image/png' : 'image/jpeg',
-        0.9,
-      );
-      canvas.width = canvas.height = 0; // lepas memori canvas
-      const ext = format.value === 'png' ? '.png' : '.jpg';
-      results.add(withSuffix(file.name, `${fileName('page')}${n}`, ext), blob);
+      try {
+        const vp = (await doc.getPage(n)).getViewport({ scale: 1 });
+        // Halaman sangat besar (poster, gambar teknik) diperkecil agar kanvas tidak gagal dibuat.
+        const scale = Math.min(dpi.value / 72, Math.sqrt(MAX_PIXELS / (vp.width * vp.height)));
+        const canvas = await renderPage(doc, n, scale);
+        const blob = await canvasToBlob(
+          canvas,
+          format.value === 'png' ? 'image/png' : 'image/jpeg',
+          0.9,
+        );
+        canvas.width = canvas.height = 0; // lepas memori canvas
+        const ext = format.value === 'png' ? '.png' : '.jpg';
+        results.add(withSuffix(file.name, `${fileName('page')}${n}`, ext), blob);
+      } catch {
+        failed++;
+      }
     }
+  } finally {
     await closePdf(doc);
   }
-  progress.value = null;
+  if (failed)
+    errors.value.push(`${file.name}: ${fill(props.t['toImage.pagesFailed'], { n: failed })}`);
 }
 
 function add(list: File[]) {

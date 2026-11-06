@@ -27,7 +27,7 @@ const options = () =>
     level: level.value,
     fg: fg.value,
     bg: bg.value,
-    margin: margin.value,
+    margin: Math.min(10, Math.max(0, Number(margin.value) || 0)),
   });
 
 async function render() {
