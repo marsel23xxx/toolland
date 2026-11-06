@@ -68,4 +68,9 @@ ssh deploy@<IP-VPS> /srv/toolland/infra/scripts/rollback.sh <commit> # ke rilis 
 ```
 
 Backend: jalankan ulang compose dengan tag commit sebelumnya,
-`API_IMAGE=ghcr.io/marsel23xxx/toolland-api:<commit> docker compose --env-file ../.env up -d api`.
+
+```sh
+API_IMAGE=ghcr.io/marsel23xxx/toolland-api:<commit> \
+CONVERTER_IMAGE=ghcr.io/marsel23xxx/toolland-converter:<commit> \
+docker compose --env-file ../.env up -d api converter
+```

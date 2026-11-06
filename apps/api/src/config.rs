@@ -9,6 +9,8 @@ pub struct Config {
     pub addr: SocketAddr,
     /// URL Gotenberg di jaringan Docker internal.
     pub gotenberg_url: String,
+    /// URL konverter DOCX (LibreOffice Writer + pdf2docx) di jaringan Docker internal.
+    pub converter_url: String,
     /// Folder tmpfs (RAM) untuk file sementara.
     pub tmp_dir: PathBuf,
     /// Program Ghostscript.
@@ -17,6 +19,7 @@ pub struct Config {
     pub max_upload: usize,
     pub office_concurrency: usize,
     pub gs_concurrency: usize,
+    pub docx_concurrency: usize,
     /// Batas waktu proses (PRD: 60 detik).
     pub process_timeout: Duration,
     /// Lama menunggu antrean sebelum menjawab "server sibuk".
@@ -48,6 +51,8 @@ impl Config {
                 .context("TOOLLAND_API_ADDR tidak valid")?,
             gotenberg_url: env::var("GOTENBERG_URL")
                 .unwrap_or_else(|_| "http://gotenberg:3000".into()),
+            converter_url: env::var("CONVERTER_URL")
+                .unwrap_or_else(|_| "http://converter:8000".into()),
             tmp_dir: env::var("TOOLLAND_TMP")
                 .unwrap_or_else(|_| "/run/tools".into())
                 .into(),
@@ -55,6 +60,7 @@ impl Config {
             max_upload: var("TOOLLAND_MAX_UPLOAD", 15 * 1024 * 1024)?,
             office_concurrency: var("TOOLLAND_OFFICE_CONCURRENCY", 2)?,
             gs_concurrency: var("TOOLLAND_GS_CONCURRENCY", 2)?,
+            docx_concurrency: var("TOOLLAND_DOCX_CONCURRENCY", 2)?,
             process_timeout: Duration::from_secs(var("TOOLLAND_PROCESS_TIMEOUT_SECS", 60)?),
             queue_timeout: Duration::from_secs(var("TOOLLAND_QUEUE_TIMEOUT_SECS", 20)?),
             rate_per_minute: var("TOOLLAND_RATE_PER_MINUTE", 20)?,

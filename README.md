@@ -8,10 +8,10 @@ memproses file langsung di perangkat pengguna; file tidak pernah disimpan.
 
 | Kategori  | Tools                                                                                                    | Diproses di |
 | --------- | -------------------------------------------------------------------------------------------------------- | ----------- |
-| Gambar    | konversi JPG/PNG/WebP/AVIF/HEIC, kompres, ubah ukuran & potong, pas foto | browser     |
-| Gambar AI | hapus background (ISNet, WebGPU/WASM), blur wajah (MediaPipe)                                            | browser     |
+| Gambar    | konversi JPG/PNG/WebP/AVIF/HEIC, kompres | browser     |
+| Gambar AI | hapus background (ISNet, WebGPU/WASM) | browser     |
 | PDF       | gabung, pisah, kompres cepat, PDF ke JPG, JPG ke PDF, buat tanda tangan, watermark, nomor halaman            | browser     |
-| PDF       | Word/Excel/PowerPoint ke PDF (Gotenberg), kompres PDF maksimal (Ghostscript), maks 15 MB                 | server      |
+| PDF       | Word/Excel/PowerPoint ke PDF (Gotenberg), ODT ke DOCX (LibreOffice), PDF ke Word (pdf2docx), kompres PDF maksimal (Ghostscript), maks 15 MB | server      |
 | Teks      | hitung kata, ubah huruf, bandingkan teks | browser     |
 | Developer | JSON formatter, JSON↔CSV, Base64 & URL encode (termasuk gambar ke Base64), hash, QR code | browser     |
 | Media     | video ke GIF, kompres video, potong audio, ekstrak audio (ffmpeg.wasm, sampai 1 GB)                      | browser     |
@@ -22,13 +22,14 @@ memproses file langsung di perangkat pengguna; file tidak pernah disimpan.
 | ------------------- | ------------------------------------------------------------------------- |
 | `apps/web`          | Frontend Astro (statis) + island Vue 3 + Tailwind v4                      |
 | `apps/web/e2e`      | Uji browser (Chrome headless) untuk semua tools                           |
-| `apps/api`          | Backend Rust (Axum): Office ke PDF dan kompres PDF, stateless, tanpa DB   |
+| `apps/api`          | Backend Rust (Axum): Office ke PDF, ke DOCX, dan kompres PDF, stateless, tanpa DB |
+| `apps/converter`    | Service internal ODT/PDF ke DOCX (Python + LibreOffice Writer + pdf2docx) |
 | `crates/tools-core` | Tempat fungsi Rust bersama (WASM + native), diisi bila ada bottleneck     |
 | `infra/`            | Docker Compose, Nginx, logrotate, skrip rilis, [panduan deploy](infra/DEPLOY.md) |
 
 ## Pengembangan
 
-Butuh Node 22.23+, pnpm, Rust stable, dan Docker (untuk Gotenberg).
+Butuh Node 22.23+, pnpm, Rust stable, dan Docker (untuk Gotenberg dan converter).
 
 ```sh
 pnpm install

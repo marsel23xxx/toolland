@@ -19,6 +19,7 @@ concurrency:
 env:
   SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
   API_IMAGE: ghcr.io/${{ github.repository_owner }}/toolland-api
+  CONVERTER_IMAGE: ghcr.io/${{ github.repository_owner }}/toolland-converter
   REMOTE: /srv/toolland
 
 jobs:
@@ -48,6 +49,16 @@ jobs:
             ${{ env.API_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/converter/Dockerfile
+          push: true
+          tags: |
+            ${{ env.CONVERTER_IMAGE }}:${{ env.SHA }}
+            ${{ env.CONVERTER_IMAGE }}:latest
+          cache-from: type=gha,scope=converter
+          cache-to: type=gha,mode=max,scope=converter
 
       # ---------- Frontend: build statis ----------
       - uses: pnpm/action-setup@v6
@@ -85,7 +96,8 @@ jobs:
 
       - name: Update backend
         run: |
-          ssh "$TARGET" "cd $REMOTE/infra && API_IMAGE=$API_IMAGE:$SHA docker compose --env-file ../.env pull api gotenberg && API_IMAGE=$API_IMAGE:$SHA docker compose --env-file ../.env up -d --remove-orphans"
+          IMAGES="API_IMAGE=$API_IMAGE:$SHA CONVERTER_IMAGE=$CONVERTER_IMAGE:$SHA"
+          ssh "$TARGET" "cd $REMOTE/infra && $IMAGES docker compose --env-file ../.env pull api converter gotenberg && $IMAGES docker compose --env-file ../.env up -d --remove-orphans"
 
       - name: Cek health
         run: |

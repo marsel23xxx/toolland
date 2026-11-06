@@ -47,6 +47,7 @@ services:
       TOOLLAND_API_ADDR: ${TOOLLAND_API_ADDR:-0.0.0.0:8082}
       RUST_LOG: ${RUST_LOG:-info}
       GOTENBERG_URL: http://gotenberg:3000
+      CONVERTER_URL: http://converter:8000
       TOOLLAND_TMP: /run/tools
       TMPDIR: /run/tools
       # Prometheus metrics di port 9091 (hanya jaringan Docker, tidak dibuka ke host).
@@ -91,6 +92,31 @@ services:
     cpus: 1
     mem_limit: 1g
     memswap_limit: 1g
+    networks: [internal]
+
+  # ODT ke DOCX (LibreOffice Writer) dan PDF ke DOCX (pdf2docx). Hanya jaringan internal,
+  # dipanggil API Rust saja. Tiap konversi proses terpisah dengan batas waktu dan memori.
+  converter:
+    <<: *hardening
+    image: ${CONVERTER_IMAGE:-ghcr.io/marsel23xxx/toolland-converter:latest}
+    build:
+      context: ..
+      dockerfile: apps/converter/Dockerfile
+    user: '65532:65532'
+    environment:
+      CONVERTER_CONCURRENCY: '2'
+      CONVERTER_TIMEOUT_SECS: '55'
+    tmpfs:
+      - /tmp:size=768m,uid=65532,gid=65532,mode=0700
+    healthcheck:
+      test: ['CMD', 'python3', '-I', '/app/server.py', 'healthcheck']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    cpus: 2
+    # Dua konversi paralel (LibreOffice atau PyMuPDF) plus file sementara di tmpfs.
+    mem_limit: 2g
+    memswap_limit: 2g
     networks: [internal]
 
   # Cek /api/tools/v1/health dan halaman utama tiap menit, notifikasi ke Telegram.

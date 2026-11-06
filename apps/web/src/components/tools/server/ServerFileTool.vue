@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Tools yang memakai server: Word/Excel/PowerPoint ke PDF (Gotenberg) dan kompres PDF maksimal
- * (Ghostscript). File diproses satu per satu agar tidak membebani server.
+ * Tools yang memakai server: Word/Excel/PowerPoint ke PDF (Gotenberg), ODT/PDF ke DOCX (converter),
+ * dan kompres PDF maksimal (Ghostscript). File diproses satu per satu agar tidak membebani server.
  */
 import { fileName } from '../../../lib/names';
 import { ref } from 'vue';
@@ -20,7 +20,7 @@ const props = defineProps<{
   files: Messages<'files'>;
   dropzone: DropzoneMessages;
   donate: Messages<'donate'>;
-  mode: 'word' | 'excel' | 'ppt' | 'compress';
+  mode: 'word' | 'excel' | 'ppt' | 'compress' | 'odt' | 'pdfWord';
 }>();
 
 const ACCEPT: Record<typeof props.mode, string> = {
@@ -28,7 +28,21 @@ const ACCEPT: Record<typeof props.mode, string> = {
   excel: '.xls,.xlsx,.ods',
   ppt: '.ppt,.pptx,.odp',
   compress: '.pdf,application/pdf',
+  odt: '.odt,application/vnd.oasis.opendocument.text',
+  pdfWord: '.pdf,application/pdf',
 };
+
+const ENDPOINT: Record<typeof props.mode, string> = {
+  word: '/office-to-pdf',
+  excel: '/office-to-pdf',
+  ppt: '/office-to-pdf',
+  compress: '/pdf/compress',
+  odt: '/odt-to-docx',
+  pdfWord: '/pdf-to-docx',
+};
+
+/** Ekstensi file hasil. */
+const toDocx = props.mode === 'odt' || props.mode === 'pdfWord';
 
 const level = ref<CompressLevel>('medium');
 const results = useFileResults();
@@ -47,7 +61,7 @@ async function pump() {
       const compress = props.mode === 'compress';
       try {
         const job = postFile(
-          compress ? '/pdf/compress' : '/office-to-pdf',
+          ENDPOINT[props.mode],
           file,
           compress ? { level: level.value } : {},
           (p) => {
@@ -82,7 +96,7 @@ async function pump() {
               });
         }
         results.add(
-          withSuffix(file.name, compress ? fileName('small') : '', '.pdf'),
+          withSuffix(file.name, compress ? fileName('small') : '', toDocx ? '.docx' : '.pdf'),
           r.blob,
           detail,
         );
@@ -141,7 +155,7 @@ function cancel() {
       :items="results.items.value"
       :m="files"
       :donate="donate"
-      :zip-name="`${fileName('zipPdf')}.zip`"
+      :zip-name="`${fileName(toDocx ? 'zipDocx' : 'zipPdf')}.zip`"
       @remove="results.remove"
     />
   </div>

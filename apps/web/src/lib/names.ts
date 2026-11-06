@@ -20,6 +20,7 @@ const NAMES = {
     zipPages: 'halaman-pdf',
     zipNoBackground: 'tanpa-background',
     zipPdf: 'hasil-pdf',
+    zipDocx: 'hasil-docx',
     image: 'gambar',
   },
   en: {
@@ -40,6 +41,7 @@ const NAMES = {
     zipPages: 'pdf-pages',
     zipNoBackground: 'no-background',
     zipPdf: 'pdf-files',
+    zipDocx: 'docx-files',
     image: 'image',
   },
 } as const;

@@ -7,6 +7,7 @@ export type ServerErrorCode =
   | 'timeout'
   | 'rate_limit'
   | 'failed'
+  | 'no_text'
   | 'offline'
   | 'cancelled';
 
@@ -65,7 +66,8 @@ export function postFile(
           body.error === 'too_large' ||
           body.error === 'unsupported' ||
           body.error === 'busy' ||
-          body.error === 'timeout'
+          body.error === 'timeout' ||
+          body.error === 'no_text'
         )
           code = body.error;
       } catch {

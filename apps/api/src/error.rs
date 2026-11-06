@@ -21,6 +21,9 @@ pub enum ApiError {
     Timeout,
     #[error("gagal memproses")]
     Failed,
+    /// PDF tanpa teks (hasil scan/foto), tidak bisa dijadikan dokumen yang bisa diedit.
+    #[error("PDF tanpa teks")]
+    NoText,
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -39,6 +42,7 @@ impl ApiError {
             Self::Busy => (StatusCode::SERVICE_UNAVAILABLE, "busy"),
             Self::Timeout => (StatusCode::GATEWAY_TIMEOUT, "timeout"),
             Self::Failed => (StatusCode::UNPROCESSABLE_ENTITY, "failed"),
+            Self::NoText => (StatusCode::UNPROCESSABLE_ENTITY, "no_text"),
             Self::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
         }
     }

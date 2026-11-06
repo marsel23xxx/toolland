@@ -133,6 +133,13 @@ pub fn office_ext(head: &[u8]) -> Option<&'static str> {
     None
 }
 
+/// Dokumen teks OpenDocument (ODT): zip dengan entri pertama "mimetype" yang tidak dikompres.
+pub fn odt_ext(head: &[u8]) -> Option<&'static str> {
+    const MIME: &[u8] = b"mimetypeapplication/vnd.oasis.opendocument.text";
+    (head.starts_with(b"PK\x03\x04") && head.get(30..30 + MIME.len()) == Some(MIME))
+        .then_some("odt")
+}
+
 /// PDF dari header "%PDF-".
 pub fn pdf_ext(head: &[u8]) -> Option<&'static str> {
     infer::get(head)
@@ -155,5 +162,13 @@ mod tests {
         assert_eq!(office_ext(b"%PDF-1.7"), None);
         assert_eq!(pdf_ext(b"%PDF-1.7\n"), Some("pdf"));
         assert_eq!(pdf_ext(b"PK\x03\x04"), None);
+        let mut odt = b"PK\x03\x04".to_vec();
+        odt.resize(30, 0);
+        odt.extend_from_slice(b"mimetypeapplication/vnd.oasis.opendocument.text");
+        assert_eq!(odt_ext(&odt), Some("odt"));
+        // ODS (spreadsheet) dan DOCX bukan ODT
+        let ods = String::from_utf8_lossy(&odt).replace(".text", ".spreadsheet");
+        assert_eq!(odt_ext(ods.as_bytes()), None);
+        assert_eq!(odt_ext(b"PK\x03\x04....word/document.xml"), None);
     }
 }

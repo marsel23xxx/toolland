@@ -110,6 +110,30 @@ async fn ctx(max_upload: usize, rate: u32) -> Ctx {
             }
         }),
     );
+    // Converter tiruan: ODT selalu berhasil; PDF berisi "SCAN" dianggap tanpa teks.
+    let docx = || {
+        (
+            StatusCode::OK,
+            [("content-type", "application/octet-stream")],
+            b"PK\x03\x04 docx tiruan".to_vec(),
+        )
+    };
+    let mock = mock
+        .route("/odt-to-docx", post(move || async move { docx() }))
+        .route(
+            "/pdf-to-docx",
+            post(move |body: axum::body::Bytes| async move {
+                if body.windows(4).any(|w| w == b"SCAN") {
+                    (
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        [("content-type", "application/json")],
+                        br#"{"error": "no_text"}"#.to_vec(),
+                    )
+                } else {
+                    docx()
+                }
+            }),
+        );
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     tokio::spawn(async move { axum::serve(listener, mock).await.unwrap() });
@@ -119,11 +143,13 @@ async fn ctx(max_upload: usize, rate: u32) -> Ctx {
     let cfg = Config {
         addr: "127.0.0.1:0".parse().unwrap(),
         gotenberg_url: format!("http://127.0.0.1:{port}"),
+        converter_url: format!("http://127.0.0.1:{port}"),
         tmp_dir: tmp.clone(),
         gs_bin: "gs".into(),
         max_upload,
         office_concurrency: 2,
         gs_concurrency: 2,
+        docx_concurrency: 2,
         process_timeout: Duration::from_secs(30),
         queue_timeout: Duration::from_secs(5),
         rate_per_minute: rate,
@@ -277,4 +303,82 @@ async fn kompres_pdf_dengan_ghostscript_bila_tersedia() {
     let body = to_bytes(resp.into_body(), 1 << 20).await.unwrap();
     assert!(body.starts_with(b"%PDF"));
     assert_eq!(c.leftover_files(), 0, "file sementara tersisa");
+}
+
+/// ODT minimal: zip dengan entri pertama "mimetype" tanpa kompresi, seperti buatan LibreOffice.
+fn tiny_odt() -> Vec<u8> {
+    let mime = b"application/vnd.oasis.opendocument.text";
+    let mut z = b"PK\x03\x04".to_vec();
+    z.extend_from_slice(&[20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    z.extend_from_slice(&(mime.len() as u32).to_le_bytes());
+    z.extend_from_slice(&(mime.len() as u32).to_le_bytes());
+    z.extend_from_slice(&8u16.to_le_bytes());
+    z.extend_from_slice(&0u16.to_le_bytes());
+    z.extend_from_slice(b"mimetype");
+    z.extend_from_slice(mime);
+    z
+}
+
+#[tokio::test]
+async fn odt_dan_pdf_ke_docx_lewat_converter() {
+    let c = ctx(15 * 1024 * 1024, 20).await;
+    for (path, file, name) in [
+        ("/odt-to-docx", tiny_odt(), "surat.odt"),
+        (
+            "/pdf-to-docx",
+            b"%PDF-1.7\nteks biasa\n".to_vec(),
+            "surat.pdf",
+        ),
+    ] {
+        let resp = c
+            .app
+            .clone()
+            .oneshot(request(path, multipart(&file, name, &[])))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK, "{path}");
+        assert!(
+            resp.headers()["content-type"]
+                .to_str()
+                .unwrap()
+                .contains("wordprocessingml")
+        );
+        let body = to_bytes(resp.into_body(), 1 << 20).await.unwrap();
+        assert!(body.starts_with(b"PK"));
+    }
+    assert_eq!(c.leftover_files(), 0, "file sementara tersisa");
+}
+
+#[tokio::test]
+async fn pdf_hasil_scan_diberi_kode_no_text() {
+    let c = ctx(15 * 1024 * 1024, 20).await;
+    let resp = c
+        .app
+        .clone()
+        .oneshot(request(
+            "/pdf-to-docx",
+            multipart(b"%PDF-1.7\nSCAN\n", "scan.pdf", &[]),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let body = to_bytes(resp.into_body(), 1024).await.unwrap();
+    assert!(String::from_utf8_lossy(&body).contains("\"no_text\""));
+    assert_eq!(c.leftover_files(), 0);
+}
+
+#[tokio::test]
+async fn odt_ke_docx_menolak_file_selain_odt() {
+    let c = ctx(15 * 1024 * 1024, 20).await;
+    // DOCX dan PDF yang diberi nama .odt ditolak
+    for file in [tiny_docx(), b"%PDF-1.7\n".to_vec()] {
+        let resp = c
+            .app
+            .clone()
+            .oneshot(request("/odt-to-docx", multipart(&file, "palsu.odt", &[])))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
+    }
+    assert_eq!(c.leftover_files(), 0);
 }

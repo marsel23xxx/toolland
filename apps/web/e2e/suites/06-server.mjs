@@ -1,8 +1,16 @@
+import { unzipSync, strFromU8 } from 'fflate';
 import { PDFDocument } from 'pdf-lib';
 import { expect } from '../expect.mjs';
 
 // Butuh API Rust + Gotenberg berjalan: TOOLLAND_API_URL=http://127.0.0.1:8082 pnpm e2e server
 const skip = !process.env.TOOLLAND_API_URL;
+
+/** Isi word/document.xml dari file DOCX. */
+function docxText(buf) {
+  const files = unzipSync(new Uint8Array(buf));
+  expect(files['word/document.xml'], 'bukan DOCX');
+  return strFromU8(files['word/document.xml']);
+}
 
 export const tests = [
   {
@@ -34,6 +42,53 @@ export const tests = [
       return [c];
     },
   })),
+  {
+    name: 'ODT ke DOCX (API Rust + converter LibreOffice)',
+    path: '/tools/odt-ke-docx',
+    async run(h) {
+      if (skip) return ['dilewati: TOOLLAND_API_URL tidak diisi'];
+      await h.upload('surat.odt');
+      const [c] = await h.results(1, 90000);
+      expect(c.includes('surat.docx'), c);
+      const xml = docxText(await h.download('surat.docx'));
+      expect(
+        ['Surat Undangan Rapat', 'Ruang Melati', 'Hadir tepat waktu'].every((t) => xml.includes(t)),
+        'isi DOCX tidak lengkap',
+      );
+      expect(xml.includes('<w:tbl>'), 'tabel hilang');
+      return [c];
+    },
+  },
+  {
+    name: 'PDF ke Word (API Rust + converter pdf2docx)',
+    path: '/tools/pdf-ke-word',
+    async run(h) {
+      if (skip) return ['dilewati: TOOLLAND_API_URL tidak diisi'];
+      await h.upload('teks.pdf');
+      const [c] = await h.results(1, 90000);
+      expect(c.includes('teks.docx'), c);
+      const xml = docxText(await h.download('teks.docx'));
+      // Halaman 3 diputar sehingga teksnya tampil vertikal; pdf2docx memang melewati teks vertikal.
+      for (const i of [1, 2, 4])
+        expect(xml.includes(`Dokumen uji - halaman ${i}`), `teks halaman ${i} hilang`);
+      // Halaman 3 tetap menjadi halaman landscape tersendiri (4 bagian halaman).
+      expect((xml.match(/<w:sectPr/g) ?? []).length === 4, 'jumlah halaman berubah');
+      return [c];
+    },
+  },
+  {
+    name: 'PDF ke Word: PDF hasil scan diberi pesan jelas',
+    path: '/tools/pdf-ke-word',
+    async run(h) {
+      if (skip) return ['dilewati: TOOLLAND_API_URL tidak diisi'];
+      await h.upload('foto.pdf');
+      await h.page.waitForFunction(() => document.body.innerText.includes('hasil scan'), {
+        timeout: 90000,
+      });
+      // Respons 422 memang diharapkan; browser mencatatnya sebagai "Failed to load resource".
+      h.problems.length = 0;
+    },
+  },
   {
     name: 'kompres PDF maksimal (Ghostscript)',
     path: '/tools/kompres-pdf-maksimal',

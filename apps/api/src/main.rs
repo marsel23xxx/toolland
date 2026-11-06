@@ -64,6 +64,8 @@ pub fn app(state: AppState) -> Router {
     let heavy = Router::new()
         .route("/office-to-pdf", post(routes::office_to_pdf::handler))
         .route("/pdf/compress", post(routes::pdf_compress::handler))
+        .route("/odt-to-docx", post(routes::to_docx::odt))
+        .route("/pdf-to-docx", post(routes::to_docx::pdf))
         // Batas body sedikit di atas 15 MB untuk overhead multipart; batas file pasti dicek saat upload.
         .layer(DefaultBodyLimit::max(cfg.max_upload + 64 * 1024))
         .layer(GovernorLayer::new(Arc::new(governor)));

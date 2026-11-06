@@ -22,3 +22,6 @@ target/
 .lighthouseci/
 apps/web/public/vendor/
 apps/web/e2e/.tmp/
+
+# Python
+__pycache__/

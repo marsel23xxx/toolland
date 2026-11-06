@@ -15,6 +15,8 @@ pub struct AppState {
     pub office: Arc<Semaphore>,
     /// Batas Ghostscript paralel (PRD: 2).
     pub gs: Arc<Semaphore>,
+    /// Batas konversi ke DOCX paralel.
+    pub docx: Arc<Semaphore>,
 }
 
 impl AppState {
@@ -25,6 +27,7 @@ impl AppState {
                 .build()?,
             office: Arc::new(Semaphore::new(cfg.office_concurrency)),
             gs: Arc::new(Semaphore::new(cfg.gs_concurrency)),
+            docx: Arc::new(Semaphore::new(cfg.docx_concurrency)),
             cfg: Arc::new(cfg),
         })
     }
