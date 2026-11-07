@@ -191,6 +191,8 @@
 @layer base {
   html {
     color-scheme: light dark;
+    /* Navbar sticky setinggi 65px: lompatan ke #anchor dan fokus keyboard tidak tertutup. */
+    scroll-padding-top: 5rem;
   }
 
   body {

@@ -850,7 +850,7 @@ const toolButtons = computed(() => [
 
     <template v-else>
       <div
-        class="sticky top-0 z-20 -mx-1 space-y-2 border-b border-rule bg-paper-2 px-1 py-2"
+        class="sticky top-[65px] z-20 -mx-1 space-y-2 border-b border-rule bg-paper-2 px-1 py-2"
         role="toolbar"
         :aria-label="t['editor.tools']"
       >
