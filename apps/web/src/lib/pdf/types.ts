@@ -49,3 +49,32 @@ export interface CompressResult {
   imagesRecompressed: number;
   unchanged: boolean;
 }
+
+/**
+ * Objek PDF Editor. Posisi dalam point, origin kiri atas halaman seperti terlihat di layar
+ * (sudah memperhitungkan rotasi halaman).
+ */
+export type EditItem =
+  | {
+      type: 'text';
+      page: number;
+      x: number;
+      y: number;
+      text: string;
+      size: number;
+      color: string;
+      bold: boolean;
+      /** Jarak baseline baris pertama dari atas kotak, dibanding ukuran huruf (diukur di browser). */
+      baseline: number;
+    }
+  | { type: 'rect'; page: number; x: number; y: number; w: number; h: number; color: string }
+  | { type: 'image'; page: number; x: number; y: number; w: number; h: number; image: string };
+
+/** Gambar yang dipakai objek 'image', dikirim sekali walau dipasang di banyak halaman. */
+export interface EditImage {
+  bytes: ArrayBuffer;
+  kind: 'png' | 'jpeg';
+}
+
+/** Tinggi baris teks dibanding ukuran huruf, sama di layar dan di PDF. */
+export const EDIT_LINE_HEIGHT = 1.2;

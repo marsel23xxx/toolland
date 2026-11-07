@@ -14,12 +14,16 @@ import {
   rgb,
   StandardFonts,
   type PDFFont,
+  type PDFImage,
   type PDFPage,
 } from 'pdf-lib';
 import { normalizeRotation, numberAnchor, visualSize, visualToUser } from '../lib/pdf/geometry';
 import {
   COMPRESS_PRESETS,
+  EDIT_LINE_HEIGHT,
   type CompressLevel,
+  type EditImage,
+  type EditItem,
   type CompressResult,
   type ImagePageInput,
   type ImagesToPdfOptions,
@@ -270,6 +274,75 @@ const api = {
     const image = await doc.embedPng(png);
     const height = (width * image.height) / image.width;
     doc.addPage([width, height]).drawImage(image, { x: 0, y: 0, width, height });
+    return out(await save(doc));
+  },
+
+  /** PDF Editor: gambar teks, kotak penutup, dan gambar di atas halaman asli. */
+  async edit(
+    buf: ArrayBuffer,
+    items: EditItem[],
+    images: Record<string, EditImage>,
+  ): Promise<Uint8Array> {
+    const doc = await load(buf);
+    const pages = doc.getPages();
+    const fonts = new Map<boolean, PDFFont>();
+    const font = async (bold: boolean) => {
+      if (!fonts.has(bold))
+        fonts.set(
+          bold,
+          await doc.embedFont(bold ? StandardFonts.HelveticaBold : StandardFonts.Helvetica),
+        );
+      return fonts.get(bold)!;
+    };
+    const embedded = new Map<string, PDFImage>();
+
+    for (const item of items) {
+      const page = pages[item.page];
+      if (!page) continue;
+      const { box, rotation, size } = pageFrame(page);
+      // Kotak dari kiri atas (layar) ke titik kiri bawah dalam koordinat PDF asli.
+      const corner = (x: number, y: number, h: number) =>
+        visualToUser(box, rotation, x, size.height - y - h);
+      const rotate = degrees(rotation);
+
+      if (item.type === 'rect') {
+        const p = corner(item.x, item.y, item.h);
+        page.drawRectangle({
+          x: p.x,
+          y: p.y,
+          width: item.w,
+          height: item.h,
+          color: hexColor(item.color),
+          rotate,
+        });
+      } else if (item.type === 'image') {
+        const src = images[item.image];
+        if (!src) continue;
+        let img = embedded.get(item.image);
+        if (!img) {
+          img = src.kind === 'png' ? await doc.embedPng(src.bytes) : await doc.embedJpg(src.bytes);
+          embedded.set(item.image, img);
+        }
+        const p = corner(item.x, item.y, item.h);
+        page.drawImage(img, { x: p.x, y: p.y, width: item.w, height: item.h, rotate });
+      } else {
+        const f = await font(item.bold);
+        const color = hexColor(item.color);
+        item.text.split('\n').forEach((line, i) => {
+          if (!line) return;
+          const baseline = item.y + (i * EDIT_LINE_HEIGHT + item.baseline) * item.size;
+          const p = visualToUser(box, rotation, item.x, size.height - baseline);
+          page.drawText(safeText(f, line), {
+            x: p.x,
+            y: p.y,
+            size: item.size,
+            font: f,
+            color,
+            rotate,
+          });
+        });
+      }
+    }
     return out(await save(doc));
   },
 

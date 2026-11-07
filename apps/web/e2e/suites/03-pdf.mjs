@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFName } from 'pdf-lib';
 import { expect } from '../expect.mjs';
 
 const pagesOf = async (buf) => (await PDFDocument.load(buf)).getPageCount();
@@ -224,6 +224,96 @@ export const tests = [
 
       const png = await h.downloadVia('tanda-tangan.png', () => h.click('Unduh PNG'));
       expect(png.subarray(1, 4).toString('latin1') === 'PNG', 'bukan PNG');
+    },
+  },
+  {
+    name: 'edit PDF: teks, kotak putih, gambar, halaman diputar (posisi sama dengan layar)',
+    path: '/tools/edit-pdf',
+    async run(h) {
+      const { page } = h;
+      await h.upload('teks.pdf');
+      await page.waitForFunction(
+        () => document.querySelectorAll('section[aria-label^="Halaman"]').length === 4,
+        { timeout: 20000 },
+      );
+      const sections = await page.$$('section[aria-label^="Halaman"]');
+      const toolBtn = (label) =>
+        page.evaluateHandle(
+          (l) =>
+            [...document.querySelectorAll('[role=toolbar] button')].find(
+              (b) => b.textContent.trim() === l,
+            ),
+          label,
+        );
+      /** Klik alat (mouse), lalu klik halaman di titik relatif (fx, fy). */
+      async function placeAt(label, sec, fx, fy) {
+        await (await toolBtn(label)).click();
+        await sec.scrollIntoView();
+        const b = await sec.boundingBox();
+        await page.mouse.click(b.x + b.width * fx, b.y + b.height * fy);
+      }
+      await placeAt('Teks', sections[0], 0.2, 0.3);
+      await page.keyboard.type('Halo Toolland');
+      await placeAt('Kotak putih', sections[0], 0.5, 0.6);
+      await placeAt('Teks', sections[2], 0.3, 0.25);
+      await page.keyboard.type('Putar');
+      // Gambar lewat pemilih file.
+      await sections[1].scrollIntoView();
+      const [chooser] = await Promise.all([
+        page.waitForFileChooser(),
+        (await toolBtn('Gambar / tanda tangan')).click(),
+      ]);
+      await chooser.accept([h.fixture('transparan.png')]);
+      await page.waitForFunction(() =>
+        document
+          .querySelector('[role=toolbar] button[aria-pressed=true]')
+          ?.textContent.includes('Gambar'),
+      );
+      const b2 = await sections[1].boundingBox();
+      await page.mouse.click(b2.x + b2.width / 2, b2.y + b2.height / 2);
+
+      // Posisi teks di layar (fraksi halaman) untuk dibandingkan dengan PDF.
+      const onScreen = await page.$$eval('[role=textbox]', (els) =>
+        els.map((e) => {
+          const s = e.closest('section').getBoundingClientRect();
+          const r = e.getBoundingClientRect();
+          return {
+            text: e.innerText,
+            fx: (r.left - s.left) / s.width,
+            fy: (r.top - s.top) / s.height,
+          };
+        }),
+      );
+      await h.click('Simpan PDF');
+      await h.results(1);
+      const out = await h.download('teks-diedit.pdf');
+
+      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const doc = await pdfjs.getDocument({ data: new Uint8Array(out) }).promise;
+      const found = [];
+      for (const [n, want] of [
+        [1, 'Halo Toolland'],
+        [3, 'Putar'],
+      ]) {
+        const pg = await doc.getPage(n);
+        const vp = pg.getViewport({ scale: 1 });
+        const item = (await pg.getTextContent()).items.find((i) => i.str === want);
+        expect(item, `teks "${want}" tidak ada di halaman ${n}`);
+        // Titik baseline kiri dalam koordinat layar (sudah memperhitungkan rotasi halaman).
+        const [a, b, c, d, e, f] = vp.transform;
+        const [px, py] = [item.transform[4], item.transform[5]];
+        const [x, y] = [a * px + c * py + e, b * px + d * py + f];
+        const s = onScreen.find((o) => o.text === want);
+        const size = 14;
+        const dx = Math.abs(x - s.fx * vp.width);
+        const dy = Math.abs(y - (s.fy * vp.height + 0.9 * size));
+        expect(dx < 2 && dy < 3, `posisi "${want}" meleset ${dx.toFixed(1)}/${dy.toFixed(1)} pt`);
+        found.push(`${want} selisih ${dx.toFixed(1)}, ${dy.toFixed(1)} pt`);
+      }
+      const lib = await PDFDocument.load(out);
+      const xobj = lib.getPage(1).node.Resources().lookup(PDFName.of('XObject'));
+      expect(xobj && xobj.keys().length === 1, 'gambar tidak ada di halaman 2');
+      return found;
     },
   },
 ];
