@@ -55,7 +55,7 @@ const privacyHref = locale === 'en' ? '/en/privacy' : '/kebijakan-privasi';
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta name="theme-color" content="#eb6314" />
+    <meta name="theme-color" content="#983c09" />
     <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
     <link rel="preload" href={fontUrl} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={displayFontUrl} as="font" type="font/woff2" crossorigin />
@@ -69,10 +69,16 @@ const privacyHref = locale === 'en' ? '/en/privacy' : '/kebijakan-privasi';
       {t('nav.skip')}
     </a>
 
-    <header class="border-b border-[#15120e] bg-[#eb6314] text-[#15120e]">
+    <header class="border-b border-[#15120e] bg-[#983c09] text-white">
       <nav class={`mx-auto flex h-16 ${width} items-center justify-between gap-4 px-4`}>
-        <a href={homeHref} class="rounded-md bg-white px-2.5 py-1" aria-label={SITE.name}>
-          <img src="/brand/toolland-logo.webp" alt="" width="148" height="45" class="h-10 w-auto" />
+        <a href={homeHref} aria-label={SITE.name}>
+          <img
+            src="/brand/toolland-logo-white.webp"
+            alt=""
+            width="158"
+            height="48"
+            class="h-11 w-auto"
+          />
         </a>
         <div class="flex items-center gap-5 text-sm">
           <a
@@ -99,18 +105,20 @@ const privacyHref = locale === 'en' ? '/en/privacy' : '/kebijakan-privasi';
     <footer class="border-t border-ink text-sm">
       <div class={`mx-auto grid ${width} gap-8 px-4 py-10 sm:grid-cols-[1.4fr_1fr_1fr]`}>
         <div class="space-y-3">
-          <a
-            href={homeHref}
-            class="inline-block rounded-md border border-ink bg-white px-2.5 py-1"
-            aria-label={SITE.name}
-          >
-            <img
-              src="/brand/toolland-logo.webp"
-              alt=""
-              width="148"
-              height="45"
-              class="h-9 w-auto"
-            />
+          <a href={homeHref} class="inline-block" aria-label={SITE.name}>
+            <picture>
+              <source
+                srcset="/brand/toolland-logo-white.webp"
+                media="(prefers-color-scheme: dark)"
+              />
+              <img
+                src="/brand/toolland-logo-orig.webp"
+                alt=""
+                width="158"
+                height="48"
+                class="h-10 w-auto"
+              />
+            </picture>
           </a>
           <p class="max-w-xs text-ink-2">{t('footer.tagline')}</p>
         </div>
