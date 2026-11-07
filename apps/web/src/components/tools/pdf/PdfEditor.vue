@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * PDF Editor tahap 1: tambah teks, kotak penutup (whiteout), dan gambar/tanda tangan di atas
- * halaman PDF. Halaman ditampilkan dengan pdf.js, objek berupa lapisan HTML di atasnya, lalu
+ * PDF Editor: ubah tulisan yang sudah ada (klik baris), tambah teks, kotak penutup (whiteout),
+ * dan gambar/tanda tangan di atas halaman PDF. Halaman ditampilkan dengan pdf.js, objek berupa lapisan HTML di atasnya, lalu
  * pdf-lib (di worker) menggambar objek ke PDF asli saat disimpan. Semua di browser.
  */
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import IconFileUp from '~icons/lucide/file-up';
 import IconImage from '~icons/lucide/image-plus';
 import IconMove from '~icons/lucide/move';
@@ -19,6 +19,15 @@ import { fill, pageLocale } from '../../../lib/format';
 import { fileName } from '../../../lib/names';
 import { PDF_ACCEPT, pdfErrorCode, pdfWorker } from '../../../lib/pdf/client';
 import { closePdf, openPdf, renderPage } from '../../../lib/pdf/render';
+import {
+  groupLines,
+  pickColors,
+  standardFamily,
+  toHex,
+  type FontFamily,
+  type RawTextItem,
+  type TextLine,
+} from '../../../lib/pdf/textlines';
 import { EDIT_LINE_HEIGHT, type EditImage, type EditItem } from '../../../lib/pdf/types';
 import { useFileResults, withSuffix } from '../../../lib/results';
 import Dropzone, { type DropzoneMessages } from '../../ui/Dropzone.vue';
@@ -33,7 +42,12 @@ const props = defineProps<{
 const t = props.t;
 
 type Tool = 'select' | 'text' | 'rect' | 'image';
-type Item = EditItem & { id: number };
+type Item = EditItem & {
+  id: number;
+  /** Edit tulisan asli: kunci baris yang diganti, dan keadaan awalnya (untuk deteksi perubahan). */
+  line?: string;
+  orig?: string;
+};
 type TextItem = Extract<Item, { type: 'text' }>;
 
 interface PageInfo {
@@ -42,7 +56,12 @@ interface PageInfo {
   h: number;
 }
 
-const FONT = "Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', sans-serif";
+/** Font layar yang ukurannya sama dengan font standar PDF (Arial/Liberation = Helvetica, dst). */
+const FONTS: Record<FontFamily, string> = {
+  helvetica: "Helvetica, Arial, 'Liberation Sans', 'Nimbus Sans', sans-serif",
+  times: "'Times New Roman', Times, 'Liberation Serif', 'Nimbus Roman', serif",
+  courier: "'Courier New', Courier, 'Liberation Mono', 'Nimbus Mono PS', monospace",
+};
 const MIN_BOX = 6;
 
 const file = ref<File | null>(null);
@@ -57,7 +76,13 @@ const saving = ref(false);
 const error = ref('');
 const dirty = ref(false);
 const results = useFileResults();
-const textDefaults = ref({ size: 14, color: '#111111', bold: false });
+const textDefaults = ref({
+  size: 14,
+  color: '#111111',
+  bold: false,
+  italic: false,
+  font: 'helvetica' as FontFamily,
+});
 const rectColor = ref('#ffffff');
 
 let doc: PDFDocumentProxy | undefined;
@@ -81,8 +106,13 @@ const width = ref(0);
 let resize: ResizeObserver | undefined;
 const scale = (page: number) => (pages.value[page] ? width.value / pages.value[page].w : 1);
 
+const baselines = new Map<string, number>();
+
 /** Jarak baseline baris pertama di browser ini, supaya teks di PDF tepat di posisi yang sama. */
-function measureBaseline(bold: boolean): number {
+function measureBaseline(font: FontFamily, bold: boolean, italic: boolean): number {
+  const key = `${font}${bold}${italic}`;
+  const known = baselines.get(key);
+  if (known) return known;
   const box = document.createElement('div');
   const probe = document.createElement('span');
   box.textContent = 'Hg';
@@ -90,17 +120,20 @@ function measureBaseline(bold: boolean): number {
   Object.assign(box.style, {
     position: 'absolute',
     visibility: 'hidden',
-    fontFamily: FONT,
+    fontFamily: FONTS[font],
     fontSize: '100px',
     lineHeight: String(EDIT_LINE_HEIGHT),
     fontWeight: bold ? '700' : '400',
+    fontStyle: italic ? 'italic' : 'normal',
     whiteSpace: 'pre',
   });
   Object.assign(probe.style, { display: 'inline-block', width: '1px', height: '0' });
   document.body.append(box);
   const ratio = (probe.getBoundingClientRect().top - box.getBoundingClientRect().top) / 100;
   box.remove();
-  return ratio > 0.5 && ratio < 1.2 ? ratio : 0.9;
+  const value = ratio > 0.5 && ratio < 1.2 ? ratio : 0.9;
+  baselines.set(key, value);
+  return value;
 }
 
 // ---------- buka PDF ----------
@@ -113,7 +146,7 @@ async function open(list: File[]) {
   error.value = '';
   try {
     pdfBytes = await f.arrayBuffer();
-    doc = await openPdf(pdfBytes);
+    doc = await openPdf(pdfBytes, true);
     const info: PageInfo[] = [];
     for (let n = 1; n <= doc.numPages; n++) {
       const page = await doc.getPage(n);
@@ -135,6 +168,8 @@ async function reset() {
   observer?.disconnect();
   rendered.clear();
   holders.clear();
+  canvases.clear();
+  lines.value = {};
   if (doc) await closePdf(doc);
   doc = undefined;
   pdfBytes = undefined;
@@ -159,6 +194,12 @@ function changeFile() {
 
 const holders = new Map<number, HTMLElement>();
 const rendered = new Set<number>();
+/** Canvas hasil render per halaman, untuk mengambil warna tulisan dan latar. */
+const canvases = new Map<number, { canvas: HTMLCanvasElement; scale: number }>();
+
+type EditableLine = TextLine & { font: FontFamily; bold: boolean; italic: boolean };
+/** Baris tulisan asli per halaman yang bisa diklik untuk diedit. */
+const lines = shallowRef<Record<number, EditableLine[]>>({});
 let observer: IntersectionObserver | undefined;
 
 function holderRef(i: number, el: unknown) {
@@ -180,8 +221,38 @@ async function draw(i: number) {
     canvas.className = 'absolute inset-0 size-full';
     canvas.setAttribute('aria-hidden', 'true');
     holders.get(i)?.replaceChildren(canvas);
+    canvases.set(i, { canvas, scale: s });
+    lines.value = { ...lines.value, [i]: await readLines(current, i) };
   } catch {
     rendered.delete(i);
+  }
+}
+
+/** Baris tulisan asli satu halaman, lengkap dengan font termirip. */
+async function readLines(d: PDFDocumentProxy, i: number): Promise<EditableLine[]> {
+  try {
+    const page = await d.getPage(i + 1);
+    const tc = await page.getTextContent();
+    const vp = page.getViewport({ scale: 1 });
+    const raw = tc.items.filter((it): it is RawTextItem & typeof it => 'str' in it);
+    return groupLines(raw, vp.transform, tc.styles).map((l) => {
+      // Info font dari pdf.js (tersedia setelah halaman dirender).
+      const f = (page.commonObjs.has(l.fontName) ? page.commonObjs.get(l.fontName) : null) as {
+        name?: string;
+        bold?: boolean;
+        italic?: boolean;
+        fallbackName?: string;
+      } | null;
+      const name = f?.name ?? '';
+      return {
+        ...l,
+        font: standardFamily(name, f?.fallbackName ?? tc.styles[l.fontName]?.fontFamily),
+        bold: !!f?.bold || /bold|black|heavy|semibold|demi/i.test(name),
+        italic: !!f?.italic || /italic|oblique/i.test(name),
+      };
+    });
+  } catch {
+    return [];
   }
 }
 
@@ -237,9 +308,10 @@ function boxStyle(item: Item) {
 
 function textStyle(item: TextItem) {
   return {
-    fontFamily: FONT,
+    fontFamily: FONTS[item.font],
     color: item.color,
     fontWeight: item.bold ? '700' : '400',
+    fontStyle: item.italic ? 'italic' : 'normal',
     lineHeight: String(EDIT_LINE_HEIGHT),
   };
 }
@@ -296,7 +368,9 @@ function place(page: number, x: number, y: number) {
       size: d.size,
       color: d.color,
       bold: d.bold,
-      baseline: measureBaseline(d.bold),
+      italic: d.italic,
+      font: d.font,
+      baseline: measureBaseline(d.font, d.bold, d.italic),
     };
   } else if (tool.value === 'rect') {
     item = {
@@ -330,6 +404,125 @@ function place(page: number, x: number, y: number) {
         : list.value?.querySelector<HTMLElement>(`[data-item="${item.id}"] [tabindex]`);
     el?.focus();
   });
+}
+
+/** Keadaan teks yang dibandingkan untuk tahu apakah baris asli benar-benar diubah. */
+const snapshot = (i: TextItem) =>
+  JSON.stringify([i.text, i.x, i.y, i.size, i.color, i.bold, i.italic, i.font]);
+
+/** Klik baris tulisan asli: jadikan teks yang bisa diedit di tempatnya, menutup tulisan lama. */
+function editLine(page: number, line: EditableLine, e: PointerEvent) {
+  if (e.button !== 0 || (tool.value !== 'select' && tool.value !== 'text')) return;
+  e.preventDefault();
+  const top = line.baseline - line.above;
+  const height = line.above + line.below;
+  let bg = '#ffffff';
+  let fg = '#000000';
+  const c = canvases.get(page);
+  if (c) {
+    // Warna dari piksel halaman: area tulisan diperbesar 3 pt untuk membaca latarnya.
+    const pad = 3;
+    const sx = Math.max(0, Math.floor((line.x - pad) * c.scale));
+    const sy = Math.max(0, Math.floor((top - pad) * c.scale));
+    const sw = Math.min(c.canvas.width - sx, Math.ceil((line.width + pad * 2) * c.scale));
+    const sh = Math.min(c.canvas.height - sy, Math.ceil((height + pad * 2) * c.scale));
+    if (sw > 2 && sh > 2) {
+      const img = c.canvas.getContext('2d')!.getImageData(sx, sy, sw, sh);
+      const inner = {
+        x: Math.round(line.x * c.scale) - sx,
+        y: Math.round(top * c.scale) - sy,
+        w: Math.round(line.width * c.scale),
+        h: Math.round(height * c.scale),
+      };
+      const colors = pickColors(img.data, sw, sh, inner);
+      bg = toHex(colors.bg);
+      fg = toHex(colors.fg);
+    }
+  }
+  const size = Math.round(line.size * 10) / 10;
+  const item: TextItem = {
+    id: nextId++,
+    type: 'text',
+    page,
+    x: line.x,
+    y: line.baseline - measureBaseline(line.font, line.bold, line.italic) * size,
+    text: line.text,
+    size,
+    color: fg,
+    bold: line.bold,
+    italic: line.italic,
+    font: line.font,
+    baseline: measureBaseline(line.font, line.bold, line.italic),
+    cover: { x: line.x - 1, y: top - 1, w: line.width + 2, h: height + 2, color: bg },
+    line: line.key,
+  };
+  item.orig = snapshot(item);
+  items.value.push(item);
+  selectedId.value = item.id;
+  tool.value = 'select';
+  const { clientX, clientY } = e;
+  void nextTick(() => {
+    const el = editors.get(item.id);
+    if (!el) return;
+    el.focus();
+    placeCaret(el, clientX, clientY);
+  });
+}
+
+/** Taruh kursor ketik di titik yang diklik. */
+function placeCaret(el: HTMLElement, x: number, y: number) {
+  const d = document as Document & {
+    caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+  };
+  let node: Node | null = null;
+  let offset = 0;
+  const pos = d.caretPositionFromPoint?.(x, y);
+  if (pos) {
+    node = pos.offsetNode;
+    offset = pos.offset;
+  } else {
+    const r = document.caretRangeFromPoint?.(x, y);
+    if (r) {
+      node = r.startContainer;
+      offset = r.startOffset;
+    }
+  }
+  const range = document.createRange();
+  if (node && el.contains(node)) {
+    range.setStart(node, offset);
+  } else {
+    range.selectNodeContents(el);
+    range.collapse(false);
+  }
+  range.collapse(true);
+  const sel = window.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+
+/** Baris asli yang sedang diedit tidak lagi bisa diklik (sudah ada kotak teksnya). */
+const editingLines = computed(() => new Set(items.value.map((i) => i.line).filter(Boolean)));
+
+function lineStyle(page: number, l: EditableLine) {
+  const p = pages.value[page];
+  return {
+    left: `${(l.x / p.w) * 100}%`,
+    top: `${((l.baseline - l.above) / p.h) * 100}%`,
+    width: `${(l.width / p.w) * 100}%`,
+    height: `${((l.above + l.below) / p.h) * 100}%`,
+  };
+}
+
+function coverStyle(item: TextItem) {
+  const p = pages.value[item.page];
+  const c = item.cover!;
+  return {
+    left: `${(c.x / p.w) * 100}%`,
+    top: `${(c.y / p.h) * 100}%`,
+    width: `${(c.w / p.w) * 100}%`,
+    height: `${(c.h / p.h) * 100}%`,
+    backgroundColor: c.color,
+  };
 }
 
 /** Lewat keyboard: pasang di tengah halaman yang sedang terlihat. */
@@ -421,9 +614,22 @@ function onTextInput(item: TextItem, e: Event) {
   dirty.value = true;
 }
 
-function onTextBlur(item: TextItem) {
-  if (!item.text.trim()) remove(item.id);
+/** Teks baru yang kosong dihapus; baris asli yang tidak diubah dikembalikan seperti semula. */
+function cleanup(id: number | null) {
+  const item = items.value.find((i) => i.id === id);
+  if (item?.type !== 'text') return;
+  // Baris asli yang dikosongkan tetap disimpan: artinya tulisan itu dihapus.
+  if (item.line ? snapshot(item) === item.orig : !item.text.trim()) remove(item.id, false);
 }
+
+function onTextBlur(item: TextItem, e: FocusEvent) {
+  // Pindah ke toolbar (ganti font, ukuran, ...) bukan berarti selesai mengedit.
+  const to = e.relatedTarget as HTMLElement | null;
+  if (to?.closest('[role=toolbar]')) return;
+  cleanup(item.id);
+}
+
+watch(selectedId, (_now, before) => cleanup(before));
 
 // ---------- geser dan ubah ukuran ----------
 
@@ -502,10 +708,10 @@ function onItemKey(item: Item, e: KeyboardEvent) {
   }
 }
 
-function remove(id: number) {
+function remove(id: number, changed = true) {
   items.value = items.value.filter((i) => i.id !== id);
   if (selectedId.value === id) selectedId.value = null;
-  dirty.value = true;
+  if (changed) dirty.value = true;
 }
 
 // ---------- pengaturan objek terpilih ----------
@@ -514,7 +720,13 @@ const textSize = computed({
   get: () => selectedText.value?.size ?? textDefaults.value.size,
   set: (v: number) => {
     const n = Number.isFinite(v) ? Math.min(144, Math.max(4, v)) : 14;
-    if (selectedText.value) selectedText.value.size = n;
+    if (selectedText.value) {
+      // Ukuran berubah dari baseline, jadi tulisan tidak melompat ke atas/bawah.
+      const it = selectedText.value;
+      const base = it.y + it.baseline * it.size;
+      it.size = n;
+      it.y = base - it.baseline * n;
+    }
     textDefaults.value.size = n;
     dirty.value = true;
   },
@@ -524,18 +736,39 @@ const textColor = computed({
   set: (v: string) => {
     if (selectedText.value) selectedText.value.color = v;
     textDefaults.value.color = v;
+    dirty.value = true;
   },
 });
+/** Ganti gaya teks terpilih (atau gaya teks baru), baseline diukur ulang agar posisi tetap. */
+function setTextStyle(patch: Partial<Pick<TextItem, 'bold' | 'italic' | 'font'>>) {
+  const it = selectedText.value;
+  if (it) {
+    // Baseline tetap di tempat yang sama walau font berganti.
+    const base = it.y + it.baseline * it.size;
+    Object.assign(it, patch);
+    it.baseline = measureBaseline(it.font, it.bold, it.italic);
+    it.y = base - it.baseline * it.size;
+    dirty.value = true;
+  }
+  Object.assign(textDefaults.value, patch);
+}
 const textBold = computed({
   get: () => selectedText.value?.bold ?? textDefaults.value.bold,
-  set: (v: boolean) => {
-    if (selectedText.value) {
-      selectedText.value.bold = v;
-      selectedText.value.baseline = measureBaseline(v);
-    }
-    textDefaults.value.bold = v;
-  },
+  set: (v: boolean) => setTextStyle({ bold: v }),
 });
+const textItalic = computed({
+  get: () => selectedText.value?.italic ?? textDefaults.value.italic,
+  set: (v: boolean) => setTextStyle({ italic: v }),
+});
+const textFont = computed({
+  get: () => selectedText.value?.font ?? textDefaults.value.font,
+  set: (v: FontFamily) => setTextStyle({ font: v }),
+});
+const FONT_OPTIONS = computed(() => [
+  { value: 'helvetica' as const, label: t['editor.fontSans'] },
+  { value: 'times' as const, label: t['editor.fontSerif'] },
+  { value: 'courier' as const, label: t['editor.fontMono'] },
+]);
 const boxColor = computed({
   get: () => (selected.value?.type === 'rect' ? selected.value.color : rectColor.value),
   set: (v: string) => {
@@ -563,10 +796,14 @@ async function save() {
     const out: EditItem[] = [];
     const used: Record<string, EditImage> = {};
     for (const item of items.value) {
-      if (item.type === 'text' && !item.text.trim()) continue;
-      // Salinan polos (tanpa proxy Vue) agar bisa dikirim ke worker; id tidak ikut.
+      if (item.type === 'text') {
+        if (item.line ? snapshot(item) === item.orig : !item.text.trim()) continue;
+      }
+      // Salinan polos (tanpa proxy Vue) agar bisa dikirim ke worker; data layar tidak ikut.
       const plain = JSON.parse(JSON.stringify(item)) as Partial<Item>;
       delete plain.id;
+      delete plain.line;
+      delete plain.orig;
       out.push(plain as EditItem);
       if (item.type === 'image') {
         const img = images.get(item.image)!;
@@ -662,6 +899,14 @@ const toolButtons = computed(() => [
         >
           <template v-if="showTextOptions">
             <label class="flex items-center gap-1.5">
+              {{ t['editor.font'] }}
+              <select v-model="textFont" class="field w-auto py-1">
+                <option v-for="o in FONT_OPTIONS" :key="o.value" :value="o.value">
+                  {{ o.label }}
+                </option>
+              </select>
+            </label>
+            <label class="flex items-center gap-1.5">
               {{ t['editor.size'] }}
               <input
                 v-model.number="textSize"
@@ -678,6 +923,10 @@ const toolButtons = computed(() => [
             <label class="flex items-center gap-1.5">
               <input v-model="textBold" type="checkbox" class="size-4 accent-brand-600" />
               {{ t['editor.bold'] }}
+            </label>
+            <label class="flex items-center gap-1.5">
+              <input v-model="textItalic" type="checkbox" class="size-4 accent-brand-600" />
+              {{ t['editor.italic'] }}
             </label>
           </template>
           <label v-if="showRectOptions" class="flex items-center gap-1.5">
@@ -731,6 +980,24 @@ const toolButtons = computed(() => [
             :class="tool === 'select' ? '' : 'cursor-crosshair touch-none'"
             @pointerdown.self="onPagePointer(i, $event)"
           >
+            <template v-for="l in lines[i] ?? []" :key="l.key">
+              <div
+                v-if="!editingLines.has(l.key)"
+                class="absolute cursor-text hover:bg-brand-600/10 hover:outline-1 hover:outline-brand-600/60 hover:outline-dashed"
+                :class="tool === 'select' || tool === 'text' ? '' : 'pointer-events-none'"
+                data-line
+                :data-text="l.text"
+                :style="lineStyle(i, l)"
+                @pointerdown="editLine(i, l, $event)"
+              />
+            </template>
+            <template v-for="item in items" :key="`c${item.id}`">
+              <div
+                v-if="item.page === i && item.type === 'text' && item.cover"
+                class="pointer-events-none absolute"
+                :style="coverStyle(item as TextItem)"
+              />
+            </template>
             <template v-for="item in items" :key="item.id">
               <div
                 v-if="item.page === i"
@@ -768,11 +1035,11 @@ const toolButtons = computed(() => [
                     aria-multiline="true"
                     :aria-label="t['editor.textLabel']"
                     :data-placeholder="t['editor.textPlaceholder']"
-                    class="min-w-4 outline-none empty:before:text-ink-3 empty:before:content-[attr(data-placeholder)]"
+                    class="min-w-4 outline-none empty:focus:before:text-ink-3 empty:focus:before:content-[attr(data-placeholder)]"
                     :style="textStyle(item as TextItem)"
                     @focus="selectedId = item.id"
                     @input="onTextInput(item as TextItem, $event)"
-                    @blur="onTextBlur(item as TextItem)"
+                    @blur="onTextBlur(item as TextItem, $event)"
                   />
                 </template>
                 <div

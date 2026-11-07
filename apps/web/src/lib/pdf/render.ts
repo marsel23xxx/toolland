@@ -18,11 +18,15 @@ export function pdfjs() {
 
 const tasks = new WeakMap<PDFDocumentProxy, { destroy(): Promise<void> }>();
 
-/** Buka PDF untuk dirender. Data disalin karena pdf.js memindahkan buffer ke worker-nya. */
-export async function openPdf(data: ArrayBuffer): Promise<PDFDocumentProxy> {
+/**
+ * Buka PDF untuk dirender. Data disalin karena pdf.js memindahkan buffer ke worker-nya.
+ * `fontInfo`: sertakan nama font asli (dipakai PDF Editor untuk memilih font termirip).
+ */
+export async function openPdf(data: ArrayBuffer, fontInfo = false): Promise<PDFDocumentProxy> {
   const m = await pdfjs();
   const task = m.getDocument({
     data: new Uint8Array(data.slice(0)),
+    fontExtraProperties: fontInfo,
     cMapUrl: `${VENDOR.pdfjs}cmaps/`,
     cMapPacked: true,
     standardFontDataUrl: `${VENDOR.pdfjs}standard_fonts/`,

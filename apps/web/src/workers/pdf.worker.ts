@@ -81,6 +81,22 @@ function pageFrame(page: PDFPage) {
   return { box, rotation, size: visualSize(box, rotation) };
 }
 
+/** Font standar PDF per keluarga, tebal (B), dan miring (I). */
+const STANDARD: Record<string, StandardFonts> = {
+  helvetica: StandardFonts.Helvetica,
+  helveticaB: StandardFonts.HelveticaBold,
+  helveticaI: StandardFonts.HelveticaOblique,
+  helveticaBI: StandardFonts.HelveticaBoldOblique,
+  times: StandardFonts.TimesRoman,
+  timesB: StandardFonts.TimesRomanBold,
+  timesI: StandardFonts.TimesRomanItalic,
+  timesBI: StandardFonts.TimesRomanBoldItalic,
+  courier: StandardFonts.Courier,
+  courierB: StandardFonts.CourierBold,
+  courierI: StandardFonts.CourierOblique,
+  courierBI: StandardFonts.CourierBoldOblique,
+};
+
 // ---------- kompres gambar JPEG di dalam PDF ----------
 
 /** Jumlah kanal warna (1 abu-abu, 3 RGB) bila aman dikompres ulang, selain itu undefined. */
@@ -285,18 +301,23 @@ const api = {
   ): Promise<Uint8Array> {
     const doc = await load(buf);
     const pages = doc.getPages();
-    const fonts = new Map<boolean, PDFFont>();
-    const font = async (bold: boolean) => {
-      if (!fonts.has(bold))
-        fonts.set(
-          bold,
-          await doc.embedFont(bold ? StandardFonts.HelveticaBold : StandardFonts.Helvetica),
-        );
-      return fonts.get(bold)!;
+    const fonts = new Map<string, PDFFont>();
+    const font = async (
+      family: 'helvetica' | 'times' | 'courier',
+      bold: boolean,
+      italic: boolean,
+    ) => {
+      const key = `${family}${bold ? 'B' : ''}${italic ? 'I' : ''}`;
+      if (!fonts.has(key)) fonts.set(key, await doc.embedFont(STANDARD[key]));
+      return fonts.get(key)!;
     };
     const embedded = new Map<string, PDFImage>();
 
-    for (const item of items) {
+    // Penutup tulisan lama digambar paling bawah, sama seperti di layar.
+    const covers = items.flatMap((i) =>
+      i.type === 'text' && i.cover ? [{ ...i.cover, type: 'rect' as const, page: i.page }] : [],
+    );
+    for (const item of [...covers, ...items]) {
       const page = pages[item.page];
       if (!page) continue;
       const { box, rotation, size } = pageFrame(page);
@@ -326,7 +347,7 @@ const api = {
         const p = corner(item.x, item.y, item.h);
         page.drawImage(img, { x: p.x, y: p.y, width: item.w, height: item.h, rotate });
       } else {
-        const f = await font(item.bold);
+        const f = await font(item.font ?? 'helvetica', item.bold, item.italic ?? false);
         const color = hexColor(item.color);
         item.text.split('\n').forEach((line, i) => {
           if (!line) return;

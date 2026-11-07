@@ -316,4 +316,73 @@ export const tests = [
       return found;
     },
   },
+  {
+    name: 'edit PDF: klik tulisan asli lalu ubah (font, warna, posisi sama)',
+    path: '/tools/edit-pdf',
+    async run(h) {
+      const { page } = h;
+      await h.upload('surat.pdf');
+      await page.waitForSelector('[data-line][data-text=": Budi Santoso"]', { timeout: 20000 });
+      const clickLine = async (text) => {
+        const el = await page.$(`[data-line][data-text="${text}"]`);
+        await el.scrollIntoView();
+        const b = await el.boundingBox();
+        await page.mouse.click(b.x + b.width - 2, b.y + b.height / 2);
+        await page.waitForSelector('[role=textbox]:focus');
+      };
+      const selectAll = async () => {
+        await page.keyboard.down('Control');
+        await page.keyboard.press('KeyA');
+        await page.keyboard.up('Control');
+      };
+      // 1) Ganti nama.
+      await clickLine(': Budi Santoso');
+      expect(
+        (await page.$eval('select', (s) => s.value)) === 'times',
+        'font Times tidak terdeteksi',
+      );
+      await selectAll();
+      await page.keyboard.type(': Siti Aminah');
+      // 2) Baris biru di latar kuning: warna terdeteksi, lalu ditinggal tanpa diubah.
+      await clickLine('Kode: A-17');
+      const color = await page.$eval('[role=textbox]:focus', (e) => getComputedStyle(e).color);
+      const [r, , b] = color.match(/\d+/g).map(Number);
+      expect(b > 120 && r < 60 && b - r > 80, `warna tulisan biru tidak terdeteksi: ${color}`);
+      const cover = await page.$$eval('.pointer-events-none.absolute', (els) =>
+        els.map((e) => getComputedStyle(e).backgroundColor).find((c) => c !== 'rgba(0, 0, 0, 0)'),
+      );
+      // 3) Hapus baris jabatan dengan mengosongkannya (klik baris lain menutup baris biru).
+      await clickLine(': Staf Gudang');
+      expect(
+        (await page.$$('[data-line][data-text="Kode: A-17"]')).length === 1,
+        'baris yang tidak diubah tidak kembali seperti semula',
+      );
+      await selectAll();
+      await page.keyboard.press('Backspace');
+      await h.click('Simpan PDF');
+      await h.results(1);
+      const out = await h.download('surat-diedit.pdf');
+
+      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const doc = await pdfjs.getDocument({ data: new Uint8Array(out), fontExtraProperties: true })
+        .promise;
+      const pg = await doc.getPage(1);
+      await pg.getOperatorList();
+      const items = (await pg.getTextContent()).items.filter((i) => i.str.trim());
+      const count = (t) => items.filter((i) => i.str === t).length;
+      const neu = items.find((i) => i.str === ': Siti Aminah');
+      const old = items.find((i) => i.str === ': Budi Santoso');
+      expect(neu, 'teks baru tidak ada');
+      const dx = Math.abs(neu.transform[4] - old.transform[4]);
+      const dy = Math.abs(neu.transform[5] - old.transform[5]);
+      expect(dx < 0.6 && dy < 0.6, `posisi teks baru meleset ${dx.toFixed(2)}/${dy.toFixed(2)} pt`);
+      const font = pg.commonObjs.get(neu.fontName).name;
+      expect(/Times/.test(font), `font hasil ${font}, bukan Times`);
+      expect(count('Kode: A-17') === 1, 'baris yang tidak diubah ikut ditulis ulang');
+      expect(count('Staf Gudang') + count(': Staf Gudang') === 1, 'baris kosong ditulis ulang');
+      return [
+        `selisih posisi ${dx.toFixed(2)}, ${dy.toFixed(2)} pt · font ${font} · latar ${cover}`,
+      ];
+    },
+  },
 ];

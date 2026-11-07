@@ -52,6 +52,20 @@ export async function makeFixtures() {
   }
   fs.writeFileSync(path.join(dir, 'teks.pdf'), await doc.save());
 
+  // Surat fiktif untuk uji "klik tulisan lalu edit": Times, dua kolom, dan baris berwarna.
+  const surat = await PDFDocument.create();
+  const sp = surat.addPage([595, 842]);
+  const times = await surat.embedFont(StandardFonts.TimesRoman);
+  const bold = await surat.embedFont(StandardFonts.HelveticaBold);
+  sp.drawText('SURAT KETERANGAN', { x: 220, y: 760, size: 14, font: bold });
+  sp.drawText('Nama', { x: 72, y: 700, size: 12, font: times });
+  sp.drawText(': Budi Santoso', { x: 160, y: 700, size: 12, font: times });
+  sp.drawText('Jabatan', { x: 72, y: 680, size: 12, font: times });
+  sp.drawText(': Staf Gudang', { x: 160, y: 680, size: 12, font: times });
+  sp.drawRectangle({ x: 66, y: 630, width: 200, height: 24, color: rgb(1, 0.95, 0.7) });
+  sp.drawText('Kode: A-17', { x: 72, y: 638, size: 12, font: times, color: rgb(0.1, 0.2, 0.6) });
+  fs.writeFileSync(path.join(dir, 'surat.pdf'), await surat.save());
+
   const doc2 = await PDFDocument.create();
   const img = await doc2.embedJpg(jpg);
   for (let i = 0; i < 2; i++)

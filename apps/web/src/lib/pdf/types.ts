@@ -64,8 +64,12 @@ export type EditItem =
       size: number;
       color: string;
       bold: boolean;
+      italic: boolean;
+      font: 'helvetica' | 'times' | 'courier';
       /** Jarak baseline baris pertama dari atas kotak, dibanding ukuran huruf (diukur di browser). */
       baseline: number;
+      /** Edit tulisan asli: kotak warna latar yang menutup tulisan lama. */
+      cover?: { x: number; y: number; w: number; h: number; color: string };
     }
   | { type: 'rect'; page: number; x: number; y: number; w: number; h: number; color: string }
   | { type: 'image'; page: number; x: number; y: number; w: number; h: number; image: string };
