@@ -1,7 +1,6 @@
 ---
 import displayFontUrl from '@fontsource/fraunces/files/fraunces-latin-600-normal.woff2?url';
 import fontUrl from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2?url';
-import Logo from '../components/ui/Logo.astro';
 import { getLocale, pagePath, useTranslations, type Locale } from '../i18n';
 import { CATEGORY_IDS, CATEGORY_NAMES, type CategoryId } from '../lib/categories';
 import { LOCALE_TAGS } from '../lib/format';
@@ -56,9 +55,8 @@ const privacyHref = locale === 'en' ? '/en/privacy' : '/kebijakan-privasi';
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta name="theme-color" content="#f3eee4" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#15120e" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#eb6314" />
+    <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
     <link rel="preload" href={fontUrl} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={displayFontUrl} as="font" type="font/woff2" crossorigin />
     <slot name="head" />
@@ -71,25 +69,22 @@ const privacyHref = locale === 'en' ? '/en/privacy' : '/kebijakan-privasi';
       {t('nav.skip')}
     </a>
 
-    <header class="border-b border-ink">
+    <header class="border-b border-[#15120e] bg-[#eb6314] text-[#15120e]">
       <nav class={`mx-auto flex h-16 ${width} items-center justify-between gap-4 px-4`}>
-        <a href={homeHref} class="flex items-center gap-2.5" aria-label={SITE.name}>
-          <Logo />
-          <span class="text-[1.4rem] leading-none font-bold tracking-tight">
-            Tool<span class="text-[#e25f12] dark:text-[#eb6314]">Land</span>
-          </span>
+        <a href={homeHref} class="rounded-md bg-white px-2.5 py-1" aria-label={SITE.name}>
+          <img src="/brand/toolland-logo.webp" alt="" width="148" height="45" class="h-10 w-auto" />
         </a>
         <div class="flex items-center gap-5 text-sm">
           <a
             href={switchHref}
             hreflang={LOCALE_TAGS[otherLocale]}
-            class="text-ink-3 underline-offset-4 hover:text-ink hover:underline"
+            class="underline-offset-4 hover:underline"
           >
             {t('nav.language')}
           </a>
           <a
             href={donateHref}
-            class="font-semibold text-ink underline decoration-terakota decoration-2 underline-offset-4 hover:text-terakota"
+            class="font-semibold underline decoration-2 underline-offset-4 hover:decoration-4"
           >
             {t('nav.donate')}
           </a>
@@ -104,11 +99,18 @@ const privacyHref = locale === 'en' ? '/en/privacy' : '/kebijakan-privasi';
     <footer class="border-t border-ink text-sm">
       <div class={`mx-auto grid ${width} gap-8 px-4 py-10 sm:grid-cols-[1.4fr_1fr_1fr]`}>
         <div class="space-y-3">
-          <a href={homeHref} class="flex items-center gap-2.5" aria-label={SITE.name}>
-            <Logo class="h-5 w-auto" />
-            <span class="text-xl leading-none font-bold tracking-tight">
-              Tool<span class="text-[#e25f12] dark:text-[#eb6314]">Land</span>
-            </span>
+          <a
+            href={homeHref}
+            class="inline-block rounded-md border border-ink bg-white px-2.5 py-1"
+            aria-label={SITE.name}
+          >
+            <img
+              src="/brand/toolland-logo.webp"
+              alt=""
+              width="148"
+              height="45"
+              class="h-9 w-auto"
+            />
           </a>
           <p class="max-w-xs text-ink-2">{t('footer.tagline')}</p>
         </div>
