@@ -1,3 +1,5 @@
+import path from 'node:path';
+import fs from 'node:fs';
 import jsQR from 'jsqr';
 import { expect } from '../expect.mjs';
 
@@ -64,6 +66,80 @@ export const tests = [
     },
   },
 
+  {
+    name: 'kunci file & teks: teks lewat kode, file kecil lewat kode, file besar lewat .toolland',
+    path: '/tools/kunci-file',
+    async run(h) {
+      const { page } = h;
+      const pw = await h.value('#lb-pw');
+      expect(/^([a-z]{4}-){4}\d\d$/.test(pw), `password otomatis: ${pw}`);
+      const unlockWith = async (password) => {
+        await h.type('#lb-unpw', password);
+        await h.click('Buka data');
+        await page.waitForFunction(
+          () =>
+            document.querySelector('#lb-out, [role=alert]') ||
+            document.body.innerText.includes('berhasil dibuka'),
+          { timeout: 20000 },
+        );
+      };
+
+      // 1) Teks: kunci, salin kode, buka dengan password salah lalu benar.
+      await h.type('#lb-text', 'No. rekening 1234567890 a.n. Budi');
+      await h.click('Kunci sekarang');
+      await page.waitForSelector('#lb-code', { timeout: 20000 });
+      const code = await h.value('#lb-code');
+      expect(code.startsWith('TOOLLAND1.') && !code.includes('1234567890'), code.slice(0, 40));
+      await page.click('[data-tab="unlock"]');
+      // Aplikasi chat sering memecah kode jadi beberapa baris.
+      await h.type('#lb-in', code.replace(/(.{70})/g, '$1\n'));
+      await unlockWith('password-salah');
+      expect(await h.bodyHas('Password salah'), 'password salah tidak ditolak');
+      await unlockWith(pw);
+      expect(
+        (await h.value('#lb-out')) === 'No. rekening 1234567890 a.n. Budi',
+        'isi teks berbeda',
+      );
+
+      // 2) File kecil (23 KB): masih muat sebagai kode.
+      await page.click('[data-tab="lock"]');
+      await page.click('[data-source="file"]');
+      await h.upload('foto.webp');
+      await h.click('Kunci sekarang');
+      await page.waitForSelector('#lb-code', { timeout: 20000 });
+      const fileCode = await h.value('#lb-code');
+      await page.click('[data-tab="unlock"]');
+      await h.type('#lb-in', fileCode);
+      await unlockWith(pw);
+      let out = await h.downloadVia('foto.webp', () => h.click('Unduh file'));
+      expect(out.equals(fs.readFileSync(h.fixture('foto.webp'))), 'file kecil berubah');
+
+      // 3) File besar (247 KB): terlalu panjang untuk kode, jadi file .toolland.
+      await page.click('[data-tab="lock"]');
+      await h.click('Ganti file');
+      await h.upload('foto.jpg');
+      await h.click('Kunci sekarang');
+      await page.waitForFunction(() => document.body.innerText.includes('terlalu panjang'), {
+        timeout: 20000,
+      });
+      expect(!(await page.$('#lb-code')), 'kode tetap ditampilkan untuk file besar');
+      const locked = await h.downloadVia('foto.jpg.toolland', () => h.click('Unduh file terkunci'));
+      expect(
+        !locked.includes(fs.readFileSync(h.fixture('foto.jpg')).subarray(0, 64)),
+        'isi tidak terenkripsi',
+      );
+      await page.click('[data-tab="unlock"]');
+      await h.type('#lb-in', '');
+      const tmp = path.join(h.downloads, 'foto.jpg.toolland');
+      await (await page.$('input[type=file]')).uploadFile(tmp);
+      await page.waitForFunction(() => document.body.innerText.includes('foto.jpg.toolland'));
+      fs.unlinkSync(tmp);
+      await unlockWith(pw);
+      out = await h.downloadVia('foto.jpg', () => h.click('Unduh file'));
+      expect(out.equals(fs.readFileSync(h.fixture('foto.jpg'))), 'file besar berubah');
+      return [`kode teks ${code.length} karakter, kode foto 23 KB ${fileCode.length} karakter`];
+    },
+  },
   {
     name: 'Base64: tab URL encode',
     path: '/tools/base64-encode-decode',
