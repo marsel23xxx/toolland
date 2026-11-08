@@ -31,7 +31,7 @@ faq:
     a: 'Every extension whose registry offers RDAP, including .com, .net, .org, .id, .co.id, and hundreds more. A few country extensions do not have RDAP yet, and Toolland will tell you so.'
   - q: 'Are the domains I look up stored?'
     a: 'They are not written to the logs. Results are kept in server RAM for at most 1 hour so the registry is not asked repeatedly, then deleted.'
-related: ['json-formatter', 'hash-generator', 'base64-encode-decode']
+related: ['subdomain-finder', 'json-formatter', 'hash-generator']
 ---
 
 ## When to check WHOIS

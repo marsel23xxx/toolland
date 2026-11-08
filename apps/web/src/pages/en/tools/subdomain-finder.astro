@@ -1,0 +1,9 @@
+---
+import SubdomainTool from '../../../components/tools/SubdomainTool.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../../i18n';
+---
+
+<ToolPage slug="subdomain-finder">
+  <SubdomainTool client:visible m={toolMessages('en', 'subdomain')} />
+</ToolPage>

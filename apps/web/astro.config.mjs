@@ -76,7 +76,8 @@ export default defineConfig({
         "img-src 'self' data: blob:",
         "media-src 'self' blob:",
         "font-src 'self'",
-        "connect-src 'self'",
+        // Cari Subdomain: browser mengambil data langsung dari log sertifikat publik.
+        "connect-src 'self' https://crt.sh https://api.certspotter.com",
         "worker-src 'self' blob:",
         "object-src 'none'",
         "base-uri 'self'",

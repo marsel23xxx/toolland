@@ -176,4 +176,114 @@ export const tests = [
       return [`${img.w}×${img.h}, isi terbaca: ${code.data}`];
     },
   },
+  {
+    name: 'cari subdomain: crt.sh, cadangan Certspotter, saringan, unduh, batas per jam',
+    path: '/tools/cari-subdomain',
+    async run(h) {
+      // Sumber data disimulasikan supaya tes tidak bergantung pada crt.sh (sering 502).
+      // CSP tetap diuji: intersepsi terjadi setelah browser mengizinkan connect-src.
+      const hits = [];
+      const cors = { 'Access-Control-Allow-Origin': '*' };
+      await h.page.setRequestInterception(true);
+      h.page.on('request', (r) => {
+        const u = r.url();
+        if (u.startsWith('https://crt.sh/')) {
+          hits.push(u);
+          if (u.includes('besar.id')) return r.respond({ status: 502, headers: cors, body: '' });
+          return r.respond({
+            status: 200,
+            headers: cors,
+            contentType: 'application/json',
+            body: JSON.stringify([
+              { name_value: 'contoh.co.id\nwww.contoh.co.id', not_after: '2099-01-01T00:00:00' },
+              {
+                name_value: '*.api.contoh.co.id\nstaging.contoh.co.id',
+                not_after: '2020-03-01T00:00:00',
+              },
+              { name_value: 'api-lama.contoh.co.id\nbukan.org', not_after: '2021-01-01T00:00:00' },
+            ]),
+          });
+        }
+        if (u.startsWith('https://api.certspotter.com/')) {
+          hits.push(u);
+          const body = u.includes('after=')
+            ? []
+            : [
+                {
+                  id: '7',
+                  dns_names: ['besar.id', 'mail.besar.id'],
+                  not_after: '2099-01-01T00:00:00Z',
+                },
+              ];
+          return r.respond({
+            status: 200,
+            headers: cors,
+            contentType: 'application/json',
+            body: JSON.stringify(body),
+          });
+        }
+        return r.continue();
+      });
+      const search = async (q) => {
+        await h.type('#sub-domain', q);
+        await h.page.click('form button[type=submit]');
+      };
+
+      await search('https://www.contoh.co.id/halaman');
+      await h.page.waitForSelector('#sub-count', { timeout: 15000 });
+      const count = await h.text('#sub-count');
+      expect(count === '5 subdomain untuk contoh.co.id', count);
+      expect(hits[0] === 'https://crt.sh/?q=%25.contoh.co.id&output=json', hits[0]);
+      expect(await h.bodyHas('crt.sh (Sectigo)'), 'sumber crt.sh tidak tampil');
+      expect(await h.bodyHas('Sisa jatah: 9 dari 10'), await h.text('#sub-quota'));
+      const list = await h.text('#sub-list');
+      expect(/www\.contoh\.co\.id sertifikat berlaku s\.d\./.test(list), list);
+      expect(/staging\.contoh\.co\.id sertifikat terakhir berakhir/.test(list), list);
+      expect(!list.includes('bukan.org'), list);
+
+      await h.type('#sub-filter', 'api');
+      const rows = await h.page.$$eval('#sub-list li', (els) => els.length);
+      expect(rows === 2, `saringan api: ${rows} baris`);
+      const txt = String(await h.downloadVia('subdomain-contoh.co.id.txt', () => h.click('TXT')));
+      expect(txt === 'api.contoh.co.id\napi-lama.contoh.co.id\n', txt);
+
+      // crt.sh gagal: pindah ke Certspotter.
+      await search('besar.id');
+      await h.page.waitForFunction(
+        () => document.querySelector('#sub-count')?.textContent.includes('besar.id'),
+        { timeout: 15000 },
+      );
+      expect(await h.bodyHas('Certspotter (SSLMate)'), 'cadangan Certspotter tidak tampil');
+      expect(
+        (await h.text('#sub-count')) === '2 subdomain untuk besar.id',
+        await h.text('#sub-count'),
+      );
+
+      // Respons 502 dari crt.sh memang disimulasikan; browser mencatatnya di console.
+      for (let i = h.problems.length - 1; i >= 0; i--)
+        if (h.problems[i].includes('status of 502')) h.problems.splice(i, 1);
+
+      // Jatah habis (misalnya dari tab lain): pencarian baru ditolak tanpa menghubungi sumber.
+      await h.page.evaluate(() =>
+        localStorage.setItem(
+          'toolland.subdomain.searches',
+          JSON.stringify(Array.from({ length: 10 }, (_, i) => Date.now() - 600_000 + i)),
+        ),
+      );
+      const before = hits.length;
+      await search('lain.com');
+      await h.page.waitForSelector('[role=alert]', { timeout: 5000 });
+      const err = await h.text('[role=alert]');
+      expect(/Jatah 10 pencarian per jam sudah habis\. Coba lagi dalam 50 menit/.test(err), err);
+      expect(hits.length === before, 'sumber data tetap dihubungi walau jatah habis');
+      // Domain yang sudah dicari di halaman ini tetap bisa dibuka lagi.
+      await search('contoh.co.id');
+      await h.page.waitForFunction(
+        () => document.querySelector('#sub-count')?.textContent.includes('contoh.co.id'),
+        { timeout: 5000 },
+      );
+      expect(hits.length === before, 'pencarian ulang memakai jatah');
+      return [count, err.slice(0, 70)];
+    },
+  },
 ];

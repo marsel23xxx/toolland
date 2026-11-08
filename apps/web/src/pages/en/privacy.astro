@@ -49,6 +49,15 @@ import { SITE } from '../../lib/site';
       already publishes is shown.
     </p>
 
+    <h2>Subdomain Finder</h2>
+    <p>
+      The Subdomain Finder does not use the Toolland server. Your browser sends the domain name you
+      type directly to crt.sh (run by Sectigo), or to Certspotter (run by SSLMate) when crt.sh is
+      not responding, to read public SSL certificate logs. Those services see the domain name and
+      your IP address, just as when you visit their sites. Toolland never receives or stores the
+      domains you search.
+    </p>
+
     <h2>Server logs</h2>
     <p>
       The server only records technical data needed to keep the service running: time, method, page
@@ -73,7 +82,9 @@ import { SITE } from '../../lib/site';
     <p>
       Toolland uses no cookies. The only data stored in your browser is a sessionStorage flag so the
       donation card appears at most once per session, plus cached AI models and codecs so tools load
-      faster next time. The flag is cleared when you close the tab.
+      faster next time. The flag is cleared when you close the tab. The Subdomain Finder also keeps
+      the times of your searches from the last hour in localStorage to count the 10 searches per
+      hour quota; it holds only timestamps, never domain names.
     </p>
 
     <h2>Ads and third parties</h2>
