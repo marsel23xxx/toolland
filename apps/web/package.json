@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
-    "@iconify-json/lucide": "^1.2.150",
+    "@iconify-json/lucide": "^1.2.151",
     "@types/papaparse": "^5.5.2",
     "@types/qrcode": "^1.5.6",
     "@vue/test-utils": "^2.5.1",
