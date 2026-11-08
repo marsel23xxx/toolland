@@ -120,7 +120,7 @@ services:
     networks: [internal]
 
   # Cek /api/tools/v1/health dan halaman utama tiap menit, notifikasi ke Telegram.
-  # UI hanya di localhost; akses lewat SSH tunnel: ssh -L 3001:127.0.0.1:3001 <vps>
+  # UI hanya di localhost; akses lewat SSH tunnel: ssh -L 3021:127.0.0.1:3021 <vps>
   uptime-kuma:
     image: louislam/uptime-kuma:2
     restart: unless-stopped
@@ -128,7 +128,8 @@ services:
       driver: json-file
       options: { max-size: '10m', max-file: '7' }
     security_opt: ['no-new-privileges:true']
-    ports: ['127.0.0.1:3001:3001']
+    # Port 3021 di VPS (3001 sudah dipakai project lain).
+    ports: ['127.0.0.1:3021:3001']
     volumes:
       - uptime-kuma:/app/data
     cpus: 0.5

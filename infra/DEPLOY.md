@@ -31,7 +31,7 @@ Atau jadikan package publik di GitHub (repo memang publik).
 ```sh
 ssh-keygen -t ed25519 -f toolland-deploy -C "github-actions" -N ""
 # isi toolland-deploy.pub ke /home/deploy/.ssh/authorized_keys di VPS
-ssh-keyscan -t ed25519 <IP-VPS>      # hasilnya untuk DEPLOY_KNOWN_HOSTS
+ssh-keyscan -t ed25519 -p 2222 <IP-VPS>   # hasilnya untuk DEPLOY_KNOWN_HOSTS
 ```
 
 ## 3. Secret di GitHub
@@ -41,6 +41,7 @@ Buka repo, **Settings → Environments → New environment** bernama `production
 | Secret               | Isi                                         |
 | -------------------- | ------------------------------------------- |
 | `DEPLOY_HOST`        | IP VPS (bukan domain, karena domain lewat Cloudflare) |
+| `DEPLOY_PORT`        | port SSH VPS (`2222`; kosongkan bila 22)    |
 | `DEPLOY_USER`        | `deploy`                                    |
 | `DEPLOY_SSH_KEY`     | isi file `toolland-deploy` (private key)    |
 | `DEPLOY_KNOWN_HOSTS` | hasil `ssh-keyscan` di atas                 |
@@ -75,7 +76,7 @@ sudo sshd -t && sudo systemctl reload ssh
 # Firewall: hanya SSH, HTTP, HTTPS (tambahkan port project lain bila ada).
 sudo apt install -y ufw
 sudo ufw default deny incoming
-sudo ufw allow OpenSSH
+sudo ufw allow 2222/tcp   # port SSH VPS ini (bukan 22). Salah port = terkunci dari server!
 sudo ufw allow 80,443/tcp
 sudo ufw enable
 
@@ -85,7 +86,7 @@ sudo dpkg-reconfigure -plow unattended-upgrades
 ```
 
 Docker melewati aturan ufw untuk port yang dibuka container. Karena itu semua port Toolland di
-`docker-compose.yml` sengaja hanya dibuka ke `127.0.0.1` (8081, 8082, 3001); jangan diubah menjadi
+`docker-compose.yml` sengaja hanya dibuka ke `127.0.0.1` (8081, 8082, 3021); jangan diubah menjadi
 `0.0.0.0` atau tanpa IP.
 
 Di Cloudflare: SSL/TLS mode **Full (strict)** dan **Authenticated Origin Pulls** aktif. Nginx host
@@ -98,8 +99,8 @@ secret deploy tidak bisa dipakai dari branch lain.
 ## Rollback
 
 ```sh
-ssh deploy@<IP-VPS> /srv/toolland/infra/scripts/rollback.sh          # ke rilis sebelumnya
-ssh deploy@<IP-VPS> /srv/toolland/infra/scripts/rollback.sh <commit> # ke rilis tertentu
+ssh -p 2222 deploy@<IP-VPS> /srv/toolland/infra/scripts/rollback.sh          # ke rilis sebelumnya
+ssh -p 2222 deploy@<IP-VPS> /srv/toolland/infra/scripts/rollback.sh <commit> # ke rilis tertentu
 ```
 
 Backend: jalankan ulang compose dengan tag commit sebelumnya,

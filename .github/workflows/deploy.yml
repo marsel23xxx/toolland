@@ -81,6 +81,8 @@ jobs:
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          # Port SSH VPS (secret DEPLOY_PORT, bawaan 22); dipakai ssh dan rsync.
+          printf 'Host %s\n  Port %s\n' "${{ secrets.DEPLOY_HOST }}" "${{ secrets.DEPLOY_PORT || '22' }}" > ~/.ssh/config
           echo "TARGET=${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" >> "$GITHUB_ENV"
 
       - name: Salin konfigurasi infra
