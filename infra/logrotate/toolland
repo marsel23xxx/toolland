@@ -1,8 +1,8 @@
-# Rotasi log Nginx host untuk julian-marcell.com: harian, disimpan paling lama 7 hari.
+# Rotasi log Nginx host Toolland: harian, disimpan paling lama 7 hari.
 # Pasang di VPS:  sudo cp infra/logrotate/toolland /etc/logrotate.d/toolland
 # Uji:            sudo logrotate --debug /etc/logrotate.d/toolland
-/var/log/nginx/julian-marcell.com.access.log
-/var/log/nginx/julian-marcell.com.error.log {
+/var/log/nginx/toolland.access.log
+/var/log/nginx/toolland.error.log {
     daily
     rotate 7
     maxage 7

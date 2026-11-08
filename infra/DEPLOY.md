@@ -51,14 +51,14 @@ Lindungi branch `main` di **Settings → Branches**: wajib pull request dan CI h
 ## 4. Nginx host, sertifikat, dan logrotate (sekali, sebagai root)
 
 ```sh
-sudo cp infra/nginx/host/julian-marcell.com.conf /etc/nginx/sites-available/
-sudo ln -s /etc/nginx/sites-available/julian-marcell.com.conf /etc/nginx/sites-enabled/
+sudo cp infra/nginx/host/toolland.conf /etc/nginx/sites-available/
+sudo ln -s /etc/nginx/sites-available/toolland.conf /etc/nginx/sites-enabled/
 sudo cp infra/logrotate/toolland /etc/logrotate.d/toolland
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
 Sertifikat Origin Certificate dan CA Authenticated Origin Pulls ditaruh di `/etc/ssl/cloudflare/`
-(nama file ada di komentar `julian-marcell.com.conf`). Langkah memindah DNS ke Cloudflare ada di PRD,
+(nama file ada di komentar `toolland.conf`). Langkah memindah DNS ke Cloudflare ada di PRD,
 bagian Infrastruktur.
 
 ## 5. Keamanan VPS (sekali, sebagai root)
