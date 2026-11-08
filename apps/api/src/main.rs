@@ -10,9 +10,7 @@ use axum::{
     routing::{get, post},
 };
 use tokio::net::TcpListener;
-use tower_governor::{
-    GovernorLayer, governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor,
-};
+use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
 use tower_http::{
     timeout::TimeoutLayer,
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
@@ -20,6 +18,7 @@ use tower_http::{
 use tracing::Level;
 use tracing_subscriber::EnvFilter;
 
+mod client_ip;
 mod config;
 mod error;
 mod routes;
@@ -31,6 +30,7 @@ mod upload;
 #[cfg(test)]
 mod tests;
 
+use client_ip::RealIp;
 use config::Config;
 use state::AppState;
 
@@ -42,18 +42,18 @@ pub fn app(state: AppState) -> Router {
     let cfg = state.cfg.clone();
 
     // Rate limit per IP untuk endpoint berat (PRD: misalnya 20 per menit).
-    // IP dibaca dari X-Real-IP / X-Forwarded-For yang diisi Nginx host dari CF-Connecting-IP.
+    // IP dibaca dari X-Real-IP yang selalu ditimpa Nginx host (lihat client_ip.rs).
     let governor = GovernorConfigBuilder::default()
         .period(Duration::from_secs(60) / cfg.rate_per_minute.max(1))
         .burst_size(cfg.rate_per_minute.max(1))
-        .key_extractor(SmartIpKeyExtractor)
+        .key_extractor(RealIp)
         .finish()
         .expect("konfigurasi rate limit valid");
     // Cek WHOIS ringan, tapi memanggil registry luar: batasnya terpisah dan lebih ketat.
     let lookup_governor = GovernorConfigBuilder::default()
         .period(Duration::from_secs(60) / cfg.lookup_rate_per_minute.max(1))
         .burst_size(cfg.lookup_rate_per_minute.max(1))
-        .key_extractor(SmartIpKeyExtractor)
+        .key_extractor(RealIp)
         .finish()
         .expect("konfigurasi rate limit valid");
     let limiters = [

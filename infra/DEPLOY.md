@@ -60,6 +60,41 @@ Sertifikat Origin Certificate dan CA Authenticated Origin Pulls ditaruh di `/etc
 (nama file ada di komentar `julian-marcell.com.conf`). Langkah memindah DNS ke Cloudflare ada di PRD,
 bagian Infrastruktur.
 
+## 5. Keamanan VPS (sekali, sebagai root)
+
+Pintu masuk ke server adalah SSH, jadi bagian ini yang paling penting. VPS dipakai bersama project
+lain: cek dulu port yang dipakai project lain sebelum menyalakan firewall.
+
+```sh
+# SSH hanya dengan key, tanpa password, tanpa login root.
+# Pastikan key SSH kamu sendiri sudah bisa login sebelum menjalankan ini.
+printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin no\n' \
+  | sudo tee /etc/ssh/sshd_config.d/90-hardening.conf
+sudo sshd -t && sudo systemctl reload ssh
+
+# Firewall: hanya SSH, HTTP, HTTPS (tambahkan port project lain bila ada).
+sudo apt install -y ufw
+sudo ufw default deny incoming
+sudo ufw allow OpenSSH
+sudo ufw allow 80,443/tcp
+sudo ufw enable
+
+# Update keamanan sistem otomatis, dan blokir IP yang menebak-nebak password SSH.
+sudo apt install -y unattended-upgrades fail2ban
+sudo dpkg-reconfigure -plow unattended-upgrades
+```
+
+Docker melewati aturan ufw untuk port yang dibuka container. Karena itu semua port Toolland di
+`docker-compose.yml` sengaja hanya dibuka ke `127.0.0.1` (8081, 8082, 3001); jangan diubah menjadi
+`0.0.0.0` atau tanpa IP.
+
+Di Cloudflare: SSL/TLS mode **Full (strict)** dan **Authenticated Origin Pulls** aktif. Nginx host
+menolak koneksi tanpa sertifikat Cloudflare (`ssl_verify_client on`), jadi orang yang tahu IP VPS
+tetap tidak bisa membuka situs atau API secara langsung tanpa melewati Cloudflare.
+
+Di GitHub, **Settings → Environments → production → Deployment branches**: hanya `main`, supaya
+secret deploy tidak bisa dipakai dari branch lain.
+
 ## Rollback
 
 ```sh

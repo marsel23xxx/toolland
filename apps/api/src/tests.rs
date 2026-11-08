@@ -323,6 +323,26 @@ async fn rate_limit_per_ip() {
 }
 
 #[tokio::test]
+async fn rate_limit_tidak_bisa_diakali_dengan_header_palsu() {
+    // X-Forwarded-For dan Forwarded bisa diisi pengguna; yang dihitung tetap X-Real-IP dari Nginx.
+    let c = ctx(15 * 1024 * 1024, 2).await;
+    let mut statuses = Vec::new();
+    for i in 0..3 {
+        let png = [0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a];
+        let mut req = request("/office-to-pdf", multipart(&png, "x.png", &[]));
+        let h = req.headers_mut();
+        h.insert(
+            "x-forwarded-for",
+            format!("198.51.100.{i}").parse().unwrap(),
+        );
+        h.insert("forwarded", format!("for=198.51.100.{i}").parse().unwrap());
+        let resp = c.app.clone().oneshot(req).await.unwrap();
+        statuses.push(resp.status().as_u16());
+    }
+    assert_eq!(statuses, vec![415, 415, 429]);
+}
+
+#[tokio::test]
 async fn kompres_pdf_dengan_ghostscript_bila_tersedia() {
     if std::process::Command::new("gs")
         .arg("--version")
