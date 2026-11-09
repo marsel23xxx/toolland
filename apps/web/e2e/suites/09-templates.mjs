@@ -368,4 +368,25 @@ export const tests = [
       expect(x.charts === 3, `grafik: ${x.charts}`);
     },
   },
+  {
+    name: 'kasir & penjualan: toko kelontong, unduh .xlsx',
+    path: '/template/kasir-penjualan',
+    async run(h) {
+      await h.type('#tf-shop', 'Toko Berkah');
+      await h.page.click('label:has(input[value="toko"])');
+      await h.page.waitForFunction(() =>
+        document.querySelector('#tf-products').value.startsWith('Beras 5 kg'),
+      );
+      const name = `Kasir-Penjualan-Toko-Berkah-${year}.xlsx`;
+      const x = readXlsx(await h.downloadVia(name, () => h.page.click('#tf-download')));
+      expect(
+        x.sheets.join('|') ===
+          'Menu|Dashboard|Penjualan|Rekap Harian|Rekap Produk|Laporan Bulanan|Produk|Pengaturan|_Daftar',
+        x.sheets.join('|'),
+      );
+      for (const s of ['Toko Berkah', 'Beras 5 kg', 'Sembako', 'QRIS'])
+        expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
+      expect(x.charts === 4, `grafik: ${x.charts}`);
+    },
+  },
 ];

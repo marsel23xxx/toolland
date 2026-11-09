@@ -1,0 +1,10 @@
+---
+import TemplateBuilder from '../../components/templates/TemplateBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { SALES_FORM } from '../../lib/templates/kasir-penjualan';
+---
+
+<TemplatePage slug="kasir-penjualan">
+  <TemplateBuilder client:load form={SALES_FORM.id} m={messages('id', 'tplForm')} />
+</TemplatePage>
