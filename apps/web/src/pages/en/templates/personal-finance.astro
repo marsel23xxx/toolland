@@ -1,0 +1,9 @@
+---
+import PersonalBuilder from '../../../components/templates/PersonalBuilder.vue';
+import TemplatePage from '../../../components/templates/TemplatePage.astro';
+import { messages } from '../../../i18n';
+---
+
+<TemplatePage slug="personal-finance">
+  <PersonalBuilder client:load m={messages('en', 'personalBuilder')} />
+</TemplatePage>

@@ -21,9 +21,12 @@ export const TEMPLATE_CATEGORY_NOTES: Record<TemplateCategoryId, Record<Locale, 
   pribadi: { id: 'Anggaran rumah tangga, tabungan', en: 'Household budget, savings' },
 };
 
-/** Template yang sedang dibuat: tampil di katalog sebagai "segera hadir", belum bisa diunduh. */
+/**
+ * Template yang sedang dibuat: tampil di katalog dan navbar sebagai "segera hadir", belum bisa
+ * diunduh. Kosong saat semua template sudah tersedia.
+ */
 export const UPCOMING_TEMPLATES: { category: TemplateCategoryId; name: Record<Locale, string> }[] =
-  [{ category: 'pribadi', name: { id: 'Keuangan Pribadi', en: 'Personal Finance' } }];
+  [];
 
 /** Halaman katalog: /template (Indonesia) atau /en/templates (Inggris). */
 export function templatesHome(locale: Locale): string {

@@ -52,7 +52,9 @@ export const tests = [
         as.map((a) => a.textContent.replace(/\s+/g, ' ').trim()),
       );
       expect(items[0].startsWith('Keuangan UMKM'), items.join(' | '));
-      expect(items.filter((x) => x.includes('Segera')).length === 1, items.join(' | '));
+      // Empat template, semuanya sudah tersedia (tidak ada label "Segera").
+      expect(items.length === 4, items.join(' | '));
+      expect(!items.some((x) => x.includes('Segera')), items.join(' | '));
       await h.page.keyboard.press('Escape');
       expect(
         (await h.page.$$('header [data-nav-dd][data-open]')).length === 0,
@@ -92,16 +94,22 @@ export const tests = [
     },
   },
   {
-    name: 'katalog template: tersedia dan segera hadir',
+    name: 'katalog template: keempat template tersedia',
     path: '/template',
     async run(h) {
-      expect(await h.bodyHas('Keuangan UMKM'), 'template keuangan tidak tampil');
+      for (const name of [
+        'Keuangan UMKM',
+        'Inventaris & Gudang',
+        'SDM & Penggajian',
+        'Keuangan Pribadi',
+      ])
+        expect(await h.bodyHas(name), `${name} tidak tampil`);
       expect(await h.bodyHas('8 sheet'), 'jumlah sheet tidak tampil');
       const soon = await h.page.$$eval(
         'li',
         (els) => els.filter((e) => e.textContent.includes('Segera hadir')).length,
       );
-      expect(soon === 1, `segera hadir: ${soon}`);
+      expect(soon === 0, `segera hadir: ${soon}`);
     },
   },
   {
@@ -234,6 +242,53 @@ export const tests = [
       expect(x.sheets.includes('Payroll') && x.sheets.includes('Payslip'), x.sheets.join('|'));
       expect(x.strings.includes('Your Company Name'), 'nama perusahaan bawaan tidak ada');
       expect(!x.strings.includes('E-001'), 'contoh data ikut padahal tidak dicentang');
+    },
+  },
+  {
+    name: 'keuangan pribadi: profil keluarga + contoh data lalu unduh .xlsx',
+    path: '/template/keuangan-pribadi',
+    async run(h) {
+      await h.type('#per-name', 'Keluarga Andi');
+      await h.page.click('label:has(input[value="keluarga"])');
+      await h.page.waitForFunction(() =>
+        document.querySelector('#per-income').value.startsWith('Gaji utama'),
+      );
+      await h.page.click('input[type=checkbox]');
+      const summary = await h.page.evaluate(
+        () =>
+          document.body.innerText.match(
+            /\d+ dompet · \d+ kategori pemasukan · \d+ kategori pengeluaran/,
+          )?.[0],
+      );
+      expect(summary === '3 dompet · 4 kategori pemasukan · 13 kategori pengeluaran', summary);
+      const name = `Keuangan-Pribadi-Keluarga-Andi-${year}.xlsx`;
+      const x = readXlsx(await h.downloadVia(name, () => h.page.click('#per-download')));
+      expect(
+        x.sheets.join('|') ===
+          'Menu|Dashboard|Transaksi|Anggaran|Laporan Tahunan|Target Tabungan|Utang &amp; Cicilan|Kekayaan Bersih|Pengaturan|_Daftar',
+        x.sheets.join('|'),
+      );
+      for (const s of ['Keluarga Andi', 'Belanja dapur', 'Kebutuhan', 'Dana darurat', 'KPR rumah'])
+        expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
+      expect(x.charts === 3, `grafik: ${x.charts}`);
+      await h.page.waitForSelector('[role=status]');
+      expect((await h.text('[role=status]')).includes(name), await h.text('[role=status]'));
+    },
+  },
+  {
+    name: 'personal finance (EN): unduh bawaan tanpa contoh',
+    path: '/en/templates/personal-finance',
+    async run(h) {
+      expect((await h.value('#per-currency')) === 'USD', await h.value('#per-currency'));
+      const x = readXlsx(
+        await h.downloadVia(`Personal-Finance-${year}.xlsx`, () => h.page.click('#per-download')),
+      );
+      expect(
+        x.sheets.includes('Savings Goals') && x.sheets.includes('Net Worth'),
+        x.sheets.join('|'),
+      );
+      expect(x.strings.includes('Your Name'), 'nama bawaan tidak ada');
+      expect(!x.strings.includes('Emergency fund'), 'contoh data ikut padahal tidak dicentang');
     },
   },
 ];
