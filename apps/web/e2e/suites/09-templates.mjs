@@ -51,7 +51,10 @@ export const tests = [
       const items = await h.page.$$eval('header ul [data-nav-dd][data-open] .nav-tile', (as) =>
         as.map((a) => a.textContent.replace(/\s+/g, ' ').trim()),
       );
-      expect(items.some((x) => x.startsWith('Keuangan UMKM')), items.join(' | '));
+      expect(
+        items.some((x) => x.startsWith('Keuangan UMKM')),
+        items.join(' | '),
+      );
       // Semua template di navbar sudah tersedia (tidak ada label "Segera").
       expect(items.length >= 5 && items.some((x) => x.startsWith('Invoice')), items.join(' | '));
       expect(!items.some((x) => x.includes('Segera')), items.join(' | '));
@@ -321,6 +324,27 @@ export const tests = [
       expect(x.sheets.includes('Print') && x.sheets.includes('Line Items'), x.sheets.join('|'));
       expect(x.strings.includes('Logo design'), 'produk dari form tidak ada');
       expect(!x.strings.includes('Brightline Ltd'), 'contoh data ikut padahal tidak dicentang');
+    },
+  },
+  {
+    name: 'rab proyek: jenis proyek bangun rumah lalu unduh .xlsx',
+    path: '/template/rab-proyek',
+    async run(h) {
+      await h.type('#tf-project', 'Rumah Pak Budi');
+      await h.page.click('label:has(input[value="bangun"])');
+      await h.page.waitForFunction(() =>
+        document.querySelector('#tf-sections').value.includes('Pekerjaan Plafon'),
+      );
+      const name = 'RAB-Rumah-Pak-Budi.xlsx';
+      const x = readXlsx(await h.downloadVia(name, () => h.page.click('#tf-download')));
+      expect(
+        x.sheets.join('|') ===
+          'Menu|Dashboard|Rekapitulasi|RAB|Analisa Harga|Harga Dasar|Realisasi|Kurva S|Pengaturan|_Daftar',
+        x.sheets.join('|'),
+      );
+      for (const s of ['Rumah Pak Budi', 'Pekerjaan Plafon', 'Semen PC 50 kg', 'AN-06'])
+        expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
+      expect(x.charts === 3, `grafik: ${x.charts}`);
     },
   },
 ];

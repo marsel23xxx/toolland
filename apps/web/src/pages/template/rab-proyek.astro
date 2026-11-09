@@ -1,0 +1,10 @@
+---
+import TemplateBuilder from '../../components/templates/TemplateBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { RAB_FORM } from '../../lib/templates/rab-proyek';
+---
+
+<TemplatePage slug="rab-proyek">
+  <TemplateBuilder client:load form={RAB_FORM.id} m={messages('id', 'tplForm')} />
+</TemplatePage>
