@@ -573,5 +573,10 @@
   "personalBuilder.download": "Download Excel template",
   "personalBuilder.building": "Building file…",
   "personalBuilder.done": "{file} has been downloaded.",
-  "personalBuilder.error": "Could not build the file. Please try again."
+  "personalBuilder.error": "Could not build the file. Please try again.",
+  "tplForm.download": "Download Excel template",
+  "tplForm.building": "Building file…",
+  "tplForm.done": "{file} has been downloaded.",
+  "tplForm.error": "Could not build the file. Please try again.",
+  "tplForm.oneLine": "One per line, up to {n}."
 }

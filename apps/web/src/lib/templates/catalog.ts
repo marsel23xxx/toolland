@@ -4,21 +4,32 @@
  */
 import type { Locale } from '../format';
 
-export const TEMPLATE_CATEGORY_IDS = ['keuangan', 'operasional', 'sdm', 'pribadi'] as const;
+export const TEMPLATE_CATEGORY_IDS = [
+  'keuangan',
+  'operasional',
+  'proyek',
+  'sdm',
+  'komunitas',
+  'pribadi',
+] as const;
 export type TemplateCategoryId = (typeof TEMPLATE_CATEGORY_IDS)[number];
 
 export const TEMPLATE_CATEGORY_NAMES: Record<TemplateCategoryId, Record<Locale, string>> = {
   keuangan: { id: 'Keuangan usaha', en: 'Business finance' },
-  operasional: { id: 'Inventaris & gudang', en: 'Inventory & warehouse' },
+  operasional: { id: 'Operasional & penjualan', en: 'Operations & sales' },
+  proyek: { id: 'Proyek & konstruksi', en: 'Projects & construction' },
   sdm: { id: 'SDM & penggajian', en: 'HR & payroll' },
-  pribadi: { id: 'Keuangan pribadi', en: 'Personal finance' },
+  komunitas: { id: 'Sekolah & organisasi', en: 'School & community' },
+  pribadi: { id: 'Pribadi & keluarga', en: 'Personal & family' },
 };
 
 export const TEMPLATE_CATEGORY_NOTES: Record<TemplateCategoryId, Record<Locale, string>> = {
-  keuangan: { id: 'Kas, laba rugi, piutang, anggaran', en: 'Cash, P&L, receivables, budget' },
-  operasional: { id: 'Stok, barang masuk dan keluar', en: 'Stock, goods in and out' },
+  keuangan: { id: 'Kas, laba rugi, invoice, piutang', en: 'Cash, P&L, invoices, receivables' },
+  operasional: { id: 'Stok barang, kasir, penjualan', en: 'Stock, point of sale, sales' },
+  proyek: { id: 'RAB, jadwal, Gantt chart', en: 'Cost estimates, schedules, Gantt' },
   sdm: { id: 'Karyawan, absensi, gaji', en: 'Employees, attendance, payroll' },
-  pribadi: { id: 'Anggaran rumah tangga, tabungan', en: 'Household budget, savings' },
+  komunitas: { id: 'Nilai siswa, kas RT, iuran', en: 'Grades, community cash, dues' },
+  pribadi: { id: 'Anggaran, tabungan, pernikahan', en: 'Budget, savings, wedding' },
 };
 
 /**

@@ -51,9 +51,9 @@ export const tests = [
       const items = await h.page.$$eval('header ul [data-nav-dd][data-open] .nav-tile', (as) =>
         as.map((a) => a.textContent.replace(/\s+/g, ' ').trim()),
       );
-      expect(items[0].startsWith('Keuangan UMKM'), items.join(' | '));
-      // Empat template, semuanya sudah tersedia (tidak ada label "Segera").
-      expect(items.length === 4, items.join(' | '));
+      expect(items.some((x) => x.startsWith('Keuangan UMKM')), items.join(' | '));
+      // Semua template di navbar sudah tersedia (tidak ada label "Segera").
+      expect(items.length >= 5 && items.some((x) => x.startsWith('Invoice')), items.join(' | '));
       expect(!items.some((x) => x.includes('Segera')), items.join(' | '));
       await h.page.keyboard.press('Escape');
       expect(
@@ -289,6 +289,38 @@ export const tests = [
       );
       expect(x.strings.includes('Your Name'), 'nama bawaan tidak ada');
       expect(!x.strings.includes('Emergency fund'), 'contoh data ikut padahal tidak dicentang');
+    },
+  },
+  {
+    name: 'invoice & penawaran: form generik, contoh data, unduh .xlsx',
+    path: '/template/invoice-penawaran',
+    async run(h) {
+      await h.type('#tf-business', 'Studio Nusa');
+      await h.page.click('input[type=checkbox]');
+      const name = `Invoice-Penawaran-Studio-Nusa-${year}.xlsx`;
+      const x = readXlsx(await h.downloadVia(name, () => h.page.click('#tf-download')));
+      expect(
+        x.sheets.join('|') ===
+          'Menu|Dashboard|Cetak|Dokumen|Rincian|Pelanggan|Produk|Pengaturan|_Daftar',
+        x.sheets.join('|'),
+      );
+      for (const s of ['Studio Nusa', 'PT Sinar Abadi', 'DSN-LOGO', 'Penawaran', 'sebelas'])
+        expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
+      expect(x.charts === 3, `grafik: ${x.charts}`);
+      await h.page.waitForSelector('[role=status]');
+      expect((await h.text('[role=status]')).includes(name), await h.text('[role=status]'));
+    },
+  },
+  {
+    name: 'invoices & quotes (EN): unduh bawaan dengan produk dari form',
+    path: '/en/templates/invoices-quotes',
+    async run(h) {
+      const x = readXlsx(
+        await h.downloadVia(`Invoices-Quotes-${year}.xlsx`, () => h.page.click('#tf-download')),
+      );
+      expect(x.sheets.includes('Print') && x.sheets.includes('Line Items'), x.sheets.join('|'));
+      expect(x.strings.includes('Logo design'), 'produk dari form tidak ada');
+      expect(!x.strings.includes('Brightline Ltd'), 'contoh data ikut padahal tidak dicentang');
     },
   },
 ];

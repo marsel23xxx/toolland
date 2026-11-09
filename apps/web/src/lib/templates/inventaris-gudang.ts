@@ -1553,8 +1553,7 @@ export function buildInventoryWorkbook(opts: InventoryOptions): Workbook {
     formula: '0',
     style: { fill: BAD_BG, font: { color: BAD, bold: true } },
   });
-  // 10 barang paling banyak keluar: tabel + grafik batang (kolom bantu P:Q dibalik agar
-  // barang teratas tampil paling atas di grafik).
+  // 10 barang paling banyak keluar: tabel + grafik batang dari kolom bantu P:Q (urutan peringkat).
   shDash.chart({
     type: 'bar',
     title: t.chartTop,
@@ -1578,7 +1577,6 @@ export function buildInventoryWorkbook(opts: InventoryOptions): Workbook {
     .height(58, 26);
   for (let k = 1; k <= 10; k++) {
     const r = 58 + k;
-    const rev = 69 - k;
     shDash
       .set(`R${r}`, `=IFERROR(MATCH(LARGE(ItemOutKey,${k}),ItemOutKey,0),"")`)
       .merge(`I${r}:K${r}`, `=IF($R${r}="","",${k}&". "&INDEX(ItemName,$R${r}))`, st.rowLabel)
@@ -1586,8 +1584,8 @@ export function buildInventoryWorkbook(opts: InventoryOptions): Workbook {
         ...st.rowMoney,
         numFmt: FMT.qty,
       })
-      .set(`P${rev}`, `=IF($R${r}="","",INDEX(ItemName,$R${r}))`)
-      .set(`Q${rev}`, `=IF($R${r}="",0,INDEX(ItemOut,$R${r}))`);
+      .set(`P${r}`, `=IF($R${r}="","",INDEX(ItemName,$R${r}))`)
+      .set(`Q${r}`, `=IF($R${r}="",0,INDEX(ItemOut,$R${r}))`);
   }
 
   // ---------- Menu ----------

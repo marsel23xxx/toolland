@@ -127,6 +127,16 @@
   --c-dark: var(--secang-dark);
   --c-light: var(--secang-light);
 }
+[data-cat='proyek'] {
+  --c: var(--terakota);
+  --c-dark: var(--terakota-dark);
+  --c-light: var(--terakota-light);
+}
+[data-cat='komunitas'] {
+  --c: var(--nila);
+  --c-dark: var(--nila-dark);
+  --c-light: var(--nila-light);
+}
 [data-cat='pribadi'] {
   --c: var(--kunyit);
   --c-dark: var(--kunyit-dark);

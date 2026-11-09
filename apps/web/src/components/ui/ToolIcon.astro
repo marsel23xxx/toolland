@@ -39,6 +39,13 @@ import IconStamp from '~icons/lucide/stamp';
 import IconText from '~icons/lucide/text';
 import IconUsers from '~icons/lucide/users';
 import IconWrench from '~icons/lucide/wrench';
+import IconReceipt from '~icons/lucide/receipt-text';
+import IconHardHat from '~icons/lucide/hard-hat';
+import IconGantt from '~icons/lucide/chart-gantt';
+import IconStore from '~icons/lucide/store';
+import IconHandCoins from '~icons/lucide/hand-coins';
+import IconGraduation from '~icons/lucide/graduation-cap';
+import IconHeart from '~icons/lucide/heart';
 
 interface Props {
   name: string;
@@ -95,11 +102,24 @@ const ICONS: Record<string, typeof IconImage> = {
   'cat:teks': IconText,
   'cat:developer': IconBraces,
   'cat:media': IconFilm,
-  // Template per kategori
+  // Template per kategori (cadangan) dan per template (slug Indonesia)
   'tpl:keuangan': IconChart,
   'tpl:operasional': IconPackage,
+  'tpl:proyek': IconHardHat,
   'tpl:sdm': IconUsers,
+  'tpl:komunitas': IconGraduation,
   'tpl:pribadi': IconPiggyBank,
+  'tpl:keuangan-umkm': IconChart,
+  'tpl:inventaris-gudang': IconPackage,
+  'tpl:sdm-penggajian': IconUsers,
+  'tpl:keuangan-pribadi': IconPiggyBank,
+  'tpl:invoice-penawaran': IconReceipt,
+  'tpl:rab-proyek': IconHardHat,
+  'tpl:jadwal-proyek': IconGantt,
+  'tpl:kasir-penjualan': IconStore,
+  'tpl:kas-rt': IconHandCoins,
+  'tpl:nilai-siswa': IconGraduation,
+  'tpl:rencana-pernikahan': IconHeart,
 };
 
 const { name, class: cls } = Astro.props;

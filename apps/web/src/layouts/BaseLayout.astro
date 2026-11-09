@@ -91,18 +91,22 @@ const tplItems = TEMPLATE_CATEGORY_IDS.flatMap((id) => [
       name: x.data.name,
       note: x.data.summary,
       href: templatePath(locale, x.id.split('/')[1]) as string | undefined,
+      // Ikon per template memakai slug Indonesia (sama di kedua bahasa).
+      icon: `tpl:${x.data.idSlug ?? x.id.split('/')[1]}`,
     })),
   ...UPCOMING_TEMPLATES.filter((x) => x.category === id).map((x) => ({
     cat: id,
     name: x.name[locale],
     note: TEMPLATE_CATEGORY_NOTES[id][locale],
     href: undefined,
+    icon: `tpl:${id}`,
   })),
 ]);
-const tplCats = TEMPLATE_CATEGORY_IDS.map((id) => ({
-  id,
-  name: TEMPLATE_CATEGORY_NAMES[id][locale],
-}));
+// Kategori yang punya template saja (untuk footer).
+const tplCats = TEMPLATE_CATEGORY_IDS.filter((id) => tplItems.some((x) => x.cat === id)).map(
+  (id) => ({ id, name: TEMPLATE_CATEGORY_NAMES[id][locale] }),
+);
+const tplWide = tplItems.length > 6;
 ---
 
 <!doctype html>
@@ -198,20 +202,23 @@ const tplCats = TEMPLATE_CATEGORY_IDS.map((id) => ({
                 {t('nav.templates')}
                 <IconChevronDown class="nav-chevron size-4" aria-hidden="true" />
               </button>
-              <div id="nav-p-tpl" class="nav-panel nav-mega w-[38rem]">
+              <div
+                id="nav-p-tpl"
+                class:list={['nav-panel nav-mega', tplWide ? 'w-[54rem]' : 'w-[38rem]']}
+              >
                 <div class="nav-panel-head">
                   <p class="eyebrow tracking-wider uppercase">{t('nav.templatesHead')}</p>
                   <a href={tplHome} class="nav-see-all">
                     {t('nav.seeAll')} <span aria-hidden="true">→</span>
                   </a>
                 </div>
-                <ul class="grid grid-cols-2 gap-1">
+                <ul class:list={['grid gap-1', tplWide ? 'grid-cols-3' : 'grid-cols-2']}>
                   {tplItems.map((it) => (
                     <NavTile
                       name={it.name}
                       note={it.note}
                       href={it.href}
-                      icon={`tpl:${it.cat}`}
+                      icon={it.icon}
                       cat={it.cat}
                       soon={it.href ? undefined : t('nav.soon')}
                     />
@@ -291,7 +298,7 @@ const tplCats = TEMPLATE_CATEGORY_IDS.map((id) => ({
                   name={it.name}
                   note={it.note}
                   href={it.href}
-                  icon={`tpl:${it.cat}`}
+                  icon={it.icon}
                   cat={it.cat}
                   soon={it.href ? undefined : t('nav.soon')}
                 />

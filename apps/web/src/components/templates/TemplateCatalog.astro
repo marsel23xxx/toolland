@@ -30,6 +30,12 @@ const cover = (tpl: (typeof templates)[number]) => {
   return file ? IMAGES[`../../assets/templates/${idSlug}/${locale}-${file}.webp`] : undefined;
 };
 const pad = (n: number) => String(n).padStart(2, '0');
+// Kategori tanpa template (tersedia maupun segera hadir) tidak ditampilkan.
+const cats = TEMPLATE_CATEGORY_IDS.filter(
+  (cat) =>
+    templates.some((x) => x.data.category === cat) ||
+    UPCOMING_TEMPLATES.some((x) => x.category === cat),
+);
 ---
 
 <BaseLayout
@@ -61,7 +67,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
     </ul>
   </section>
 
-  {TEMPLATE_CATEGORY_IDS.map((cat, i) => {
+  {cats.map((cat, i) => {
     const ready = templates.filter((x) => x.data.category === cat);
     const soon = UPCOMING_TEMPLATES.filter((x) => x.category === cat);
     return (

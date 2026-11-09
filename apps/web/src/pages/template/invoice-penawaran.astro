@@ -1,0 +1,10 @@
+---
+import TemplateBuilder from '../../components/templates/TemplateBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { INVOICE_FORM } from '../../lib/templates/invoice-penawaran';
+---
+
+<TemplatePage slug="invoice-penawaran">
+  <TemplateBuilder client:load form={INVOICE_FORM.id} m={messages('id', 'tplForm')} />
+</TemplatePage>

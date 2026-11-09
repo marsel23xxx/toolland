@@ -3,7 +3,7 @@
  * sheet, dan kartu angka (KPI). Semua template memakai gaya yang sama supaya terasa satu aplikasi.
  */
 import type { Locale } from '../format';
-import { type Sheet, type Style, colIndex, colName } from '../xlsx';
+import { type Sheet, type Style, type Workbook, colIndex, colName } from '../xlsx';
 import { CURRENCIES, type Currency } from './currencies';
 
 export const INK = '1B1814';
@@ -354,4 +354,147 @@ export function seeded(seed: number) {
     x ^= x << 5;
     return ((x >>> 0) % 1_000_000) / 1_000_000;
   };
+}
+
+/** Teks umum sheet Menu (sama untuk semua template, per bahasa). */
+export const MENU_TEXT: Record<
+  Locale,
+  {
+    startHere: string;
+    contents: string;
+    legend: string;
+    legendInput: string;
+    legendCalc: string;
+    footer: string;
+    made: string;
+    menu: string;
+  }
+> = {
+  id: {
+    startHere: 'Mulai dalam 3 langkah',
+    contents: 'Isi workbook',
+    legend: 'Arti warna sel',
+    legendInput: 'Isi di sini',
+    legendCalc: 'Otomatis (jangan diubah)',
+    footer: 'Template gratis dari Toolland · julian-marcell.com/template',
+    made: 'Dibuat',
+    menu: 'Menu',
+  },
+  en: {
+    startHere: 'Start in 3 steps',
+    contents: 'What’s inside',
+    legend: 'Cell colours',
+    legendInput: 'Type here',
+    legendCalc: 'Automatic (don’t edit)',
+    footer: 'Free template from Toolland · julian-marcell.com/en/templates',
+    made: 'Created',
+    menu: 'Menu',
+  },
+};
+
+/**
+ * Sheet Menu: kepala, 3 langkah mulai, daftar sheet dengan link, arti warna sel, catatan
+ * (opsional), dan kaki halaman. Dipakai semua template agar terasa satu aplikasi.
+ */
+export function menuSheet(
+  sh: Sheet,
+  st: Styles,
+  accent: Accent,
+  locale: Locale,
+  o: {
+    brand: string;
+    title: string;
+    subtitle: string;
+    /** Rumus baris kedua di bawah judul, misalnya nama usaha dan tahun. */
+    line?: string;
+    steps: string[];
+    items: [string, string][];
+    note?: string;
+  },
+): void {
+  const m = MENU_TEXT[locale];
+  sheetHeader(sh, st, { brand: o.brand, title: o.title, subtitle: o.subtitle, lastCol: 'H' });
+  sh.widths({ B: 5, C: 24, D: 62, E: 3, F: 16, G: 16, H: 4 });
+  if (o.line) sh.set('B3', o.line, { ...st.subtitle, font: { size: 11, bold: true, color: INK2 } });
+  sh.merge('B5:D5', m.startHere, st.h2);
+  o.steps.forEach((s, i) => {
+    const r = 6 + i;
+    sh.set(`B${r}`, String(i + 1), st.step)
+      .merge(`C${r}:D${r}`, s, st.stepText)
+      .height(r, 34);
+  });
+  sh.merge('B10:D10', m.contents, st.h2);
+  o.items.forEach(([name, desc], i) => {
+    const r = 11 + i;
+    sh.set(`B${r}`, '→', {
+      ...st.menuItem,
+      font: { size: 12, bold: true, color: accent.main },
+      align: { h: 'center', v: 'center' },
+    });
+    sh.set(`C${r}`, name, st.menuItem).set(`D${r}`, desc, st.menuDesc).height(r, 32);
+    sh.link(`C${r}`, `'${name}'!A1`, name);
+  });
+  sh.merge('F5:G5', m.legend, st.h2);
+  sh.merge('F6:G6', m.legendInput, { ...st.input, align: { h: 'center', v: 'center' } }).height(
+    6,
+    34,
+  );
+  sh.merge('F7:G7', m.legendCalc, { ...st.calc, align: { h: 'center', v: 'center', wrap: true } });
+  let r = 12 + o.items.length;
+  if (o.note) {
+    sh.merge(`C${r}:D${r + 2}`, o.note, st.note);
+    r += 4;
+  }
+  const today = new Date();
+  sh.set(`C${r}`, m.footer, st.footer);
+  sh.set(
+    `C${r + 1}`,
+    `${m.made} ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`,
+    st.footer,
+  );
+}
+
+/** Bulan awal pilihan: bulan ini untuk tahun berjalan, Desember untuk tahun lalu, Januari bila nanti. */
+export function defaultMonth(year: number): number {
+  const now = new Date();
+  return year === now.getFullYear() ? now.getMonth() : year < now.getFullYear() ? 11 : 0;
+}
+
+/**
+ * Pemilih bulan di baris 5 dashboard: label di B5, dropdown di D5:E5, nomor bulan di F5 (dipakai
+ * rumus lain sebagai $F$5), dan teks tahun di H5:J5.
+ */
+export function monthPicker(
+  sh: Sheet,
+  st: Styles,
+  locale: Locale,
+  o: { year: number; yearFormula: string },
+): void {
+  const L = {
+    id: { label: 'Bulan dipilih', no: '"(bulan ke-"0")"', year: 'Tahun ' },
+    en: { label: 'Selected month', no: '"(month "0")"', year: 'Year ' },
+  }[locale];
+  sh.set('B5', L.label, st.label)
+    .merge('D5:E5', MONTHS[locale].long[defaultMonth(o.year)], {
+      ...st.inputText,
+      font: { size: 11, bold: true },
+    })
+    .set('F5', '=MATCH(D5,Months,0)', { ...st.note, numFmt: L.no, align: { v: 'center' } })
+    .merge('H5:J5', `=${q(L.year)}&${o.yearFormula}`, { ...st.label, align: { v: 'center' } });
+  sh.validate('D5', { type: 'list', formula1: '=Months' });
+  sh.height(5, 22).height(6, 8).height(10, 10);
+}
+
+/** Uang contoh: harga dalam rupiah, dikonversi kasar ke mata uang lain lalu dibulatkan. */
+export function sampleMoney(cur: Currency): (idr: number) => number {
+  const rate = { IDR: 1, USD: 1 / 16000, SGD: 1 / 12000, MYR: 1 / 3500, EUR: 1 / 17500 }[cur];
+  const dec = CURRENCIES[cur].decimals;
+  return (idr) =>
+    cur === 'IDR' ? Math.round(idr / 100) * 100 : Math.round(idr * rate * 10 ** dec) / 10 ** dec;
+}
+
+/** Nama bulan disimpan di sheet daftar tersembunyi kolom B dan didefinisikan sebagai "Months". */
+export function monthsList(wb: Workbook, list: Sheet, listName: string, locale: Locale): void {
+  MONTHS[locale].long.forEach((m, i) => list.set(`B${i + 2}`, m));
+  wb.defineName('Months', `'${listName}'!$B$2:$B$13`);
 }

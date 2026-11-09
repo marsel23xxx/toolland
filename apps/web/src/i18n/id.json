@@ -573,5 +573,10 @@
   "personalBuilder.download": "Unduh template Excel",
   "personalBuilder.building": "Membuat file…",
   "personalBuilder.done": "{file} sudah diunduh.",
-  "personalBuilder.error": "Gagal membuat file. Coba lagi."
+  "personalBuilder.error": "Gagal membuat file. Coba lagi.",
+  "tplForm.download": "Unduh template Excel",
+  "tplForm.building": "Membuat file…",
+  "tplForm.done": "{file} sudah diunduh.",
+  "tplForm.error": "Gagal membuat file. Coba lagi.",
+  "tplForm.oneLine": "Satu per baris, maksimal {n}."
 }
