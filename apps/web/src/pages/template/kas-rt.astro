@@ -1,0 +1,10 @@
+---
+import TemplateBuilder from '../../components/templates/TemplateBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { COMMUNITY_FORM } from '../../lib/templates/kas-rt';
+---
+
+<TemplatePage slug="kas-rt">
+  <TemplateBuilder client:load form={COMMUNITY_FORM.id} m={messages('id', 'tplForm')} />
+</TemplatePage>

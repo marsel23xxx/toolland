@@ -389,4 +389,22 @@ export const tests = [
       expect(x.charts === 4, `grafik: ${x.charts}`);
     },
   },
+  {
+    name: 'kas rt: daftar warga dari form, unduh .xlsx',
+    path: '/template/kas-rt',
+    async run(h) {
+      await h.type('#tf-org', 'RT 07 Melati');
+      await h.type('#tf-members', 'Budi | A-1\nSari | A-2');
+      const name = `Kas-RT-RT-07-Melati-${year}.xlsx`;
+      const x = readXlsx(await h.downloadVia(name, () => h.page.click('#tf-download')));
+      expect(
+        x.sheets.join('|') ===
+          'Menu|Dashboard|Iuran|Kas|Laporan Bulanan|Anggota|Pengaturan|_Daftar',
+        x.sheets.join('|'),
+      );
+      for (const s of ['RT 07 Melati', 'Budi', 'A-2', 'Keamanan'])
+        expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
+      expect(x.charts === 3, `grafik: ${x.charts}`);
+    },
+  },
 ];

@@ -22,6 +22,7 @@ const LOADERS: Record<string, () => Promise<Builder>> = {
   rab: () => import('../../lib/templates/rab-proyek'),
   schedule: () => import('../../lib/templates/jadwal-proyek'),
   sales: () => import('../../lib/templates/kasir-penjualan'),
+  community: () => import('../../lib/templates/kas-rt'),
 };
 
 const locale = pageLocale();
