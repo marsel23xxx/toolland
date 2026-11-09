@@ -1,0 +1,10 @@
+---
+import TemplateBuilder from '../../components/templates/TemplateBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { GRADES_FORM } from '../../lib/templates/nilai-siswa';
+---
+
+<TemplatePage slug="nilai-siswa">
+  <TemplateBuilder client:load form={GRADES_FORM.id} m={messages('id', 'tplForm')} />
+</TemplatePage>

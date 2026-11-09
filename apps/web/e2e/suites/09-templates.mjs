@@ -407,4 +407,22 @@ export const tests = [
       expect(x.charts === 3, `grafik: ${x.charts}`);
     },
   },
+  {
+    name: 'nilai siswa: kelas dan siswa dari form, unduh .xlsx',
+    path: '/template/nilai-siswa',
+    async run(h) {
+      await h.type('#tf-subject', 'Biologi');
+      await h.type('#tf-students', 'Citra | VII A\nDoni | VII B');
+      const name = `Nilai-Siswa-Biologi.xlsx`;
+      const x = readXlsx(await h.downloadVia(name, () => h.page.click('#tf-download')));
+      expect(
+        x.sheets.join('|') ===
+          'Menu|Dashboard|Nilai|Rapor Siswa|Rekap Kelas|Siswa|Pengaturan|_Daftar',
+        x.sheets.join('|'),
+      );
+      for (const s of ['Biologi', 'Citra', 'VII C', 'Remedial'])
+        expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
+      expect(x.charts === 3, `grafik: ${x.charts}`);
+    },
+  },
 ];

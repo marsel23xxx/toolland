@@ -23,6 +23,7 @@ const LOADERS: Record<string, () => Promise<Builder>> = {
   schedule: () => import('../../lib/templates/jadwal-proyek'),
   sales: () => import('../../lib/templates/kasir-penjualan'),
   community: () => import('../../lib/templates/kas-rt'),
+  grades: () => import('../../lib/templates/nilai-siswa'),
 };
 
 const locale = pageLocale();
