@@ -931,10 +931,14 @@ export function buildScheduleWorkbook(opts: ScheduleOptions): Workbook {
   for (let w = 0; w < WEEKS; w++) shLoad.width(wkCol(w), 8);
   shLoad.set(`B${head}`, t.loadHead, st.thLeft);
   for (let w = 0; w < WEEKS; w++)
-    shLoad.set(`${wkCol(w)}${head}`, `=${q(t.weekLabel)}&TEXT(GanttStart+${w * 7},"dd/mm")`, {
-      ...st.th,
-      font: { size: 9, bold: true, color: 'FFFFFF' },
-    });
+    shLoad.set(
+      `${wkCol(w)}${head}`,
+      `=${q(t.weekLabel)}&DAY(GanttStart+${w * 7})&"/"&MONTH(GanttStart+${w * 7})`,
+      {
+        ...st.th,
+        font: { size: 9, bold: true, color: 'FFFFFF' },
+      },
+    );
   shLoad.height(head, 26);
   for (let r = FIRST; r <= teamLast; r++) {
     const name = `INDEX(Team,${r - FIRST + 1})`;

@@ -1,0 +1,10 @@
+---
+import TemplateBuilder from '../../components/templates/TemplateBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { WEDDING_FORM } from '../../lib/templates/rencana-pernikahan';
+---
+
+<TemplatePage slug="rencana-pernikahan">
+  <TemplateBuilder client:load form={WEDDING_FORM.id} m={messages('id', 'tplForm')} />
+</TemplatePage>

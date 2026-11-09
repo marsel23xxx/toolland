@@ -24,6 +24,7 @@ const LOADERS: Record<string, () => Promise<Builder>> = {
   sales: () => import('../../lib/templates/kasir-penjualan'),
   community: () => import('../../lib/templates/kas-rt'),
   grades: () => import('../../lib/templates/nilai-siswa'),
+  wedding: () => import('../../lib/templates/rencana-pernikahan'),
 };
 
 const locale = pageLocale();

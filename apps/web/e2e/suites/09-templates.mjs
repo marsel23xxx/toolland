@@ -425,4 +425,23 @@ export const tests = [
       expect(x.charts === 3, `grafik: ${x.charts}`);
     },
   },
+  {
+    name: 'rencana pernikahan: nama berdua dan tamu, unduh .xlsx',
+    path: '/template/rencana-pernikahan',
+    async run(h) {
+      await h.type('#tf-partner1', 'Dimas');
+      await h.type('#tf-partner2', 'Anisa');
+      await h.type('#tf-guests', 'Keluarga Budi | Keluarga pria | 4');
+      const name = 'Rencana-Pernikahan-Dimas.xlsx';
+      const x = readXlsx(await h.downloadVia(name, () => h.page.click('#tf-download')));
+      expect(
+        x.sheets.join('|') ===
+          'Menu|Dashboard|Anggaran|Pembayaran|Tamu|Checklist|Pengaturan|_Daftar',
+        x.sheets.join('|'),
+      );
+      for (const s of ['Dimas', 'Anisa', 'Keluarga Budi', 'Booking gedung / venue'])
+        expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
+      expect(x.charts === 3, `grafik: ${x.charts}`);
+    },
+  },
 ];
