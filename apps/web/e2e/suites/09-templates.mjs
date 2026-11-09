@@ -52,7 +52,7 @@ export const tests = [
         as.map((a) => a.textContent.replace(/\s+/g, ' ').trim()),
       );
       expect(items[0].startsWith('Keuangan UMKM'), items.join(' | '));
-      expect(items.filter((x) => x.includes('Segera')).length === 2, items.join(' | '));
+      expect(items.filter((x) => x.includes('Segera')).length === 1, items.join(' | '));
       await h.page.keyboard.press('Escape');
       expect(
         (await h.page.$$('header [data-nav-dd][data-open]')).length === 0,
@@ -101,7 +101,7 @@ export const tests = [
         'li',
         (els) => els.filter((e) => e.textContent.includes('Segera hadir')).length,
       );
-      expect(soon === 2, `segera hadir: ${soon}`);
+      expect(soon === 1, `segera hadir: ${soon}`);
     },
   },
   {
@@ -201,6 +201,39 @@ export const tests = [
       expect(x.sheets.includes('Movements') && x.sheets.includes('Stock Card'), x.sheets.join('|'));
       expect(x.strings.includes('Main warehouse'), 'gudang bawaan tidak ada');
       expect(!x.strings.includes('SKU-001'), 'contoh data ikut padahal tidak dicentang');
+    },
+  },
+  {
+    name: 'sdm & penggajian: risiko JKK + contoh data lalu unduh .xlsx',
+    path: '/template/sdm-penggajian',
+    async run(h) {
+      await h.type('#pay-company', 'PT Sinar Jaya');
+      await h.page.select('#pay-jkk', '0.89');
+      await h.page.click('input[type=checkbox]');
+      const name = `SDM-Penggajian-PT-Sinar-Jaya-${year}.xlsx`;
+      const x = readXlsx(await h.downloadVia(name, () => h.page.click('#pay-download')));
+      expect(
+        x.sheets.join('|') ===
+          'Menu|Dashboard|Karyawan|Penggajian|Slip Gaji|Rekap Bulanan|Rekap Karyawan|Tarif &amp; BPJS|Pengaturan|_Daftar',
+        x.sheets.join('|'),
+      );
+      for (const s of ['PT Sinar Jaya', 'Budi Santoso', 'K-001', 'TK/0', 'Slip Gaji'])
+        expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
+      expect(x.charts === 3, `grafik: ${x.charts}`);
+      await h.page.waitForSelector('[role=status]');
+      expect((await h.text('[role=status]')).includes(name), await h.text('[role=status]'));
+    },
+  },
+  {
+    name: 'hr & payroll (EN): unduh bawaan tanpa contoh',
+    path: '/en/templates/hr-payroll',
+    async run(h) {
+      const x = readXlsx(
+        await h.downloadVia(`HR-Payroll-${year}.xlsx`, () => h.page.click('#pay-download')),
+      );
+      expect(x.sheets.includes('Payroll') && x.sheets.includes('Payslip'), x.sheets.join('|'));
+      expect(x.strings.includes('Your Company Name'), 'nama perusahaan bawaan tidak ada');
+      expect(!x.strings.includes('E-001'), 'contoh data ikut padahal tidak dicentang');
     },
   },
 ];

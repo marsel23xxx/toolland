@@ -1,0 +1,9 @@
+---
+import PayrollBuilder from '../../../components/templates/PayrollBuilder.vue';
+import TemplatePage from '../../../components/templates/TemplatePage.astro';
+import { messages } from '../../../i18n';
+---
+
+<TemplatePage slug="hr-payroll">
+  <PayrollBuilder client:load m={messages('en', 'payrollBuilder')} />
+</TemplatePage>

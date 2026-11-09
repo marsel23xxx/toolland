@@ -1,0 +1,9 @@
+---
+import PayrollBuilder from '../../components/templates/PayrollBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+---
+
+<TemplatePage slug="sdm-penggajian">
+  <PayrollBuilder client:load m={messages('id', 'payrollBuilder')} />
+</TemplatePage>
