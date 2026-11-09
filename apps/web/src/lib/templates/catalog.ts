@@ -24,7 +24,6 @@ export const TEMPLATE_CATEGORY_NOTES: Record<TemplateCategoryId, Record<Locale, 
 /** Template yang sedang dibuat: tampil di katalog sebagai "segera hadir", belum bisa diunduh. */
 export const UPCOMING_TEMPLATES: { category: TemplateCategoryId; name: Record<Locale, string> }[] =
   [
-    { category: 'operasional', name: { id: 'Inventaris & Gudang', en: 'Inventory & Warehouse' } },
     { category: 'sdm', name: { id: 'SDM & Penggajian', en: 'HR & Payroll' } },
     { category: 'pribadi', name: { id: 'Keuangan Pribadi', en: 'Personal Finance' } },
   ];

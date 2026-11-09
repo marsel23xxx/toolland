@@ -1,0 +1,9 @@
+---
+import InventoryBuilder from '../../components/templates/InventoryBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+---
+
+<TemplatePage slug="inventaris-gudang">
+  <InventoryBuilder client:load m={messages('id', 'inventoryBuilder')} />
+</TemplatePage>

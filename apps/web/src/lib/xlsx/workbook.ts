@@ -40,7 +40,13 @@ export type CondRule =
   | {
       type: 'cellIs';
       operator:
-        'lessThan' | 'greaterThan' | 'equal' | 'between' | 'lessThanOrEqual' | 'greaterThanOrEqual';
+        | 'lessThan'
+        | 'greaterThan'
+        | 'equal'
+        | 'notEqual'
+        | 'between'
+        | 'lessThanOrEqual'
+        | 'greaterThanOrEqual';
       formula: string;
       formula2?: string;
       style: Dxf;

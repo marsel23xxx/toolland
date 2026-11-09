@@ -41,7 +41,7 @@ export const tests = [
         as.map((a) => a.textContent.replace(/\s+/g, ' ').trim()),
       );
       expect(items[0].startsWith('Keuangan UMKM'), items.join(' | '));
-      expect(items.filter((x) => x.includes('Segera')).length === 3, items.join(' | '));
+      expect(items.filter((x) => x.includes('Segera')).length === 2, items.join(' | '));
       await h.page.keyboard.press('Escape');
       expect((await h.page.$$('header details[open]')).length === 0, 'Esc tidak menutup dropdown');
       await triggers[5].click();
@@ -76,7 +76,7 @@ export const tests = [
         'li',
         (els) => els.filter((e) => e.textContent.includes('Segera hadir')).length,
       );
-      expect(soon === 3, `segera hadir: ${soon}`);
+      expect(soon === 2, `segera hadir: ${soon}`);
     },
   },
   {
@@ -134,6 +134,48 @@ export const tests = [
       );
       expect(x.strings.includes('Your Business Name'), 'nama usaha bawaan tidak ada');
       expect(!x.strings.includes('TRX-0001'), 'contoh data ikut padahal tidak dicentang');
+    },
+  },
+  {
+    name: 'inventaris & gudang: preset kuliner + contoh data lalu unduh .xlsx',
+    path: '/template/inventaris-gudang',
+    async run(h) {
+      await h.type('#inv-business', 'Dapur Bu Sri');
+      await h.page.click('label:has(input[value="kuliner"])');
+      await h.page.waitForFunction(() =>
+        document.querySelector('#inv-warehouses').value.startsWith('Gudang kering'),
+      );
+      await h.page.click('input[type=checkbox]');
+      const summary = await h.page.evaluate(
+        () => document.body.innerText.match(/\d+ gudang · \d+ kategori · \d+ satuan/)?.[0],
+      );
+      expect(summary === '2 gudang · 6 kategori · 7 satuan', summary);
+      const name = `Inventaris-Gudang-Dapur-Bu-Sri-${year}.xlsx`;
+      const x = readXlsx(await h.downloadVia(name, () => h.page.click('#inv-download')));
+      expect(
+        x.sheets.join('|') ===
+          'Menu|Dashboard|Barang|Mutasi|Kartu Stok|Stok per Gudang|Stok Opname|Laporan|Pengaturan|_Daftar',
+        x.sheets.join('|'),
+      );
+      for (const s of ['Dapur Bu Sri', 'Gudang kering', 'Ayam potong', 'BRG-001', 'SA-0001'])
+        expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
+      expect(x.charts === 4, `grafik: ${x.charts}`);
+      await h.page.waitForSelector('[role=status]');
+      expect((await h.text('[role=status]')).includes(name), await h.text('[role=status]'));
+    },
+  },
+  {
+    name: 'inventory & warehouse (EN): unduh bawaan tanpa contoh',
+    path: '/en/templates/inventory-warehouse',
+    async run(h) {
+      const x = readXlsx(
+        await h.downloadVia(`Inventory-Warehouse-${year}.xlsx`, () =>
+          h.page.click('#inv-download'),
+        ),
+      );
+      expect(x.sheets.includes('Movements') && x.sheets.includes('Stock Card'), x.sheets.join('|'));
+      expect(x.strings.includes('Main warehouse'), 'gudang bawaan tidak ada');
+      expect(!x.strings.includes('SKU-001'), 'contoh data ikut padahal tidak dicentang');
     },
   },
 ];
