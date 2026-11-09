@@ -1,0 +1,10 @@
+---
+import TemplateBuilder from '../../components/templates/TemplateBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { SCHEDULE_FORM } from '../../lib/templates/jadwal-proyek';
+---
+
+<TemplatePage slug="jadwal-proyek">
+  <TemplateBuilder client:load form={SCHEDULE_FORM.id} m={messages('id', 'tplForm')} />
+</TemplatePage>

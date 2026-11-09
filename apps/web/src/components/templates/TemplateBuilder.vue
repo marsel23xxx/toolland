@@ -20,6 +20,7 @@ type Builder = { buildFromForm: (v: FormValues) => { toBlob(): Blob } };
 const LOADERS: Record<string, () => Promise<Builder>> = {
   invoice: () => import('../../lib/templates/invoice-penawaran'),
   rab: () => import('../../lib/templates/rab-proyek'),
+  schedule: () => import('../../lib/templates/jadwal-proyek'),
 };
 
 const locale = pageLocale();

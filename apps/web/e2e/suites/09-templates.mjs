@@ -347,4 +347,25 @@ export const tests = [
       expect(x.charts === 3, `grafik: ${x.charts}`);
     },
   },
+  {
+    name: 'jadwal proyek: jenis acara + tim, unduh .xlsx',
+    path: '/template/jadwal-proyek',
+    async run(h) {
+      await h.type('#tf-project', 'Festival Kopi');
+      await h.page.click('label:has(input[value="acara"])');
+      await h.page.waitForFunction(() =>
+        document.querySelector('#tf-phases').value.startsWith('Konsep & anggaran'),
+      );
+      await h.type('#tf-team', 'Ani\nBima');
+      const name = 'Jadwal-Proyek-Festival-Kopi.xlsx';
+      const x = readXlsx(await h.downloadVia(name, () => h.page.click('#tf-download')));
+      expect(
+        x.sheets.join('|') === 'Menu|Dashboard|Tugas|Gantt|Beban Kerja|Tim|Pengaturan|_Daftar',
+        x.sheets.join('|'),
+      );
+      for (const s of ['Festival Kopi', 'Vendor &amp; venue', 'Bima'])
+        expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
+      expect(x.charts === 3, `grafik: ${x.charts}`);
+    },
+  },
 ];
