@@ -261,19 +261,80 @@
 
   /* Navbar: dropdown memakai <details>, panel kertas di bawah pita merah bata. */
   .nav-trigger {
-    @apply flex cursor-pointer list-none items-center gap-1 rounded-md px-3 py-2 text-white select-none hover:bg-white/10 [&::-webkit-details-marker]:hidden;
+    @apply flex cursor-pointer items-center gap-1 rounded-md px-3 py-2 text-white transition-colors duration-150 select-none hover:bg-white/10;
   }
-  .nav-dd[open] > .nav-trigger {
+  .nav-dd[data-open] > .nav-trigger {
     @apply bg-white/15;
   }
-  .nav-dd[open] > .nav-trigger svg:last-child {
-    @apply rotate-180;
+  .nav-chevron {
+    transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
+  .nav-dd[data-open] > .nav-trigger .nav-chevron,
+  .nav-acc-head[aria-expanded='true'] .nav-chevron {
+    transform: rotate(180deg);
+  }
+  /* Panel selalu ada di DOM; saat tertutup dibuat transparan dan tak terlihat agar bisa
+     beranimasi masuk (fade + geser naik sedikit) dan keluar. */
   .nav-panel {
-    @apply absolute top-full left-0 z-40 mt-2 rounded-md border border-ink bg-paper-2 p-3 text-ink shadow-[0_12px_32px_-12px_rgb(27_24_20/0.35)];
+    @apply absolute top-full left-0 z-40 mt-2 rounded-md border border-ink bg-paper-2 p-3 text-ink shadow-[0_18px_40px_-14px_rgb(27_24_20/0.4)];
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-6px) scale(0.985);
+    transform-origin: top left;
+    transition:
+      opacity 0.16s ease,
+      transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+      visibility 0s linear 0.2s;
   }
-  .nav-dd:not([open]) > .nav-panel {
-    @apply hidden;
+  .nav-dd[data-open] > .nav-panel {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    transition:
+      opacity 0.18s ease,
+      transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+      visibility 0s;
+  }
+  /* Pindah antar dropdown: panel baru muncul cepat tanpa geser, panel lama hilang seketika. */
+  .nav-panel.nav-quick {
+    transform: none;
+  }
+  .nav-panel.nav-instant {
+    transition: none;
+  }
+  /* Jembatan tak terlihat antara tombol dan panel, agar kursor tidak "jatuh" di celahnya. */
+  .nav-mega::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: -0.75rem;
+    height: 0.75rem;
+  }
+  .nav-sheet {
+    transform: translateY(-8px);
+  }
+  .nav-burger {
+    @apply relative size-10 justify-center p-0;
+  }
+  .nav-burger svg {
+    position: absolute;
+    transition:
+      opacity 0.18s ease,
+      transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .nav-burger-close {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.6);
+  }
+  .nav-dd[data-open] .nav-burger-open {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.6);
+  }
+  .nav-dd[data-open] .nav-burger-close {
+    opacity: 1;
+    transform: none;
   }
   /* Panel lebar (mega menu) diposisikan terhadap <nav>; posisi kiri diatur script di layout. */
   .nav-mega {
@@ -298,7 +359,29 @@
     @apply border-b border-rule last-of-type:border-b-0;
   }
   .nav-acc-head {
-    @apply flex cursor-pointer list-none items-center gap-3 rounded-md px-2 py-2.5 hover:bg-paper [&::-webkit-details-marker]:hidden;
+    @apply flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-2.5 transition-colors hover:bg-paper;
+  }
+  /* Tinggi accordion beranimasi dari 0 ke tinggi isi lewat grid-template-rows. */
+  .nav-acc-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 0.2s ease;
+  }
+  .nav-acc-head[aria-expanded='true'] + .nav-acc-body {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav-panel,
+    .nav-dd[data-open] > .nav-panel,
+    .nav-chevron,
+    .nav-burger svg,
+    .nav-acc-body {
+      transition: none;
+    }
   }
 
   /* Tab gaya editorial: garis bawah, bukan pil */

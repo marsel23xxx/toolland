@@ -20,34 +20,48 @@ export const tests = [
     name: 'navbar: dropdown per kategori dan Template',
     path: '/',
     async run(h) {
-      const triggers = await h.page.$$('header ul details[data-nav-dd] > summary');
+      const triggers = await h.page.$$('header ul [data-nav-dd] > button');
       expect(triggers.length === 6, `jumlah dropdown ${triggers.length}`);
+      // Kursor di atas tombol membuka dropdown, keluar dari area menutupnya.
+      await triggers[0].hover();
+      await h.page.waitForSelector('header ul [data-nav-dd][data-open]', { timeout: 2000 });
+      await h.page.mouse.move(640, 700);
+      await h.page.waitForFunction(() => !document.querySelector('header [data-open]'), {
+        timeout: 2000,
+      });
       // Dropdown PDF berisi kartu tool lengkap dengan keterangan.
       await triggers[1].click();
-      const pdf = await h.page.$$eval('header ul details[open] .nav-tile', (as) =>
+      expect(
+        (await h.page.$eval('header ul [data-open] > button', (b) => b.ariaExpanded)) === 'true',
+        'aria-expanded tidak berubah',
+      );
+      const pdf = await h.page.$$eval('header ul [data-nav-dd][data-open] .nav-tile', (as) =>
         as.map((a) => a.getAttribute('href')),
       );
       expect(pdf.length === 15 && pdf.includes('/tools/gabung-pdf'), pdf.join(', '));
       // Panel tidak boleh keluar dari layar.
-      const right = await h.page.$eval('header details[open] .nav-panel', (p) =>
+      const right = await h.page.$eval('header [data-nav-dd][data-open] .nav-panel', (p) =>
         Math.round(p.getBoundingClientRect().right),
       );
       expect(right <= 1280, `panel melewati layar: ${right}`);
       // Membuka dropdown lain menutup yang pertama.
       await triggers[5].click();
-      const open = await h.page.$$eval('header details[open]', (d) => d.length);
+      const open = await h.page.$$eval('header [data-nav-dd][data-open]', (d) => d.length);
       expect(open === 1, `dropdown terbuka: ${open}`);
-      const items = await h.page.$$eval('header ul details[open] .nav-tile', (as) =>
+      const items = await h.page.$$eval('header ul [data-nav-dd][data-open] .nav-tile', (as) =>
         as.map((a) => a.textContent.replace(/\s+/g, ' ').trim()),
       );
       expect(items[0].startsWith('Keuangan UMKM'), items.join(' | '));
       expect(items.filter((x) => x.includes('Segera')).length === 2, items.join(' | '));
       await h.page.keyboard.press('Escape');
-      expect((await h.page.$$('header details[open]')).length === 0, 'Esc tidak menutup dropdown');
+      expect(
+        (await h.page.$$('header [data-nav-dd][data-open]')).length === 0,
+        'Esc tidak menutup dropdown',
+      );
       await triggers[5].click();
       await Promise.all([
         h.page.waitForNavigation(),
-        h.page.click('header ul details[open] a.nav-tile[href$="/keuangan-umkm"]'),
+        h.page.click('header ul [data-nav-dd][data-open] a.nav-tile[href$="/keuangan-umkm"]'),
       ]);
       const url = h.page.url();
       expect(url.endsWith('/template/keuangan-umkm'), url);
@@ -58,12 +72,23 @@ export const tests = [
     path: '/',
     async run(h) {
       await h.page.setViewport({ width: 390, height: 844 });
-      await h.page.click('header nav > details > summary');
-      await h.page.click('header details.nav-acc[data-cat=media] > summary');
-      const media = await h.page.$$eval('header details.nav-acc[open] .nav-tile', (as) =>
+      await h.page.click('header [data-mobile] > button');
+      await h.page.click('header .nav-acc[data-cat=media] > button');
+      const media = await h.page.$$eval('header .nav-acc[data-cat=media] .nav-tile', (as) =>
         as.map((a) => a.getAttribute('href')),
       );
       expect(media.length === 3 && media.includes('/tools/kompres-video'), media.join(', '));
+      const acc = await h.page.$eval('header .nav-acc[data-cat=media]', (d) => ({
+        expanded: d.querySelector('button').ariaExpanded,
+        inert: d.querySelector('.nav-acc-body').inert,
+      }));
+      expect(acc.expanded === 'true' && !acc.inert, JSON.stringify(acc));
+      // Link di dalam accordion bisa diklik dan membuka halaman tool.
+      await Promise.all([
+        h.page.waitForNavigation(),
+        h.page.click('header .nav-acc[data-cat=media] a[href="/tools/kompres-video"]'),
+      ]);
+      expect(h.page.url().endsWith('/tools/kompres-video'), h.page.url());
     },
   },
   {

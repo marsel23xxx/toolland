@@ -4,6 +4,7 @@ import fontUrl from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-s
 import { getCollection } from 'astro:content';
 import IconChevronDown from '~icons/lucide/chevron-down';
 import IconMenu from '~icons/lucide/menu';
+import IconX from '~icons/lucide/x';
 import NavTile from '../components/ui/NavTile.astro';
 import ToolIcon from '../components/ui/ToolIcon.astro';
 import { getLocale, pagePath, useTranslations, type Locale } from '../i18n';
@@ -153,16 +154,22 @@ const tplCats = TEMPLATE_CATEGORY_IDS.map((id) => ({
             class="h-11 w-auto"
           />
         </a>
-        <!-- Menu utama (layar lebar): satu dropdown per kategori, isinya kartu tool. -->
+        <!-- Menu utama (layar lebar): satu dropdown per kategori, isinya kartu tool.
+             Buka dengan hover (mouse) atau klik/Enter; panel beranimasi lewat atribut data-open. -->
         <ul class="mr-auto ml-2 hidden items-center text-sm font-semibold lg:flex">
           {toolMenus.map((m) => (
             <li>
-              <details class="nav-dd" data-nav-dd>
-                <summary class="nav-trigger">
+              <div class="nav-dd" data-nav-dd>
+                <button
+                  type="button"
+                  class="nav-trigger"
+                  aria-expanded="false"
+                  aria-controls={`nav-p-${m.id}`}
+                >
                   {m.name}
-                  <IconChevronDown class="size-4 transition-transform" aria-hidden="true" />
-                </summary>
-                <div class={`nav-panel nav-mega ${m.panel}`} data-cat={m.id}>
+                  <IconChevronDown class="nav-chevron size-4" aria-hidden="true" />
+                </button>
+                <div id={`nav-p-${m.id}`} class={`nav-panel nav-mega ${m.panel}`} data-cat={m.id}>
                   <div class="nav-panel-head">
                     <p class="eyebrow tracking-wider uppercase">
                       {m.name} · {t('nav.toolCount', { n: m.items.length })}
@@ -177,16 +184,21 @@ const tplCats = TEMPLATE_CATEGORY_IDS.map((id) => ({
                     ))}
                   </ul>
                 </div>
-              </details>
+              </div>
             </li>
           ))}
           <li class="ml-1 border-l border-white/25 pl-1">
-            <details class="nav-dd" data-nav-dd>
-              <summary class="nav-trigger">
+            <div class="nav-dd" data-nav-dd>
+              <button
+                type="button"
+                class="nav-trigger"
+                aria-expanded="false"
+                aria-controls="nav-p-tpl"
+              >
                 {t('nav.templates')}
-                <IconChevronDown class="size-4 transition-transform" aria-hidden="true" />
-              </summary>
-              <div class="nav-panel nav-mega w-[38rem]">
+                <IconChevronDown class="nav-chevron size-4" aria-hidden="true" />
+              </button>
+              <div id="nav-p-tpl" class="nav-panel nav-mega w-[38rem]">
                 <div class="nav-panel-head">
                   <p class="eyebrow tracking-wider uppercase">{t('nav.templatesHead')}</p>
                   <a href={tplHome} class="nav-see-all">
@@ -206,7 +218,7 @@ const tplCats = TEMPLATE_CATEGORY_IDS.map((id) => ({
                   ))}
                 </ul>
               </div>
-            </details>
+            </div>
           </li>
         </ul>
         <div class="hidden items-center gap-5 text-sm lg:flex">
@@ -225,35 +237,52 @@ const tplCats = TEMPLATE_CATEGORY_IDS.map((id) => ({
           </a>
         </div>
 
-        <!-- Menu HP dan tablet: tombol garis tiga, isinya accordion per kategori. -->
-        <details class="nav-dd lg:hidden" data-nav-dd>
-          <summary class="nav-trigger" aria-label={t('nav.menu')}>
-            <IconMenu class="size-6" aria-hidden="true" />
-          </summary>
-          <div class="nav-panel inset-x-0 top-full mt-0 max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-none border-x-0 p-2">
+        <!-- Menu HP dan tablet: tombol garis tiga (berubah jadi X), isinya accordion per kategori. -->
+        <div class="nav-dd lg:hidden" data-nav-dd data-mobile>
+          <button
+            type="button"
+            class="nav-trigger nav-burger"
+            aria-expanded="false"
+            aria-controls="nav-p-mobile"
+            aria-label={t('nav.menu')}
+          >
+            <IconMenu class="nav-burger-open size-6" aria-hidden="true" />
+            <IconX class="nav-burger-close size-6" aria-hidden="true" />
+          </button>
+          <div
+            id="nav-p-mobile"
+            class="nav-panel nav-sheet inset-x-0 top-full mt-0 max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-none border-x-0 p-2"
+          >
             <p class="eyebrow px-3 pt-2 pb-1">{t('nav.tools')}</p>
             {toolMenus.map((m) => (
-              <details class="nav-acc group" data-cat={m.id}>
-                <summary class="nav-acc-head">
+              <div class="nav-acc" data-cat={m.id}>
+                <button
+                  type="button"
+                  class="nav-acc-head"
+                  aria-expanded="false"
+                  aria-controls={`nav-acc-${m.id}`}
+                  data-acc
+                >
                   <span class="nav-tile-icon size-8">
                     <ToolIcon name={`cat:${m.id}`} class="size-4" />
                   </span>
-                  <span class="flex-1">
+                  <span class="flex-1 text-left">
                     <span class="block font-semibold">{m.name}</span>
                     <span class="block text-xs text-ink-3">{m.note}</span>
                   </span>
                   <span class="eyebrow">{m.items.length}</span>
-                  <IconChevronDown
-                    class="size-4 text-ink-3 transition-transform group-open:rotate-180"
-                    aria-hidden="true"
-                  />
-                </summary>
-                <ul class="grid gap-1 pb-2 sm:grid-cols-2">
-                  {m.items.map((it) => (
-                    <NavTile name={it.name} note={it.note} href={it.href} icon={it.icon} />
-                  ))}
-                </ul>
-              </details>
+                  <IconChevronDown class="nav-chevron size-4 text-ink-3" aria-hidden="true" />
+                </button>
+                <div id={`nav-acc-${m.id}`} class="nav-acc-body" inert>
+                  <div class="min-h-0 overflow-hidden">
+                    <ul class="grid gap-1 pb-2 sm:grid-cols-2">
+                      {m.items.map((it) => (
+                        <NavTile name={it.name} note={it.note} href={it.href} icon={it.icon} />
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
             ))}
             <p class="eyebrow mt-3 border-t border-rule px-3 pt-4 pb-1">{t('nav.templates')}</p>
             <ul class="grid gap-1 sm:grid-cols-2">
@@ -281,41 +310,97 @@ const tplCats = TEMPLATE_CATEGORY_IDS.map((id) => ({
               </a>
             </div>
           </div>
-        </details>
+        </div>
       </nav>
     </header>
     <script>
-      // Dropdown navbar memakai <details>: hanya satu yang terbuka, tutup saat klik di luar atau Esc.
-      const menus = [...document.querySelectorAll<HTMLDetailsElement>('[data-nav-dd]')];
+      // Dropdown navbar: hanya satu yang terbuka. Dengan mouse terbuka saat kursor diarahkan ke
+      // tombolnya (dengan jeda kecil agar tidak berkedip), juga bisa diklik atau dibuka dengan
+      // keyboard. Tutup saat klik di luar, Esc, atau link diklik.
+      const menus = [...document.querySelectorAll<HTMLElement>('[data-nav-dd]')];
+      const trigger = (d: HTMLElement) => d.querySelector<HTMLButtonElement>(':scope > button')!;
+      const panel = (d: HTMLElement) => d.querySelector<HTMLElement>(':scope > .nav-panel')!;
+      const isOpen = (d: HTMLElement) => d.hasAttribute('data-open');
+      let openedAt = 0;
+
       // Panel lebar dimulai di bawah tombolnya, tapi digeser ke kiri bila melewati tepi navbar.
-      function placePanel(d: HTMLDetailsElement) {
-        const panel = d.querySelector<HTMLElement>('.nav-mega');
+      function place(d: HTMLElement) {
+        const p = panel(d);
         const nav = d.closest('nav');
-        if (!panel || !nav) return;
+        if (!p.classList.contains('nav-mega') || !nav) return;
         const box = nav.getBoundingClientRect();
-        const trigger = d.querySelector('summary')!.getBoundingClientRect();
-        const max = box.width - panel.offsetWidth - 16;
-        panel.style.left = `${Math.max(16, Math.min(trigger.left - box.left - 8, max))}px`;
+        const btn = trigger(d).getBoundingClientRect();
+        const max = box.width - p.offsetWidth - 16;
+        p.style.left = `${Math.max(16, Math.min(btn.left - box.left - 8, max))}px`;
       }
+
+      function close(d: HTMLElement, instant = false) {
+        if (!isOpen(d)) return;
+        const p = panel(d);
+        // Saat pindah ke dropdown lain, panel lama hilang langsung agar tidak bertumpuk.
+        if (instant) p.classList.add('nav-instant');
+        d.removeAttribute('data-open');
+        trigger(d).setAttribute('aria-expanded', 'false');
+        if (instant) requestAnimationFrame(() => p.classList.remove('nav-instant'));
+      }
+
+      function open(d: HTMLElement) {
+        if (isOpen(d)) return;
+        const switching = menus.some(isOpen);
+        for (const other of menus) if (other !== d) close(other, true);
+        place(d);
+        const p = panel(d);
+        if (switching) p.classList.add('nav-quick');
+        else p.classList.remove('nav-quick');
+        d.setAttribute('data-open', '');
+        trigger(d).setAttribute('aria-expanded', 'true');
+        openedAt = performance.now();
+      }
+
       for (const d of menus) {
-        d.addEventListener('toggle', () => {
-          if (!d.open) return;
-          for (const other of menus) if (other !== d) other.open = false;
-          placePanel(d);
+        const btn = trigger(d);
+        btn.addEventListener('click', () => {
+          // Klik tepat setelah hover membuka menu tidak langsung menutupnya lagi.
+          if (isOpen(d) && performance.now() - openedAt < 400) return;
+          if (isOpen(d)) close(d);
+          else open(d);
         });
-        // Link ke bagian di halaman yang sama (#kategori) tidak memuat ulang halaman.
-        for (const a of d.querySelectorAll('a'))
-          a.addEventListener('click', () => (d.open = false));
+        for (const a of panel(d).querySelectorAll('a')) a.addEventListener('click', () => close(d));
+        if (d.hasAttribute('data-mobile')) continue;
+        let timer = 0;
+        d.addEventListener('pointerenter', (e) => {
+          if (e.pointerType !== 'mouse') return;
+          clearTimeout(timer);
+          // Pindah dari menu lain yang sedang terbuka: langsung, tanpa jeda.
+          timer = window.setTimeout(() => open(d), menus.some(isOpen) ? 0 : 90);
+        });
+        d.addEventListener('pointerleave', (e) => {
+          if (e.pointerType !== 'mouse') return;
+          clearTimeout(timer);
+          timer = window.setTimeout(() => close(d), 180);
+        });
       }
+
+      // Accordion di menu HP: tinggi beranimasi lewat CSS grid; isi yang tertutup dibuat inert
+      // agar tidak bisa difokus dengan Tab.
+      for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-acc]')) {
+        const body = document.getElementById(btn.getAttribute('aria-controls')!)!;
+        btn.addEventListener('click', () => {
+          const expand = btn.getAttribute('aria-expanded') !== 'true';
+          btn.setAttribute('aria-expanded', String(expand));
+          body.inert = !expand;
+        });
+      }
+
       document.addEventListener('click', (e) => {
-        for (const d of menus) if (d.open && !d.contains(e.target as Node)) d.open = false;
+        for (const d of menus) if (isOpen(d) && !d.contains(e.target as Node)) close(d);
       });
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
-        const open = menus.find((d) => d.open);
-        if (open) {
-          open.open = false;
-          open.querySelector('summary')?.focus();
+        const d = menus.find(isOpen);
+        if (d) {
+          close(d);
+          trigger(d).focus();
         }
       });
     </script>
