@@ -1,0 +1,258 @@
+---
+/**
+ * Halaman satu template Excel dari src/content/templates/<bahasa>/<slug>.md: judul, form
+ * pengaturan (slot), pratinjau, isi file, fitur, cara pakai, isi Markdown, FAQ, dan template lain.
+ */
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+import { getCollection, getEntry, render } from 'astro:content';
+import IconCheck from '~icons/lucide/check';
+import IconCpu from '~icons/lucide/cpu';
+import { getLocale, useTranslations } from '../../i18n';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE } from '../../lib/site';
+import { TEMPLATE_CATEGORY_NAMES, templatePath, templatesHome } from '../../lib/templates/catalog';
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+const locale = getLocale(Astro.url);
+const t = useTranslations(locale);
+const entry = await getEntry('templates', `${locale}/${slug}`);
+if (!entry)
+  throw new Error(`Konten template tidak ditemukan: src/content/templates/${locale}/${slug}.md`);
+const { data } = entry;
+const { Content } = await render(entry);
+
+const idSlug = data.idSlug ?? slug;
+const alternates: Partial<Record<'id' | 'en', string>> = { [locale]: templatePath(locale, slug) };
+if (locale === 'id') {
+  const en = (await getCollection('templates', (e) => e.id.startsWith('en/'))).find(
+    (e) => e.data.idSlug === slug,
+  );
+  if (en) alternates.en = templatePath('en', en.id.split('/')[1]);
+} else {
+  alternates.id = templatePath('id', idSlug);
+}
+
+const others = (await getCollection('templates', (e) => e.id.startsWith(`${locale}/`))).filter(
+  (e) => e.id !== entry.id,
+);
+
+// Pratinjau: src/assets/templates/<slug Indonesia>/<bahasa>-<file>.webp
+const IMAGES = import.meta.glob<ImageMetadata>('../../assets/templates/*/*.webp', {
+  eager: true,
+  import: 'default',
+});
+const previews = data.previews
+  .map((p) => ({ ...p, img: IMAGES[`../../assets/templates/${idSlug}/${locale}-${p.file}.webp`] }))
+  .filter((p) => p.img);
+
+const url = new URL(templatePath(locale, slug), SITE.url).href;
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: data.title,
+    description: data.description,
+    url,
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Microsoft Excel, Google Sheets, LibreOffice',
+    isAccessibleForFree: true,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'IDR' },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: data.title,
+    step: data.howTo.map((text, i) => ({ '@type': 'HowToStep', position: i + 1, text })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: data.faq.map(({ q, a }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  },
+];
+const jsonLdText = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
+const home = templatesHome(locale);
+---
+
+<BaseLayout
+  title={`${data.title} | Toolland`}
+  description={data.description}
+  alternates={alternates}
+  cat={data.category}
+>
+  <script slot="head" type="application/ld+json" is:inline set:html={jsonLdText} />
+  <header class="mb-8">
+    <nav aria-label="Breadcrumb" class="eyebrow">
+      <a href={home} class="hover:text-ink">
+        {t('template.breadcrumb')}
+      </a>
+      <span aria-hidden="true"> / </span>
+      <a
+        href={`${home}#${data.category}`}
+        class="text-brand-700 hover:underline dark:text-brand-300"
+      >
+        {TEMPLATE_CATEGORY_NAMES[data.category][locale]}
+      </a>
+    </nav>
+    <h1 class="mt-3 max-w-3xl font-display text-4xl leading-[1.05] tracking-tight sm:text-5xl">
+      {data.title}
+    </h1>
+    <p class="mt-4 max-w-2xl text-lg leading-relaxed text-ink-2">{data.description}</p>
+    <p class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium text-ink-2">
+      <span class="inline-flex items-center gap-2">
+        <IconCpu class="text-brand-600 dark:text-brand-400" aria-hidden="true" />
+        {t('template.badge')}
+      </span>
+      <span class="text-ink-3">{t('template.compat')}</span>
+    </p>
+  </header>
+
+  {previews[0] && (
+    // Di HP disembunyikan supaya form langsung terlihat; gambarnya tetap ada di bagian Pratinjau.
+    <figure class="mb-8 hidden overflow-hidden rounded-md border border-ink bg-white md:block">
+      <Image
+        src={previews[0].img}
+        alt={previews[0].caption}
+        widths={[640, 960, 1280, 1600]}
+        sizes="(min-width: 1024px) 1024px, 100vw"
+        loading="eager"
+        class="h-auto w-full"
+      />
+    </figure>
+  )}
+
+  <section aria-label={data.name} class="rounded-md border border-ink bg-paper-2 p-4 sm:p-6">
+    <slot />
+  </section>
+
+  <section class="mt-16 grid gap-10 lg:grid-cols-[1.3fr_1fr]">
+    <div>
+      <h2 class="font-display text-3xl">{t('template.inside')}</h2>
+      <ol class="mt-6 border-t border-ink">
+        {data.sheets.map((s, i) => (
+          <li class="flex gap-4 border-b border-rule py-3">
+            <span class="w-6 shrink-0 font-display text-xl leading-6 text-brand-600 dark:text-brand-400">
+              {i + 1}
+            </span>
+            <span>
+              <span class="font-semibold">{s.name}</span>
+              <span class="mt-0.5 block text-sm text-ink-2">{s.desc}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+    <div>
+      <h2 class="font-display text-3xl">{t('template.features')}</h2>
+      <ul class="mt-6 space-y-3 border-t border-ink pt-4">
+        {data.features.map((f) => (
+          <li class="flex gap-3">
+            <IconCheck
+              class="mt-1 shrink-0 text-brand-600 dark:text-brand-400"
+              aria-hidden="true"
+            />
+            <span class="text-ink-2">{f}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  {previews.length > 0 && (
+    <section class="mt-16">
+      <h2 class="font-display text-3xl">{t('template.preview')}</h2>
+      <div class="mt-6 grid gap-6 md:grid-cols-2">
+        {previews.map((p, i) => (
+          <figure class={i === 0 ? 'md:hidden' : undefined}>
+            <div class="overflow-hidden rounded-md border border-rule bg-white">
+              <Image
+                src={p.img}
+                alt={p.caption}
+                widths={[480, 800, 1200]}
+                sizes="(min-width: 768px) 50vw, 100vw"
+                class="h-auto w-full"
+              />
+            </div>
+            <figcaption class="mt-2 text-sm text-ink-3">{p.caption}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <section class="mt-16">
+    <h2 class="font-display text-3xl">{t('tool.howTo')}</h2>
+    <ol class="mt-6 grid border-t border-ink sm:grid-cols-3">
+      {data.howTo.map((step, i) => (
+        <li class="flex gap-4 border-b border-rule py-5 sm:border-b-0 sm:py-6 sm:pr-6 sm:not-first:border-l sm:not-first:pl-6">
+          <span
+            class="font-display text-5xl leading-none text-brand-600 dark:text-brand-400"
+            aria-hidden="true"
+          >
+            {i + 1}
+          </span>
+          <span class="pt-1 leading-relaxed text-ink-2">{step}</span>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <div class="prose-tool mt-12">
+    <Content />
+  </div>
+
+  <section class="mt-16">
+    <h2 class="font-display text-3xl">{t('tool.faq')}</h2>
+    <div class="mt-6 border-t border-ink">
+      {data.faq.map(({ q, a }) => (
+        <details class="group border-b border-rule">
+          <summary class="flex cursor-pointer list-none items-start justify-between gap-6 py-4 text-lg font-semibold [&::-webkit-details-marker]:hidden">
+            <span>{q}</span>
+            <span
+              class="mt-0.5 font-display text-2xl leading-none text-brand-600 transition-transform group-open:rotate-45 dark:text-brand-400"
+              aria-hidden="true"
+            >
+              +
+            </span>
+          </summary>
+          <p class="max-w-2xl pb-5 leading-relaxed text-ink-2">{a}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+
+  {others.length > 0 && (
+    <section class="mt-16">
+      <h2 class="font-display text-3xl">{t('template.others')}</h2>
+      <ul class="mt-6 grid gap-x-10 border-t border-ink sm:grid-cols-2">
+        {others.map((o) => (
+          <li data-cat={o.data.category}>
+            <a
+              href={templatePath(locale, o.id.split('/')[1])}
+              class="group flex items-baseline justify-between gap-4 border-b border-rule py-4"
+            >
+              <span>
+                <span class="font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-300">
+                  {o.data.name}
+                </span>
+                <span class="mt-0.5 block text-sm text-ink-3">{o.data.summary}</span>
+              </span>
+              <span class="text-brand-600 dark:text-brand-400" aria-hidden="true">
+                →
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+</BaseLayout>

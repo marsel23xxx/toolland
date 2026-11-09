@@ -1,0 +1,128 @@
+---
+/** Katalog template Excel per kategori: template yang tersedia dan yang segera hadir. */
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import { useTranslations, type Locale } from '../../i18n';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import {
+  TEMPLATE_CATEGORY_IDS,
+  TEMPLATE_CATEGORY_NAMES,
+  TEMPLATE_CATEGORY_NOTES,
+  UPCOMING_TEMPLATES,
+  templatePath,
+} from '../../lib/templates/catalog';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const templates = await getCollection('templates', (e) => e.id.startsWith(`${locale}/`));
+const IMAGES = import.meta.glob<ImageMetadata>('../../assets/templates/*/*.webp', {
+  eager: true,
+  import: 'default',
+});
+const cover = (tpl: (typeof templates)[number]) => {
+  const idSlug = tpl.data.idSlug ?? tpl.id.split('/')[1];
+  const file = tpl.data.previews[0]?.file;
+  return file ? IMAGES[`../../assets/templates/${idSlug}/${locale}-${file}.webp`] : undefined;
+};
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<BaseLayout
+  title={t('templates.title')}
+  description={t('templates.description')}
+  alternates={{ id: '/template', en: '/en/templates' }}
+  wide
+>
+  <section class="border-b border-ink pb-12">
+    <p class="eyebrow">{t('templates.kicker')}</p>
+    <h1 class="mt-4 max-w-4xl font-display text-[2.6rem] leading-[1.02] tracking-tight sm:text-6xl lg:text-[4.25rem]">
+      {t('templates.headlineA')}{' '}
+      <em class="font-normal text-daun italic">{t('templates.headlineEm')}</em>
+    </h1>
+    <p class="mt-6 max-w-2xl text-lg leading-relaxed text-ink-2">{t('templates.lead')}</p>
+    <ul class="mt-6 flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-2">
+      <li class="flex items-center gap-2">
+        <span class="size-2 bg-daun" aria-hidden="true"></span>
+        {t('templates.fact1')}
+      </li>
+      <li class="flex items-center gap-2">
+        <span class="size-2 bg-nila" aria-hidden="true"></span>
+        {t('templates.fact2')}
+      </li>
+      <li class="flex items-center gap-2">
+        <span class="size-2 bg-terakota" aria-hidden="true"></span>
+        {t('templates.fact3')}
+      </li>
+    </ul>
+  </section>
+
+  {TEMPLATE_CATEGORY_IDS.map((cat, i) => {
+    const ready = templates.filter((x) => x.data.category === cat);
+    const soon = UPCOMING_TEMPLATES.filter((x) => x.category === cat);
+    return (
+      <section
+        id={cat}
+        data-cat={cat}
+        class="grid scroll-mt-24 gap-6 border-b border-ink py-10 lg:grid-cols-[15rem_1fr]"
+      >
+        <header>
+          <p class="eyebrow">{pad(i + 1)}</p>
+          <h2 class="mt-1 font-display text-3xl text-brand-700 dark:text-brand-300">
+            {TEMPLATE_CATEGORY_NAMES[cat][locale]}
+          </h2>
+          <p class="mt-2 text-sm text-ink-3">{TEMPLATE_CATEGORY_NOTES[cat][locale]}</p>
+        </header>
+        <ul class="grid gap-6 md:grid-cols-2">
+          {ready.map((tpl) => {
+            const img = cover(tpl);
+            return (
+              <li>
+                <a href={templatePath(locale, tpl.id.split('/')[1])} class="group block">
+                  {img && (
+                    <div class="overflow-hidden rounded-md border border-rule bg-white">
+                      <Image
+                        src={img}
+                        alt=""
+                        widths={[480, 800]}
+                        sizes="(min-width: 768px) 40vw, 100vw"
+                        class="aspect-[16/10] h-auto w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
+                      />
+                    </div>
+                  )}
+                  <span class="mt-3 flex items-baseline justify-between gap-3">
+                    <span class="font-display text-2xl leading-tight group-hover:text-brand-700 dark:group-hover:text-brand-300">
+                      {tpl.data.name}
+                    </span>
+                    <span class="eyebrow shrink-0">
+                      {t('templates.sheets', { n: tpl.data.sheets.length })}
+                    </span>
+                  </span>
+                  <span class="mt-1 block text-ink-2">{tpl.data.summary}</span>
+                  <span class="mt-3 inline-flex items-center gap-1 font-semibold text-brand-700 dark:text-brand-300">
+                    {t('templates.open')}
+                    <span class="transition-transform group-hover:translate-x-1" aria-hidden="true">
+                      →
+                    </span>
+                  </span>
+                </a>
+              </li>
+            );
+          })}
+          {soon.map((s) => (
+            <li class="flex min-h-40 flex-col justify-end rounded-md border border-dashed border-rule p-5">
+              <span class="eyebrow">{t('templates.soon')}</span>
+              <span class="mt-1 font-display text-2xl leading-tight text-ink-2">
+                {s.name[locale]}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  })}
+</BaseLayout>

@@ -1,10 +1,21 @@
 ---
 import displayFontUrl from '@fontsource/fraunces/files/fraunces-latin-600-normal.woff2?url';
 import fontUrl from '@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2?url';
+import { getCollection } from 'astro:content';
+import IconChevronDown from '~icons/lucide/chevron-down';
+import IconMenu from '~icons/lucide/menu';
 import { getLocale, pagePath, useTranslations, type Locale } from '../i18n';
-import { CATEGORY_IDS, CATEGORY_NAMES, type CategoryId } from '../lib/categories';
+import { CATEGORY_IDS, CATEGORY_NAMES, CATEGORY_NOTES, type CategoryId } from '../lib/categories';
 import { LOCALE_TAGS } from '../lib/format';
 import { SITE } from '../lib/site';
+import {
+  TEMPLATE_CATEGORY_IDS,
+  TEMPLATE_CATEGORY_NAMES,
+  type TemplateCategoryId,
+  UPCOMING_TEMPLATES,
+  templatePath,
+  templatesHome,
+} from '../lib/templates/catalog';
 import '../styles/global.css';
 
 interface Props {
@@ -14,7 +25,7 @@ interface Props {
   alternates?: Partial<Record<Locale, string>>;
   noindex?: boolean;
   /** Kategori halaman: menentukan warna aksen (terakota, nila, kunyit, daun, secang). */
-  cat?: CategoryId;
+  cat?: CategoryId | TemplateCategoryId;
   /** Lebar konten: lebar untuk beranda, sedang untuk halaman tool dan teks. */
   wide?: boolean;
 }
@@ -29,6 +40,29 @@ const homeHref = locale === 'en' ? '/en' : '/';
 const width = wide ? 'max-w-6xl' : 'max-w-5xl';
 const donateHref = locale === 'en' ? '/en/support' : '/dukung';
 const privacyHref = locale === 'en' ? '/en/privacy' : '/kebijakan-privasi';
+const tplHome = templatesHome(locale);
+
+// Isi dropdown navbar: kategori tools, dan template per kategori (tersedia + segera hadir).
+const toolCats = CATEGORY_IDS.map((id) => ({
+  id,
+  name: CATEGORY_NAMES[id][locale],
+  note: CATEGORY_NOTES[id][locale],
+  href: `${homeHref}#${id}`,
+}));
+const templates = await getCollection('templates', (e) => e.id.startsWith(`${locale}/`));
+const tplCats = TEMPLATE_CATEGORY_IDS.map((id) => ({
+  id,
+  name: TEMPLATE_CATEGORY_NAMES[id][locale],
+  items: [
+    ...templates
+      .filter((x) => x.data.category === id)
+      .map((x) => ({ name: x.data.name, href: templatePath(locale, x.id.split('/')[1]) })),
+    ...UPCOMING_TEMPLATES.filter((x) => x.category === id).map((x) => ({
+      name: x.name[locale],
+      href: undefined,
+    })),
+  ],
+}));
 ---
 
 <!doctype html>
@@ -80,7 +114,76 @@ const privacyHref = locale === 'en' ? '/en/privacy' : '/kebijakan-privasi';
             class="h-11 w-auto"
           />
         </a>
-        <div class="flex items-center gap-5 text-sm">
+        <!-- Menu utama (layar lebar): dropdown Tools dan Template. -->
+        <ul class="mr-auto ml-4 hidden items-center gap-1 text-sm font-semibold md:flex">
+          <li>
+            <details class="nav-dd relative" data-nav-dd>
+              <summary class="nav-trigger">
+                {t('nav.tools')}
+                <IconChevronDown class="size-4 transition-transform" aria-hidden="true" />
+              </summary>
+              <div class="nav-panel w-[34rem]">
+                <ul class="grid grid-cols-2 gap-1">
+                  {toolCats.map((c) => (
+                    <li data-cat={c.id}>
+                      <a href={c.href} class="nav-item">
+                        <span class="font-semibold text-brand-700 dark:text-brand-300">
+                          {c.name}
+                        </span>
+                        <span class="block text-xs font-normal text-ink-3">{c.note}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+                <a href={homeHref} class="nav-all">
+                  {t('nav.allTools')} <span aria-hidden="true">→</span>
+                </a>
+              </div>
+            </details>
+          </li>
+          <li>
+            <details class="nav-dd relative" data-nav-dd>
+              <summary class="nav-trigger">
+                {t('nav.templates')}
+                <IconChevronDown class="size-4 transition-transform" aria-hidden="true" />
+              </summary>
+              <div class="nav-panel w-[36rem]">
+                <ul class="grid grid-cols-2 gap-x-4 gap-y-3">
+                  {tplCats.map((c) => (
+                    <li data-cat={c.id}>
+                      <a
+                        href={`${tplHome}#${c.id}`}
+                        class="eyebrow block px-3 text-brand-700 hover:underline dark:text-brand-300"
+                      >
+                        {c.name}
+                      </a>
+                      <ul class="mt-1">
+                        {c.items.map((it) =>
+                          it.href ? (
+                            <li>
+                              <a href={it.href} class="nav-item font-semibold">
+                                {it.name}
+                              </a>
+                            </li>
+                          ) : (
+                            <li class="flex items-center justify-between gap-2 px-3 py-1.5 font-normal text-ink-3">
+                              {it.name}
+                              <span class="eyebrow text-[0.65rem]">{t('nav.soon')}</span>
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+                <a href={tplHome} class="nav-all">
+                  {t('nav.allTemplates')} <span aria-hidden="true">→</span>
+                </a>
+              </div>
+            </details>
+          </li>
+        </ul>
+        <div class="hidden items-center gap-5 text-sm md:flex">
           <a
             href={switchHref}
             hreflang={LOCALE_TAGS[otherLocale]}
@@ -95,15 +198,96 @@ const privacyHref = locale === 'en' ? '/en/privacy' : '/kebijakan-privasi';
             {t('nav.donate')}
           </a>
         </div>
+
+        <!-- Menu HP: satu tombol garis tiga berisi semua link. -->
+        <details class="nav-dd md:hidden" data-nav-dd>
+          <summary class="nav-trigger" aria-label={t('nav.menu')}>
+            <IconMenu class="size-6" aria-hidden="true" />
+          </summary>
+          <div class="nav-panel inset-x-0 top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-none border-x-0">
+            <p class="eyebrow px-3 pt-1">{t('nav.tools')}</p>
+            <ul class="mt-1 grid grid-cols-2">
+              {toolCats.map((c) => (
+                <li data-cat={c.id}>
+                  <a
+                    href={c.href}
+                    class="nav-item font-semibold text-brand-700 dark:text-brand-300"
+                  >
+                    {c.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p class="eyebrow mt-4 border-t border-rule px-3 pt-4">{t('nav.templates')}</p>
+            <ul class="mt-1">
+              {tplCats.flatMap((c) =>
+                c.items.map((it) =>
+                  it.href ? (
+                    <li data-cat={c.id}>
+                      <a href={it.href} class="nav-item font-semibold">
+                        {it.name}
+                      </a>
+                    </li>
+                  ) : (
+                    <li class="flex items-center justify-between px-3 py-2 text-ink-3">
+                      {it.name}
+                      <span class="eyebrow text-[0.65rem]">{t('nav.soon')}</span>
+                    </li>
+                  ),
+                ),
+              )}
+            </ul>
+            <a href={tplHome} class="nav-all">
+              {t('nav.allTemplates')} <span aria-hidden="true">→</span>
+            </a>
+            <div class="mt-2 flex items-center justify-between border-t border-rule px-3 pt-4 pb-1 text-sm">
+              <a
+                href={switchHref}
+                hreflang={LOCALE_TAGS[otherLocale]}
+                class="underline underline-offset-4"
+              >
+                {t('nav.language')}
+              </a>
+              <a href={donateHref} class="font-semibold underline decoration-2 underline-offset-4">
+                {t('nav.donate')}
+              </a>
+            </div>
+          </div>
+        </details>
       </nav>
     </header>
+    <script>
+      // Dropdown navbar memakai <details>: hanya satu yang terbuka, tutup saat klik di luar atau Esc.
+      const menus = [...document.querySelectorAll<HTMLDetailsElement>('[data-nav-dd]')];
+      for (const d of menus) {
+        d.addEventListener('toggle', () => {
+          if (d.open) for (const other of menus) if (other !== d) other.open = false;
+        });
+        // Link ke bagian di halaman yang sama (#kategori) tidak memuat ulang halaman.
+        for (const a of d.querySelectorAll('a'))
+          a.addEventListener('click', () => (d.open = false));
+      }
+      document.addEventListener('click', (e) => {
+        for (const d of menus) if (d.open && !d.contains(e.target as Node)) d.open = false;
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const open = menus.find((d) => d.open);
+        if (open) {
+          open.open = false;
+          open.querySelector('summary')?.focus();
+        }
+      });
+    </script>
 
     <main id="main" class={`mx-auto w-full ${width} flex-1 px-4 pt-8 pb-16 sm:pt-12`}>
       <slot />
     </main>
 
     <footer class="border-t border-ink text-sm">
-      <div class={`mx-auto grid ${width} gap-8 px-4 py-10 sm:grid-cols-[1.4fr_1fr_1fr]`}>
+      <div
+        class={`mx-auto grid ${width} gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]`}
+      >
         <div class="space-y-3">
           <a href={homeHref} class="inline-block" aria-label={SITE.name}>
             <picture>
@@ -129,6 +313,18 @@ const privacyHref = locale === 'en' ? '/en/privacy' : '/kebijakan-privasi';
               <li>
                 <a href={`${homeHref}#${id}`} class="text-ink-2 hover:text-ink">
                   {CATEGORY_NAMES[id][locale]}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <nav aria-label={t('footer.templates')}>
+          <p class="eyebrow mb-3">{t('footer.templates')}</p>
+          <ul class="space-y-1.5">
+            {tplCats.map((c) => (
+              <li>
+                <a href={`${tplHome}#${c.id}`} class="text-ink-2 hover:text-ink">
+                  {c.name}
                 </a>
               </li>
             ))}

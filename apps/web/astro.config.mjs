@@ -24,6 +24,13 @@ function languagePairs() {
     const idSlug = /^idSlug: '(.+)'$/m.exec(fs.readFileSync(new URL(file, dir), 'utf8'))?.[1];
     if (idSlug) pairs.push([`/tools/${idSlug}`, `/en/tools/${file.replace(/\.md$/, '')}`]);
   }
+  // Template Excel: /template/<slug> <-> /en/templates/<slug>
+  pairs.push(['/template', '/en/templates']);
+  const tplDir = new URL('./src/content/templates/en/', import.meta.url);
+  for (const file of fs.readdirSync(tplDir)) {
+    const idSlug = /^idSlug: '(.+)'$/m.exec(fs.readFileSync(new URL(file, tplDir), 'utf8'))?.[1];
+    if (idSlug) pairs.push([`/template/${idSlug}`, `/en/templates/${file.replace(/\.md$/, '')}`]);
+  }
   const map = new Map();
   for (const [id, en] of pairs) {
     const links = [

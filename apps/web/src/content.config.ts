@@ -2,6 +2,7 @@ import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { CATEGORY_IDS } from './lib/categories';
+import { TEMPLATE_CATEGORY_IDS } from './lib/templates/catalog';
 
 /**
  * Konten SEO per tool, satu file Markdown per tool per bahasa:
@@ -40,4 +41,32 @@ const tools = defineCollection({
   }),
 });
 
-export const collections = { tools };
+/**
+ * Konten per template Excel: src/content/templates/<bahasa>/<slug>.md
+ * Isi file Excel-nya dibuat di browser oleh src/lib/templates/<template>.ts.
+ */
+const templates = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/templates' }),
+  schema: z.object({
+    name: z.string(),
+    title: z.string(),
+    description: z.string().max(170),
+    summary: z.string(),
+    category: z.enum(TEMPLATE_CATEGORY_IDS),
+    keywords: z.array(z.string()).default([]),
+    /** Sheet di dalam file, berurutan seperti tab di Excel. */
+    sheets: z.array(z.object({ name: z.string(), desc: z.string() })).min(2),
+    /** Fitur unggulan untuk daftar centang di halaman template. */
+    features: z.array(z.string()).min(3).max(8),
+    /** Gambar pratinjau: src/assets/templates/<slug Indonesia>/<bahasa>-<nama>.png */
+    previews: z.array(z.object({ file: z.string(), caption: z.string() })).default([]),
+    howTo: z.array(z.string()).length(3),
+    faq: z
+      .array(z.object({ q: z.string(), a: z.string() }))
+      .min(4)
+      .max(6),
+    idSlug: z.string().optional(),
+  }),
+});
+
+export const collections = { tools, templates };

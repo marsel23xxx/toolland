@@ -111,6 +111,27 @@
   --c-dark: var(--secang-dark);
   --c-light: var(--secang-light);
 }
+/* Kategori template Excel. */
+[data-cat='keuangan'] {
+  --c: var(--daun);
+  --c-dark: var(--daun-dark);
+  --c-light: var(--daun-light);
+}
+[data-cat='operasional'] {
+  --c: var(--nila);
+  --c-dark: var(--nila-dark);
+  --c-light: var(--nila-light);
+}
+[data-cat='sdm'] {
+  --c: var(--secang);
+  --c-dark: var(--secang-dark);
+  --c-light: var(--secang-light);
+}
+[data-cat='pribadi'] {
+  --c: var(--kunyit);
+  --c-dark: var(--kunyit-dark);
+  --c-light: var(--kunyit-light);
+}
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -236,6 +257,29 @@
   }
   .eyebrow {
     @apply font-mono text-xs text-ink-3;
+  }
+
+  /* Navbar: dropdown memakai <details>, panel kertas di bawah pita merah bata. */
+  .nav-trigger {
+    @apply flex cursor-pointer list-none items-center gap-1 rounded-md px-3 py-2 text-white select-none hover:bg-white/10 [&::-webkit-details-marker]:hidden;
+  }
+  .nav-dd[open] > .nav-trigger {
+    @apply bg-white/15;
+  }
+  .nav-dd[open] > .nav-trigger svg:last-child {
+    @apply rotate-180;
+  }
+  .nav-panel {
+    @apply absolute top-full left-0 z-40 mt-2 rounded-md border border-ink bg-paper-2 p-3 text-ink shadow-[0_12px_32px_-12px_rgb(27_24_20/0.35)];
+  }
+  .nav-dd:not([open]) > .nav-panel {
+    @apply hidden;
+  }
+  .nav-item {
+    @apply block rounded px-3 py-2 hover:bg-paper;
+  }
+  .nav-all {
+    @apply mt-2 flex items-center justify-between border-t border-rule px-3 pt-3 text-sm font-semibold hover:text-brand-700 dark:hover:text-brand-300;
   }
 
   /* Tab gaya editorial: garis bawah, bukan pil */

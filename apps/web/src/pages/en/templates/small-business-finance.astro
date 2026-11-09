@@ -1,0 +1,9 @@
+---
+import FinanceBuilder from '../../../components/templates/FinanceBuilder.vue';
+import TemplatePage from '../../../components/templates/TemplatePage.astro';
+import { messages } from '../../../i18n';
+---
+
+<TemplatePage slug="small-business-finance">
+  <FinanceBuilder client:load m={messages('en', 'financeBuilder')} />
+</TemplatePage>
