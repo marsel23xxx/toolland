@@ -17,34 +17,53 @@ function readXlsx(buf) {
 
 export const tests = [
   {
-    name: 'navbar: dropdown Template menuju halaman template',
+    name: 'navbar: dropdown per kategori dan Template',
     path: '/',
     async run(h) {
       const triggers = await h.page.$$('header ul details[data-nav-dd] > summary');
-      expect(triggers.length === 2, `jumlah dropdown ${triggers.length}`);
+      expect(triggers.length === 6, `jumlah dropdown ${triggers.length}`);
+      // Dropdown PDF berisi kartu tool lengkap dengan keterangan.
       await triggers[1].click();
-      const items = await h.page.$$eval('header ul details[open] .nav-panel a', (as) =>
-        as.map((a) => a.textContent.trim()),
+      const pdf = await h.page.$$eval('header ul details[open] .nav-tile', (as) =>
+        as.map((a) => a.getAttribute('href')),
       );
-      expect(items.includes('Keuangan UMKM'), items.join(', '));
-      expect(await h.bodyHas('Segera'), 'label segera hadir tidak tampil');
+      expect(pdf.length === 15 && pdf.includes('/tools/gabung-pdf'), pdf.join(', '));
+      // Panel tidak boleh keluar dari layar.
+      const right = await h.page.$eval('header details[open] .nav-panel', (p) =>
+        Math.round(p.getBoundingClientRect().right),
+      );
+      expect(right <= 1280, `panel melewati layar: ${right}`);
       // Membuka dropdown lain menutup yang pertama.
-      await triggers[0].click();
+      await triggers[5].click();
       const open = await h.page.$$eval('header details[open]', (d) => d.length);
       expect(open === 1, `dropdown terbuka: ${open}`);
+      const items = await h.page.$$eval('header ul details[open] .nav-tile', (as) =>
+        as.map((a) => a.textContent.replace(/\s+/g, ' ').trim()),
+      );
+      expect(items[0].startsWith('Keuangan UMKM'), items.join(' | '));
+      expect(items.filter((x) => x.includes('Segera')).length === 3, items.join(' | '));
       await h.page.keyboard.press('Escape');
       expect((await h.page.$$('header details[open]')).length === 0, 'Esc tidak menutup dropdown');
-      await triggers[1].click();
+      await triggers[5].click();
       await Promise.all([
         h.page.waitForNavigation(),
-        h.page.evaluate(() =>
-          [...document.querySelectorAll('header ul details[open] a')]
-            .find((a) => a.textContent.trim() === 'Keuangan UMKM')
-            .click(),
-        ),
+        h.page.click('header ul details[open] a.nav-tile[href$="/keuangan-umkm"]'),
       ]);
       const url = h.page.url();
       expect(url.endsWith('/template/keuangan-umkm'), url);
+    },
+  },
+  {
+    name: 'navbar HP: accordion kategori',
+    path: '/',
+    async run(h) {
+      await h.page.setViewport({ width: 390, height: 844 });
+      await h.page.click('header nav > details > summary');
+      await h.page.click('header details.nav-acc[data-cat=media] > summary');
+      const media = await h.page.$$eval('header details.nav-acc[open] .nav-tile', (as) =>
+        as.map((a) => a.getAttribute('href')),
+      );
+      expect(media.length === 3 && media.includes('/tools/kompres-video'), media.join(', '));
     },
   },
   {

@@ -1,0 +1,42 @@
+---
+/** Satu item di dropdown navbar: kotak ikon, nama, dan keterangan satu baris. */
+import ToolIcon from './ToolIcon.astro';
+
+interface Props {
+  name: string;
+  note: string;
+  icon: string;
+  /** Tanpa href = belum tersedia (tampil redup dengan label). */
+  href?: string;
+  soon?: string;
+  cat?: string;
+}
+
+const { name, note, icon, href, soon, cat } = Astro.props;
+const Tag = href ? 'a' : 'div';
+---
+
+<li data-cat={cat}>
+  <Tag
+    href={href}
+    class:list={['nav-tile group', !href && 'cursor-default opacity-60 hover:bg-transparent']}
+    aria-disabled={href ? undefined : 'true'}
+  >
+    <span class="nav-tile-icon">
+      <ToolIcon name={icon} class="size-5" />
+    </span>
+    <span class="min-w-0">
+      <span class="flex items-center gap-2 text-sm leading-5 font-semibold text-ink">
+        <span class="truncate group-hover:text-brand-700 dark:group-hover:text-brand-300">
+          {name}
+        </span>
+        {soon && (
+          <span class="shrink-0 rounded-sm border border-rule px-1 font-mono text-[0.6rem] font-normal tracking-wide text-ink-3 uppercase">
+            {soon}
+          </span>
+        )}
+      </span>
+      <span class="mt-0.5 line-clamp-1 text-xs leading-4 font-normal text-ink-3">{note}</span>
+    </span>
+  </Tag>
+</li>

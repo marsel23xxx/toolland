@@ -462,8 +462,6 @@
   "subdomain.error.offline": "Tidak bisa terhubung ke sumber data. Periksa koneksi internet, atau matikan pemblokir iklan untuk halaman ini.",
   "nav.tools": "Tools",
   "nav.templates": "Template",
-  "nav.allTools": "Semua tools",
-  "nav.allTemplates": "Semua template",
   "nav.menu": "Menu",
   "nav.soon": "Segera",
   "footer.templates": "Template Excel",
@@ -508,5 +506,8 @@
   "financeBuilder.download": "Unduh template Excel",
   "financeBuilder.building": "Membuat file…",
   "financeBuilder.done": "{file} sudah diunduh.",
-  "financeBuilder.error": "Gagal membuat file. Coba lagi."
+  "financeBuilder.error": "Gagal membuat file. Coba lagi.",
+  "nav.toolCount": "{n} tools",
+  "nav.seeAll": "Lihat semua",
+  "nav.templatesHead": "Template Excel gratis"
 }

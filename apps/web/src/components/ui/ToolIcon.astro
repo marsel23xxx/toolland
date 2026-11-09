@@ -1,0 +1,109 @@
+---
+/**
+ * Ikon untuk tool (kunci = slug Indonesia), kategori tools ("cat:<id>"), dan template
+ * ("tpl:<kategori>").
+ * Dipakai di dropdown navbar. Kunci yang tidak dikenal memakai ikon kunci pas.
+ */
+import IconBinary from '~icons/lucide/binary';
+import IconBraces from '~icons/lucide/braces';
+import IconCaseSensitive from '~icons/lucide/case-sensitive';
+import IconChart from '~icons/lucide/chart-no-axes-combined';
+import IconClapperboard from '~icons/lucide/clapperboard';
+import IconEraser from '~icons/lucide/eraser';
+import IconFileArchive from '~icons/lucide/file-archive';
+import IconFileImage from '~icons/lucide/file-image';
+import IconFilePen from '~icons/lucide/file-pen-line';
+import IconFileSpreadsheet from '~icons/lucide/file-spreadsheet';
+import IconFileText from '~icons/lucide/file-text';
+import IconFileType from '~icons/lucide/file-type';
+import IconFilm from '~icons/lucide/film';
+import IconFingerprint from '~icons/lucide/fingerprint';
+import IconGitCompare from '~icons/lucide/git-compare';
+import IconGlobe from '~icons/lucide/globe';
+import IconImage from '~icons/lucide/image';
+import IconImageDown from '~icons/lucide/image-down';
+import IconListOrdered from '~icons/lucide/list-ordered';
+import IconMerge from '~icons/lucide/merge';
+import IconMusic from '~icons/lucide/music';
+import IconNetwork from '~icons/lucide/network';
+import IconPackage from '~icons/lucide/package';
+import IconPiggyBank from '~icons/lucide/piggy-bank';
+import IconPresentation from '~icons/lucide/presentation';
+import IconQr from '~icons/lucide/qr-code';
+import IconScissors from '~icons/lucide/scissors';
+import IconSheet from '~icons/lucide/sheet';
+import IconShrink from '~icons/lucide/shrink';
+import IconSignature from '~icons/lucide/signature';
+import IconSmartphone from '~icons/lucide/smartphone';
+import IconStamp from '~icons/lucide/stamp';
+import IconText from '~icons/lucide/text';
+import IconUsers from '~icons/lucide/users';
+import IconWrench from '~icons/lucide/wrench';
+
+interface Props {
+  name: string;
+  class?: string;
+}
+
+const ICONS: Record<string, typeof IconImage> = {
+  // Gambar
+  'avif-ke-jpg': IconFileImage,
+  'heic-ke-jpg': IconSmartphone,
+  'jpg-ke-avif': IconFileImage,
+  'jpg-ke-webp': IconFileImage,
+  'png-ke-jpg': IconFileImage,
+  'png-ke-webp': IconFileImage,
+  'webp-ke-jpg': IconFileImage,
+  'webp-ke-png': IconFileImage,
+  'hapus-background': IconEraser,
+  'kompres-gambar': IconImageDown,
+  // PDF
+  'buat-tanda-tangan': IconSignature,
+  'edit-pdf': IconFilePen,
+  'excel-ke-pdf': IconFileSpreadsheet,
+  'gabung-pdf': IconMerge,
+  'jpg-ke-pdf': IconImage,
+  'kompres-pdf': IconFileArchive,
+  'kompres-pdf-maksimal': IconShrink,
+  'nomor-halaman-pdf': IconListOrdered,
+  'odt-ke-docx': IconFileType,
+  'pdf-ke-jpg': IconImage,
+  'pdf-ke-word': IconFileType,
+  'pisah-pdf': IconScissors,
+  'ppt-ke-pdf': IconPresentation,
+  'watermark-pdf': IconStamp,
+  'word-ke-pdf': IconFileText,
+  // Teks
+  'bandingkan-teks': IconGitCompare,
+  'hitung-kata': IconText,
+  'ubah-huruf': IconCaseSensitive,
+  // Developer
+  'base64-encode-decode': IconBinary,
+  'buat-qr-code': IconQr,
+  'cari-subdomain': IconNetwork,
+  'cek-whois': IconGlobe,
+  'hash-md5-sha': IconFingerprint,
+  'json-formatter': IconBraces,
+  'json-ke-csv': IconSheet,
+  // Media
+  'ekstrak-audio': IconMusic,
+  'kompres-video': IconFilm,
+  'video-ke-gif': IconClapperboard,
+  // Kategori tools
+  'cat:gambar': IconImage,
+  'cat:pdf': IconFileText,
+  'cat:teks': IconText,
+  'cat:developer': IconBraces,
+  'cat:media': IconFilm,
+  // Template per kategori
+  'tpl:keuangan': IconChart,
+  'tpl:operasional': IconPackage,
+  'tpl:sdm': IconUsers,
+  'tpl:pribadi': IconPiggyBank,
+};
+
+const { name, class: cls } = Astro.props;
+const Icon = ICONS[name] ?? IconWrench;
+---
+
+<Icon class={cls} aria-hidden="true" />

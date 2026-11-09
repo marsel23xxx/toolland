@@ -462,8 +462,6 @@
   "subdomain.error.offline": "Could not reach the data source. Check your internet connection, or turn off your ad blocker for this page.",
   "nav.tools": "Tools",
   "nav.templates": "Templates",
-  "nav.allTools": "All tools",
-  "nav.allTemplates": "All templates",
   "nav.menu": "Menu",
   "nav.soon": "Soon",
   "footer.templates": "Excel templates",
@@ -508,5 +506,8 @@
   "financeBuilder.download": "Download Excel template",
   "financeBuilder.building": "Building file…",
   "financeBuilder.done": "{file} has been downloaded.",
-  "financeBuilder.error": "Could not build the file. Please try again."
+  "financeBuilder.error": "Could not build the file. Please try again.",
+  "nav.toolCount": "{n} tools",
+  "nav.seeAll": "See all",
+  "nav.templatesHead": "Free Excel templates"
 }
