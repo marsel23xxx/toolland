@@ -19,7 +19,9 @@ import {
   clipStarts,
   mediaOf,
   musicSpan,
+  overlayEnd,
   totalDuration,
+  type Overlay,
 } from '../../../../lib/editor/project';
 import {
   SNAP_PX,
@@ -44,6 +46,7 @@ const props = defineProps<{
   playing: boolean;
   selectedClip: string;
   selectedText: string;
+  selectedOverlay: string;
   frames: Map<string, Frame[]>;
   peaks: Map<string, Float32Array>;
   thumbs: Map<string, string>;
@@ -55,6 +58,9 @@ const emit = defineEmits<{
   seek: [t: number];
   selectClip: [id: string];
   selectText: [id: string];
+  selectOverlay: [id: string];
+  updateOverlay: [id: string, patch: Partial<Overlay>];
+  insertOverlay: [mediaId: string, start: number];
   selectMusic: [];
   move: [from: number, to: number];
   trimClip: [index: number, clip: Clip];
@@ -113,6 +119,20 @@ type Drag =
       origLen: number;
       startT: number;
       applied: number;
+      targets: number[];
+    }
+  | {
+      kind: 'overlay';
+      id: string;
+      mode: 'move' | 'start' | 'end';
+      start: number;
+      inn: number;
+      out: number;
+      /** Durasi sumber video (Infinity untuk foto/stiker/bentuk). */
+      max: number;
+      startT: number;
+      startX: number;
+      moved: boolean;
       targets: number[];
     }
   | {
@@ -218,6 +238,26 @@ function startText(e: PointerEvent, id: string, mode: 'move' | 'start' | 'end') 
   });
 }
 
+function startOverlay(e: PointerEvent, id: string, mode: 'move' | 'start' | 'end') {
+  const o = props.project.overlays.find((x) => x.id === id);
+  if (!o) return;
+  emit('selectOverlay', id);
+  const m = o.kind === 'media' ? mediaOf(props.project, o.mediaId) : undefined;
+  begin(e, {
+    kind: 'overlay',
+    id,
+    mode,
+    start: o.start,
+    inn: o.in,
+    out: o.out,
+    max: m?.kind === 'video' ? m.duration : Infinity,
+    startT: timeAt(e.clientX),
+    startX: e.clientX,
+    moved: false,
+    targets: snapTargets(props.project, { playhead: props.time, excludeText: id }),
+  });
+}
+
 function startMusic(e: PointerEvent, mode: 'slip' | 'start' | 'end') {
   const m = props.project.music;
   if (!m) return;
@@ -262,6 +302,43 @@ function onMove(e: PointerEvent) {
     }
     d.applied = d.edge === 'in' ? d.origLen - clipLength(next) : 0;
     emit('trimClip', d.index, next);
+  } else if (d.kind === 'overlay') {
+    if (!d.moved && Math.abs(e.clientX - d.startX) < 3) return;
+    d.moved = true;
+    const dt = t - d.startT;
+    const len = d.out - d.inn;
+    const end = d.start + len;
+    const video = Number.isFinite(d.max);
+    const r3 = (v: number) => Math.round(v * 1000) / 1000;
+    if (d.mode === 'move') {
+      const s1 = snap(d.start + dt, d.targets, SNAP_PX / pps.value);
+      const s2 = snap(end + dt, d.targets, SNAP_PX / pps.value);
+      let start = d.start + dt;
+      if (snapOn.value && !e.altKey && (s1.hit !== null || s2.hit !== null)) {
+        const use1 =
+          s1.hit !== null &&
+          (s2.hit === null || Math.abs(s1.hit - start) <= Math.abs(s2.hit - (start + len)));
+        start = use1 ? s1.value : s2.value - len;
+        snapLine.value = use1 ? s1.hit : s2.hit;
+      } else snapLine.value = null;
+      emit('updateOverlay', d.id, { start: r3(Math.max(0, start)) });
+    } else if (d.mode === 'start') {
+      // Awal dipotong: video menggeser titik masuk sumber, lainnya memendekkan durasi.
+      const lo = video ? d.start - d.inn : 0;
+      const ns = Math.max(lo, Math.min(end - 0.2, snapTo(d.start + dt, d.targets, e)));
+      const delta = ns - d.start;
+      emit(
+        'updateOverlay',
+        d.id,
+        video
+          ? { start: r3(ns), in: r3(d.inn + delta) }
+          : { start: r3(ns), out: r3(d.out - delta) },
+      );
+    } else {
+      const hi = video ? d.start + (d.max - d.inn) : Infinity;
+      const ne = Math.max(d.start + 0.2, Math.min(hi, snapTo(end + dt, d.targets, e)));
+      emit('updateOverlay', d.id, { out: r3(d.inn + (ne - d.start)) });
+    }
   } else if (d.kind === 'text') {
     if (!d.moved && Math.abs(e.clientX - d.startX) < 3) return;
     d.moved = true;
@@ -333,6 +410,8 @@ function onUp(e: PointerEvent) {
     }
   } else if (d.kind === 'text' && !d.moved) {
     emit('seek', Math.max(d.start, Math.min(d.end - 0.01, t)));
+  } else if (d.kind === 'overlay' && !d.moved) {
+    emit('seek', Math.max(d.start, Math.min(d.start + d.out - d.inn - 0.01, t)));
   }
 }
 
@@ -374,6 +453,13 @@ function onDragOver(e: DragEvent) {
 }
 function onDrop(e: DragEvent) {
   const id = e.dataTransfer?.getData(MEDIA_TYPE);
+  // Dijatuhkan di jalur overlay: jadi overlay mulai di posisi kursor.
+  if (id && (e.target as HTMLElement).closest('[data-track="overlays"]')) {
+    galleryDrop.value = null;
+    e.preventDefault();
+    emit('insertOverlay', id, Math.min(total.value, timeAt(e.clientX)));
+    return;
+  }
   const index = galleryDrop.value ?? insertIndexAt(timeAt(e.clientX));
   galleryDrop.value = null;
   if (!id) return;
@@ -429,6 +515,14 @@ const visuals = computed(() => {
 });
 
 const lanes = computed(() => textLanes(props.project.texts));
+const ovLanes = computed(() =>
+  textLanes(props.project.overlays.map((o) => ({ id: o.id, start: o.start, end: overlayEnd(o) }))),
+);
+function overlayLabel(o: Overlay): string {
+  if (o.kind === 'emoji') return o.char;
+  if (o.kind === 'shape') return props.t[`shape.${o.shape}`];
+  return mediaOf(props.project, o.mediaId)?.name ?? '';
+}
 const LANE_H = 22;
 
 const musicWave = computed(() => {
@@ -592,6 +686,54 @@ const musicMedia = computed(() =>
           >
             {{ tickLabel(tk) }}
           </span>
+        </div>
+
+        <!-- Jalur overlay (di atas video utama) -->
+        <div
+          class="relative mt-0.5"
+          :style="{ height: `${ovLanes.count * LANE_H + 2}px` }"
+          data-track="overlays"
+          @pointerdown.self="startScrub"
+        >
+          <span
+            v-if="!project.overlays.length"
+            class="pointer-events-none absolute inset-y-0 left-1 flex items-center text-[10px] text-ink-3"
+          >
+            {{ t.overlayTrackHint }}
+          </span>
+          <div
+            v-for="o in project.overlays"
+            :key="o.id"
+            role="button"
+            tabindex="0"
+            class="group absolute flex cursor-grab items-center overflow-hidden rounded border text-[10px]"
+            :class="
+              o.id === selectedOverlay
+                ? 'z-10 border-kunyit bg-kunyit text-ink'
+                : 'border-kunyit/50 bg-kunyit/20 text-ink-2'
+            "
+            :style="{
+              left: `${px(o.start)}px`,
+              width: `${Math.max(8, px(overlayEnd(o) - o.start))}px`,
+              top: `${(ovLanes.lane.get(o.id) ?? 0) * LANE_H}px`,
+              height: `${LANE_H - 3}px`,
+            }"
+            :data-overlay-bar="o.id"
+            @pointerdown.stop="startOverlay($event, o.id, 'move')"
+            @keydown.enter.prevent="(emit('selectOverlay', o.id), emit('seek', o.start))"
+          >
+            <span class="pointer-events-none truncate px-2">⧉ {{ overlayLabel(o) }}</span>
+            <span
+              class="absolute inset-y-0 left-0 w-2 cursor-ew-resize group-hover:bg-kunyit"
+              data-overlay-edge="start"
+              @pointerdown.stop="startOverlay($event, o.id, 'start')"
+            ></span>
+            <span
+              class="absolute inset-y-0 right-0 w-2 cursor-ew-resize group-hover:bg-kunyit"
+              data-overlay-edge="end"
+              @pointerdown.stop="startOverlay($event, o.id, 'end')"
+            ></span>
+          </div>
         </div>
 
         <!-- Jalur klip -->

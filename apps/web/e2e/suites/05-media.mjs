@@ -252,6 +252,61 @@ export const tests = [
     },
   },
   {
+    name: 'edit video: overlay (stiker, geser/ubah ukuran di pratinjau, video PiP) sampai ekspor',
+    path: '/tools/edit-video',
+    async run(h) {
+      const { page } = h;
+      await ready(h);
+      await h.upload('foto.jpg', 'klip.mp4');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 2, {
+        timeout: 30000,
+      });
+      // Stiker emoji muncul di jalur overlay dan pratinjau.
+      await page.click('[data-tab="overlay"]');
+      await page.click('[data-emoji="⭐"]');
+      await page.waitForSelector('[data-overlay-bar]');
+      const sticker = await page.waitForSelector('[data-stage] [data-overlay]');
+      // Geser stiker ke kiri atas, lalu perbesar lewat titik sudut.
+      const b = await sticker.boundingBox();
+      const stage = await (await page.$('[data-stage]')).boundingBox();
+      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(stage.x + stage.width * 0.2, stage.y + stage.height * 0.3, {
+        steps: 8,
+      });
+      await page.mouse.up();
+      const x = Number(await h.value('[data-overlay-slider="x"]'));
+      expect(x > 0.15 && x < 0.25, `posisi x ${x}`);
+      const handle = await (await page.$('[data-overlay-resize]')).boundingBox();
+      await page.mouse.move(handle.x + 6, handle.y + 6);
+      await page.mouse.down();
+      await page.mouse.move(handle.x + 66, handle.y + 6, { steps: 6 });
+      await page.mouse.up();
+      const w = Number(await h.value('[data-overlay-slider="w"]'));
+      expect(w > 0.2, `ukuran ${w}`);
+      // Video jadi overlay PiP dari galeri.
+      await page.click('[data-tab="media"]');
+      const vid = await page.$$eval('[data-as-overlay]', (els) =>
+        els.map((e) => e.dataset.asOverlay),
+      );
+      await page.click(`[data-as-overlay="${vid[1]}"]`);
+      await page.waitForFunction(
+        () => document.querySelectorAll('[data-overlay-bar]').length === 2,
+      );
+      await page.click('[data-layer-down]');
+      await page.click('[data-export]');
+      const [c] = await h.results(1, 180000);
+      const mp4 = await h.download('proyek-video.mp4');
+      expect(mp4.subarray(4, 8).toString('latin1') === 'ftyp', 'bukan MP4');
+      await page.click('[data-save]');
+      const light = await h.downloadVia('proyek-video.ayu', () => page.click('[data-save-light]'));
+      const doc = JSON.parse(light.toString('utf8'));
+      const kinds = doc.project.overlays.map((o) => o.kind).join(',');
+      expect(doc.version >= 5 && kinds === 'media,emoji', `versi ${doc.version}, urutan ${kinds}`);
+      return [c];
+    },
+  },
+  {
     name: 'edit video: panel teks (gaya, font, animasi) dan galeri seret ke timeline',
     path: '/tools/edit-video',
     async run(h) {

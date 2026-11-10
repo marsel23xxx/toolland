@@ -17,6 +17,8 @@ import {
   type KenBurns,
   type MediaItem,
   type MediaKind,
+  type Overlay,
+  type ShapeKind,
   type Project,
   type Quality,
   type Rotate,
@@ -24,7 +26,9 @@ import {
   type TextLayer,
   FPS,
   MAX_CLIPS,
+  MAX_OVERLAYS,
   MUSIC_DEFAULTS,
+  OVERLAY_DEFAULTS,
   TEXT_DEFAULTS,
   MAX_TEXTS,
   clampClip,
@@ -73,7 +77,8 @@ const time = ref(0);
 const playing = ref(false);
 const selectedClip = ref('');
 const selectedText = ref('');
-const tab = ref<'media' | 'clip' | 'text' | 'music'>('media');
+const tab = ref<'media' | 'clip' | 'overlay' | 'text' | 'music'>('media');
+const selectedOverlay = ref('');
 const error = ref('');
 const notice = ref('');
 const busy = ref('');
@@ -102,6 +107,10 @@ const clipMedia = computed(() =>
   clip.value ? mediaOf(project.value, clip.value.mediaId) : undefined,
 );
 const text = computed(() => project.value.texts.find((x) => x.id === selectedText.value));
+const overlay = computed(() => project.value.overlays.find((x) => x.id === selectedOverlay.value));
+const overlayMedia = computed(() =>
+  overlay.value?.kind === 'media' ? mediaOf(project.value, overlay.value.mediaId) : undefined,
+);
 const empty = computed(() => !project.value.media.length);
 
 const num = (e: Event) => Number((e.target as HTMLInputElement).value) || 0;
@@ -283,6 +292,7 @@ function useAsMusic(m: MediaItem) {
 function removeMedia(m: MediaItem) {
   const p = project.value;
   p.clips = p.clips.filter((c) => c.mediaId !== m.id);
+  p.overlays = p.overlays.filter((o) => o.mediaId !== m.id);
   if (p.music?.mediaId === m.id) p.music = null;
   p.media = p.media.filter((x) => x.id !== m.id);
   // File tetap disimpan di memori sesi agar penghapusan bisa dibatalkan (undo).
@@ -394,6 +404,113 @@ function removeText() {
   selectedText.value = project.value.texts[0]?.id ?? '';
 }
 
+// ---------- Overlay ----------
+
+const EMOJIS = ['😀', '😂', '😍', '🥳', '😎', '🤩', '😮', '😢', '👍', '👏', '🙌', '🔥', '✨', '⭐', '❤️', '💯', '🎉', '🎂', '🎁', '📍', '✅', '❌', '⚠️', '👉', '👆', '💡', '📢', '🎵', '☕', '🌴', '☀️', '🌙']; // prettier-ignore
+const SHAPES: ShapeKind[] = ['rect', 'round', 'circle'];
+
+/** Waktu mulai overlay baru: posisi playhead (atau awal bila playhead di ujung). */
+function overlayStart(at?: number): number {
+  const t = at ?? time.value;
+  return Math.round((t >= total.value - 0.5 ? 0 : t) * 1000) / 1000;
+}
+function pushOverlay(o: Overlay) {
+  if (project.value.overlays.length >= MAX_OVERLAYS) {
+    notice.value = fill(props.t.maxOverlays, { n: MAX_OVERLAYS });
+    return;
+  }
+  project.value.overlays.push(o);
+  selectedOverlay.value = o.id;
+  tab.value = 'overlay';
+}
+function addOverlayMedia(mediaId: string, at?: number) {
+  const m = mediaOf(project.value, mediaId);
+  if (!m || m.kind === 'audio') return;
+  const start = overlayStart(at);
+  const room = Math.max(1, total.value - start);
+  pushOverlay({
+    ...OVERLAY_DEFAULTS,
+    id: uid('o'),
+    kind: 'media',
+    mediaId,
+    start,
+    in: 0,
+    out:
+      Math.round((m.kind === 'video' ? Math.min(m.duration, room) : Math.min(3, room)) * 1000) /
+      1000,
+    w: m.kind === 'video' ? 0.35 : 0.3,
+    ratio: m.width && m.height ? m.height / m.width : 9 / 16,
+  });
+}
+function addEmoji(char: string) {
+  const start = overlayStart();
+  pushOverlay({
+    ...OVERLAY_DEFAULTS,
+    id: uid('o'),
+    kind: 'emoji',
+    char,
+    start,
+    in: 0,
+    out: Math.min(3, Math.max(1, total.value - start)),
+    x: 0.5,
+    y: 0.45,
+    w: 0.15,
+    ratio: 1,
+  });
+}
+function addShape(shape: ShapeKind) {
+  const start = overlayStart();
+  pushOverlay({
+    ...OVERLAY_DEFAULTS,
+    id: uid('o'),
+    kind: 'shape',
+    shape,
+    start,
+    in: 0,
+    out: Math.min(3, Math.max(1, total.value - start)),
+    x: 0.5,
+    y: 0.5,
+    w: shape === 'circle' ? 0.2 : 0.4,
+    ratio: shape === 'circle' ? 1 : 0.4,
+    opacity: 0.85,
+  });
+}
+function updateOverlay(id: string, patch: Partial<Overlay>) {
+  const i = project.value.overlays.findIndex((x) => x.id === id);
+  if (i >= 0) project.value.overlays[i] = { ...project.value.overlays[i], ...patch };
+}
+/** Atur durasi overlay dari isian angka (video dibatasi panjang sumber). */
+function setOverlayDuration(d: number) {
+  const o = overlay.value;
+  if (!o) return;
+  const max = overlayMedia.value?.kind === 'video' ? overlayMedia.value.duration - o.in : 3600;
+  o.out = Math.round((o.in + Math.max(0.2, Math.min(max, d))) * 1000) / 1000;
+}
+function removeOverlay() {
+  const o = overlay.value;
+  if (!o) return;
+  const i = project.value.overlays.indexOf(o);
+  project.value.overlays.splice(i, 1);
+  selectedOverlay.value =
+    project.value.overlays[Math.min(i, project.value.overlays.length - 1)]?.id ?? '';
+}
+function duplicateOverlay() {
+  const o = overlay.value;
+  if (!o) return;
+  pushOverlay({ ...o, id: uid('o'), x: Math.min(1, o.x + 0.05), y: Math.min(1, o.y + 0.05) });
+}
+/** Ubah urutan lapisan: +1 = ke depan, -1 = ke belakang. */
+function layer(d: number) {
+  const o = overlay.value;
+  if (!o) return;
+  const list = project.value.overlays;
+  const i = list.indexOf(o);
+  const j = Math.max(0, Math.min(list.length - 1, i + d));
+  if (i === j) return;
+  list.splice(i, 1);
+  list.splice(j, 0, o);
+}
+
 // ---------- Simpan / buka .ayu ----------
 
 const fileBase = computed(
@@ -455,6 +572,7 @@ async function openProject(f: File) {
     time.value = 0;
     selectedClip.value = project.value.clips[0]?.id ?? '';
     selectedText.value = project.value.texts[0]?.id ?? '';
+    selectedOverlay.value = project.value.overlays[0]?.id ?? '';
     tab.value = 'media';
     notice.value = missing.value.size
       ? fill(props.t.relinkNeeded, { n: missing.value.size })
@@ -498,6 +616,7 @@ function reset() {
   time.value = 0;
   selectedClip.value = '';
   selectedText.value = '';
+  selectedOverlay.value = '';
   error.value = '';
   notice.value = '';
   tab.value = 'media';
@@ -601,6 +720,7 @@ function onKey(e: KeyboardEvent) {
   } else if (e.key === 's' || e.key === 'S') split();
   else if (e.key === 'Delete') {
     if (tab.value === 'text') removeText();
+    else if (tab.value === 'overlay') removeOverlay();
     else removeClip();
   }
 }
@@ -714,6 +834,8 @@ function restore(json: string) {
   const p = project.value;
   if (!p.clips.some((c) => c.id === selectedClip.value)) selectedClip.value = p.clips[0]?.id ?? '';
   if (!p.texts.some((x) => x.id === selectedText.value)) selectedText.value = p.texts[0]?.id ?? '';
+  if (!p.overlays.some((x) => x.id === selectedOverlay.value))
+    selectedOverlay.value = p.overlays[0]?.id ?? '';
 }
 function undo() {
   commitHistory();
@@ -805,6 +927,20 @@ onBeforeUnmount(() => {
   forgetAll();
 });
 
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+const overlaySliders = computed(() => [
+  { id: 'x' as const, label: props.t.posX, min: 0, max: 1, step: 0.01, show: pct },
+  { id: 'y' as const, label: props.t.posY, min: 0, max: 1, step: 0.01, show: pct },
+  { id: 'w' as const, label: props.t.overlaySize, min: 0.03, max: 1.5, step: 0.01, show: pct },
+  {
+    id: 'rotate' as const,
+    label: props.t.rotation,
+    min: -180,
+    max: 180,
+    step: 1,
+    show: (v: number) => `${v}°`,
+  },
+]);
 const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 const anims: TextAnim[] = ['none', 'fade', 'up', 'left'];
 const aligns = computed(() => [
@@ -903,6 +1039,7 @@ const qualities: Quality[] = ['480', '720', '1080'];
 const tabs = computed(() => [
   { id: 'media' as const, label: props.t['tab.media'] },
   { id: 'clip' as const, label: props.t['tab.clip'] },
+  { id: 'overlay' as const, label: props.t['tab.overlay'] },
   { id: 'text' as const, label: props.t['tab.text'] },
   { id: 'music' as const, label: props.t['tab.music'] },
 ]);
@@ -1092,7 +1229,11 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
             :empty="t.stageEmpty"
             :max-vh="full ? 50 : 60"
             :drag-text="dragText"
+            :selected-overlay="selectedOverlay"
+            :overlay-editable="tab === 'overlay'"
             :voiced="voiced"
+            @select-overlay="(id) => (selectedOverlay = id)"
+            @update-overlay="updateOverlay"
             @move-text="moveText"
           />
           <div class="flex flex-wrap items-center gap-2">
@@ -1233,6 +1374,17 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                         @click="x.kind === 'audio' ? useAsMusic(x) : addToTimeline(x)"
                       >
                         {{ x.kind === 'audio' ? '♪' : '+' }}
+                      </button>
+                      <button
+                        v-if="x.kind !== 'audio'"
+                        type="button"
+                        class="rounded px-1.5 py-0.5 text-xs font-semibold text-brand-700 hover:bg-paper dark:text-brand-300"
+                        :title="t.asOverlay"
+                        :aria-label="`${t.asOverlay}: ${x.name}`"
+                        :data-as-overlay="x.id"
+                        @click="addOverlayMedia(x.id)"
+                      >
+                        ⧉
                       </button>
                       <button
                         type="button"
@@ -1661,6 +1813,212 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
               </template>
             </template>
 
+            <!-- Overlay -->
+            <template v-else-if="tab === 'overlay'">
+              <EditorSection :title="t['section.addOverlay']">
+                <p class="text-xs text-ink-3">{{ t.overlayHint }}</p>
+                <div>
+                  <span class="label">{{ t.emoji }}</span>
+                  <div class="grid grid-cols-8 gap-0.5" role="group" :aria-label="t.emoji">
+                    <button
+                      v-for="em in EMOJIS"
+                      :key="em"
+                      type="button"
+                      class="rounded py-0.5 text-lg hover:bg-paper-2"
+                      :data-emoji="em"
+                      @click="addEmoji(em)"
+                    >
+                      {{ em }}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <span class="label">{{ t.shapes }}</span>
+                  <div class="grid grid-cols-3 gap-1">
+                    <button
+                      v-for="sh in SHAPES"
+                      :key="sh"
+                      type="button"
+                      class="btn btn-secondary text-xs"
+                      :data-shape="sh"
+                      @click="addShape(sh)"
+                    >
+                      {{ t[`shape.${sh}`] }}
+                    </button>
+                  </div>
+                </div>
+              </EditorSection>
+              <div v-if="project.overlays.length > 1" class="flex flex-wrap gap-1">
+                <button
+                  v-for="(x, i) in project.overlays"
+                  :key="x.id"
+                  type="button"
+                  class="rounded border px-2 py-0.5 text-xs"
+                  :class="
+                    x.id === selectedOverlay ? 'border-kunyit bg-kunyit text-ink' : 'border-rule'
+                  "
+                  @click="selectedOverlay = x.id"
+                >
+                  {{ i + 1 }}
+                </button>
+              </div>
+              <p v-if="!overlay" class="text-ink-3">{{ t.noOverlay }}</p>
+              <template v-else>
+                <p class="rounded bg-kunyit/15 px-2 py-1.5 text-xs text-ink-2">
+                  {{ t.overlayDragHint }}
+                </p>
+                <EditorSection :title="t['section.placement']">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label for="ed-os" class="label">{{ t.textStart }}</label>
+                      <input
+                        id="ed-os"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        class="field"
+                        :value="r1(overlay.start)"
+                        @change="overlay.start = Math.max(0, num($event))"
+                      />
+                    </div>
+                    <div>
+                      <label for="ed-od" class="label">{{ t.overlayDuration }}</label>
+                      <input
+                        id="ed-od"
+                        type="number"
+                        min="0.2"
+                        step="0.1"
+                        class="field"
+                        :value="r1(overlay.out - overlay.in)"
+                        @change="setOverlayDuration(num($event))"
+                      />
+                    </div>
+                  </div>
+                  <div v-for="k in overlaySliders" :key="k.id">
+                    <label :for="`ed-o${k.id}`" class="label"
+                      >{{ k.label }} · {{ k.show(overlay[k.id]) }}</label
+                    >
+                    <input
+                      :id="`ed-o${k.id}`"
+                      v-model.number="overlay[k.id]"
+                      type="range"
+                      :min="k.min"
+                      :max="k.max"
+                      :step="k.step"
+                      class="w-full accent-brand-600"
+                      :data-overlay-slider="k.id"
+                    />
+                  </div>
+                  <div v-if="overlay.kind === 'shape'" class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label for="ed-ofill" class="label">{{ t.color }}</label>
+                      <input id="ed-ofill" v-model="overlay.fill" type="color" class="h-9 w-full" />
+                    </div>
+                    <div>
+                      <label for="ed-oratio" class="label">{{ t.shapeHeight }}</label>
+                      <input
+                        id="ed-oratio"
+                        v-model.number="overlay.ratio"
+                        type="range"
+                        min="0.1"
+                        max="3"
+                        step="0.05"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                  </div>
+                </EditorSection>
+                <EditorSection :title="t['section.overlayLook']">
+                  <div>
+                    <label for="ed-oop" class="label"
+                      >{{ t.boxOpacity }} · {{ Math.round(overlay.opacity * 100) }}%</label
+                    >
+                    <input
+                      id="ed-oop"
+                      v-model.number="overlay.opacity"
+                      type="range"
+                      min="0.1"
+                      max="1"
+                      step="0.05"
+                      class="w-full accent-brand-600"
+                    />
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label for="ed-ofi" class="label"
+                        >{{ t.fadeIn }} · {{ overlay.fadeIn.toFixed(1) }} s</label
+                      >
+                      <input
+                        id="ed-ofi"
+                        v-model.number="overlay.fadeIn"
+                        type="range"
+                        min="0"
+                        max="3"
+                        step="0.1"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                    <div>
+                      <label for="ed-ofo" class="label"
+                        >{{ t.fadeOut }} · {{ overlay.fadeOut.toFixed(1) }} s</label
+                      >
+                      <input
+                        id="ed-ofo"
+                        v-model.number="overlay.fadeOut"
+                        type="range"
+                        min="0"
+                        max="3"
+                        step="0.1"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                  </div>
+                  <div v-if="overlayMedia?.kind === 'video'">
+                    <label for="ed-ovol" class="label"
+                      >{{ t.volume }} · {{ Math.round(overlay.volume * 100) }}%</label
+                    >
+                    <input
+                      id="ed-ovol"
+                      v-model.number="overlay.volume"
+                      type="range"
+                      min="0"
+                      max="2"
+                      step="0.05"
+                      class="w-full accent-brand-600"
+                    />
+                  </div>
+                </EditorSection>
+                <div class="grid grid-cols-2 gap-2 border-t border-rule pt-3">
+                  <button
+                    type="button"
+                    class="btn btn-secondary text-xs"
+                    data-layer-down
+                    @click="layer(-1)"
+                  >
+                    {{ t.layerBack }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secondary text-xs"
+                    data-layer-up
+                    @click="layer(1)"
+                  >
+                    {{ t.layerFront }}
+                  </button>
+                  <button type="button" class="btn btn-secondary text-xs" @click="duplicateOverlay">
+                    {{ t.duplicate }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secondary text-xs text-secang"
+                    @click="removeOverlay"
+                  >
+                    {{ t.removeOverlay }}
+                  </button>
+                </div>
+              </template>
+            </template>
+
             <!-- Teks -->
             <template v-else-if="tab === 'text'">
               <button
@@ -2020,6 +2378,7 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
         :playing="playing"
         :selected-clip="selectedClip"
         :selected-text="selectedText"
+        :selected-overlay="selectedOverlay"
         :frames="previews.frames.value"
         :peaks="previews.peaks.value"
         :thumbs="thumbs"
@@ -2029,6 +2388,9 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
         @seek="(s) => ((playing = false), (time = s))"
         @select-clip="select"
         @select-text="(id) => ((selectedText = id), (tab = 'text'))"
+        @select-overlay="(id) => ((selectedOverlay = id), (tab = 'overlay'))"
+        @update-overlay="updateOverlay"
+        @insert-overlay="(id, at) => addOverlayMedia(id, at)"
         @select-music="tab = 'music'"
         @move="(a, b) => (project = moveClip(project, a, b))"
         @trim-clip="onTrimClip"

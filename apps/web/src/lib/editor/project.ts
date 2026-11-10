@@ -245,11 +245,84 @@ export interface Settings {
   fps: Fps;
 }
 
+export type OverlayKind = 'media' | 'emoji' | 'shape';
+export type ShapeKind = 'rect' | 'round' | 'circle';
+
+/**
+ * Lapisan di atas video utama: video/foto (picture-in-picture, logo), stiker emoji, atau bentuk.
+ * Urutan di array = urutan lapisan (belakang ke depan).
+ */
+export interface Overlay {
+  id: string;
+  kind: OverlayKind;
+  /** Media sumber (kind 'media'); kosong untuk emoji/bentuk. */
+  mediaId: string;
+  char: string;
+  shape: ShapeKind;
+  fill: string;
+  /** Waktu mulai di timeline; in/out = potongan sumber (non-video: in 0, out = durasi). */
+  start: number;
+  in: number;
+  out: number;
+  /** Titik tengah (0-1) dan lebar relatif terhadap lebar video. */
+  x: number;
+  y: number;
+  w: number;
+  /** Tinggi / lebar dalam piksel (dari media, 1 untuk emoji, bebas untuk bentuk). */
+  ratio: number;
+  rotate: number;
+  opacity: number;
+  volume: number;
+  fadeIn: number;
+  fadeOut: number;
+}
+
+export const OVERLAY_DEFAULTS = {
+  mediaId: '',
+  char: '',
+  shape: 'rect',
+  fill: '#ffd23f',
+  x: 0.75,
+  y: 0.25,
+  w: 0.3,
+  ratio: 1,
+  rotate: 0,
+  opacity: 1,
+  volume: 0,
+  fadeIn: 0,
+  fadeOut: 0,
+} as const satisfies Partial<Overlay>;
+
+export const overlayLength = (o: Pick<Overlay, 'in' | 'out'>) => Math.max(0, o.out - o.in);
+export const overlayEnd = (o: Pick<Overlay, 'start' | 'in' | 'out'>) => o.start + overlayLength(o);
+
+/** Kepekatan overlay pada waktu t (fade masuk/keluar dikali opacity). */
+export function overlayAlpha(o: Overlay, t: number): number {
+  const len = overlayLength(o);
+  const off = t - o.start;
+  if (off < 0 || off >= len) return 0;
+  let g = 1;
+  if (o.fadeIn > 0) g = Math.min(g, off / o.fadeIn);
+  if (o.fadeOut > 0) g = Math.min(g, (len - off) / o.fadeOut);
+  return Math.max(0, Math.min(1, g)) * o.opacity;
+}
+
+/** Ukuran overlay dalam piksel untuk video w x h (genap, minimal 2). */
+export function overlayPixels(
+  o: Pick<Overlay, 'w' | 'ratio'>,
+  w: number,
+): { pw: number; ph: number } {
+  const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
+  const pw = even(o.w * w);
+  return { pw, ph: even(pw * o.ratio) };
+}
+
 export interface Project {
   name: string;
   settings: Settings;
   media: MediaItem[];
   clips: Clip[];
+  overlays: Overlay[];
   texts: TextLayer[];
   music: Music | null;
 }
@@ -258,6 +331,7 @@ export const IMAGE_SECONDS = 3;
 export const MIN_CLIP = 0.2;
 export const MAX_CLIPS = 100;
 export const MAX_TEXTS = 30;
+export const MAX_OVERLAYS = 20;
 export const FPS = 30;
 
 export function newProject(name = ''): Project {
@@ -266,6 +340,7 @@ export function newProject(name = ''): Project {
     settings: { aspect: '16:9', quality: '720', fade: false, bg: '#000000', fps: 30 },
     media: [],
     clips: [],
+    overlays: [],
     texts: [],
     music: null,
   };
@@ -433,7 +508,11 @@ export function moveClip(p: Project, from: number, to: number): Project {
 
 /** Hapus media yang tidak dipakai klip maupun musik. */
 export function pruneMedia(p: Project): Project {
-  const used = new Set([...p.clips.map((c) => c.mediaId), ...(p.music ? [p.music.mediaId] : [])]);
+  const used = new Set([
+    ...p.clips.map((c) => c.mediaId),
+    ...p.overlays.map((o) => o.mediaId),
+    ...(p.music ? [p.music.mediaId] : []),
+  ]);
   return { ...p, media: p.media.filter((m) => used.has(m.id)) };
 }
 

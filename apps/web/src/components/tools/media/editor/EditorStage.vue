@@ -8,8 +8,10 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { drawText } from '../../../../lib/editor/render';
 import { textAnimAt } from '../../../../lib/editor/textfx';
 import ClipLayer from './ClipLayer.vue';
+import OverlayLayer from './OverlayLayer.vue';
 import { loadEditorFonts } from './editorFonts';
 import {
+  type Overlay,
   type Project,
   clipAt,
   clipStarts,
@@ -34,10 +36,17 @@ const props = withDefaults(
     dragText?: string;
     /** mediaId yang diketahui punya audio (untuk ducking musik). */
     voiced?: Set<string>;
+    /** Overlay terpilih dan apakah overlay bisa digeser di pratinjau (tab Overlay terbuka). */
+    selectedOverlay?: string;
+    overlayEditable?: boolean;
   }>(),
-  { maxVh: 60, dragText: '', voiced: undefined },
+  { maxVh: 60, dragText: '', voiced: undefined, selectedOverlay: '', overlayEditable: false },
 );
-const emit = defineEmits<{ moveText: [id: string, x: number, y: number] }>();
+const emit = defineEmits<{
+  moveText: [id: string, x: number, y: number];
+  selectOverlay: [id: string];
+  updateOverlay: [id: string, patch: Partial<Overlay>];
+}>();
 const time = defineModel<number>('time', { required: true });
 const playing = defineModel<boolean>('playing', { required: true });
 
@@ -279,13 +288,30 @@ onBeforeUnmount(() => {
     />
     <div
       v-if="veil.alpha > 0"
-      class="pointer-events-none absolute inset-0"
+      class="pointer-events-none absolute inset-0 z-[3]"
       :style="{ backgroundColor: veil.color, opacity: veil.alpha }"
     ></div>
-    <canvas ref="canvas" class="pointer-events-none absolute inset-0 h-full w-full"></canvas>
+    <!-- Overlay di atas video (tidak ikut pudar transisi), di bawah teks — sama dengan ekspor. -->
+    <div class="pointer-events-none absolute inset-0 z-[4]">
+      <OverlayLayer
+        v-for="o in project.overlays"
+        :key="o.id"
+        class="pointer-events-auto"
+        :project="project"
+        :overlay="o"
+        :time="time"
+        :playing="playing"
+        :urls="urls"
+        :selected="o.id === selectedOverlay"
+        :editable="overlayEditable"
+        @select="emit('selectOverlay', o.id)"
+        @update="(patch) => emit('updateOverlay', o.id, patch)"
+      />
+    </div>
+    <canvas ref="canvas" class="pointer-events-none absolute inset-0 z-[5] h-full w-full"></canvas>
     <p
       v-if="!project.clips.length"
-      class="absolute inset-0 grid place-items-center p-6 text-center text-sm text-white/70"
+      class="absolute inset-0 z-[6] grid place-items-center p-6 text-center text-sm text-white/70"
     >
       {{ empty }}
     </p>

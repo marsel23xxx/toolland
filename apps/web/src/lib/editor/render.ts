@@ -10,6 +10,7 @@ import type { FFmpeg } from '@ffmpeg/ffmpeg';
 import { FFMPEG_THREADS } from '../media/ffmpeg';
 import {
   FPS,
+  type Overlay,
   type Project,
   type TextLayer,
   DUCK_LEVEL,
@@ -18,6 +19,8 @@ import {
   clipFades,
   clipStarts,
   isOverlap,
+  overlayLength,
+  overlayPixels,
   transitionOverlap,
   clipLength,
   musicSpan,
@@ -38,6 +41,8 @@ export interface ExportInput {
   withAudio: Set<string>;
   /** Path PNG teks, sejajar dengan project.texts (kosong = teks dilewati). */
   textPaths: string[];
+  /** Path PNG stiker/bentuk, sejajar dengan project.overlays (kosong untuk overlay media). */
+  overlayPaths?: string[];
   out: string;
 }
 
@@ -159,6 +164,57 @@ export function buildExportArgs(p: Project, input: ExportInput): string[] {
     v = 'vf';
     a = 'af';
   }
+  // Overlay: di atas video utama, di bawah teks. Audio overlay video ikut dicampur.
+  const extraAudio: string[] = [];
+  p.overlays.forEach((o, j) => {
+    const len = overlayLength(o);
+    if (len <= 0.01 || o.start >= total) return;
+    const end = Math.min(o.start + len, total);
+    const m = o.kind === 'media' ? mediaOf(p, o.mediaId) : undefined;
+    if (o.kind === 'media') {
+      const path = input.paths.get(o.mediaId);
+      if (!m || !path) throw new Error('missing-media');
+      if (m.kind === 'video') args.push('-ss', n(o.in), '-t', n(end - o.start), '-i', path);
+      else args.push('-loop', '1', '-framerate', String(fps), '-t', n(end - o.start), '-i', path);
+    } else {
+      const path = input.overlayPaths?.[j];
+      if (!path) return;
+      args.push('-loop', '1', '-framerate', String(fps), '-t', n(end - o.start), '-i', path);
+    }
+    const { pw, ph } = overlayPixels(o, w);
+    const chain = [`scale=${pw}:${ph}`, 'setsar=1', `fps=${fps}`, 'format=rgba'];
+    if (o.opacity < 1) chain.push(`colorchannelmixer=aa=${n(o.opacity)}`);
+    if (o.rotate) {
+      const r = `${n(o.rotate)}*PI/180`;
+      chain.push(`rotate=${r}:c=none:ow=rotw(${r}):oh=roth(${r})`);
+    }
+    const olen = end - o.start;
+    if (o.fadeIn > 0) chain.push(`fade=t=in:st=0:d=${n(Math.min(o.fadeIn, olen))}:alpha=1`);
+    if (o.fadeOut > 0) {
+      const d = Math.min(o.fadeOut, olen);
+      chain.push(`fade=t=out:st=${n(olen - d)}:d=${n(d)}:alpha=1`);
+    }
+    chain.push(`setpts=PTS-STARTPTS+${n(o.start)}/TB`);
+    filters.push(`[${idx}:v]${chain.join(',')}[ov${j}]`);
+    filters.push(
+      `[${v}][ov${j}]overlay=x=${n(o.x)}*W-w/2:y=${n(o.y)}*H-h/2:eof_action=pass:enable='between(t,${n(o.start)},${n(end)})'[o${j}]`,
+    );
+    v = `o${j}`;
+    if (m?.kind === 'video' && o.volume > 0 && input.withAudio.has(m.id)) {
+      const a = [
+        `atrim=duration=${n(olen)}`,
+        'asetpts=PTS-STARTPTS',
+        AFMT,
+        `volume=${n(o.volume)}`,
+      ];
+      if (o.start > 0) a.push(`adelay=delays=${Math.round(o.start * 1000)}:all=1`);
+      a.push('apad', `atrim=duration=${n(total)}`);
+      filters.push(`[${idx}:a]${a.join(',')}[oa${j}]`);
+      extraAudio.push(`[oa${j}]`);
+    }
+    idx++;
+  });
+
   p.texts.forEach((t, j) => {
     const path = input.textPaths[j];
     if (!path || !t.text.trim() || t.start >= total) return;
@@ -201,10 +257,17 @@ export function buildExportArgs(p: Project, input: ExportInput): string[] {
     if (span.start > 0) m.push(`adelay=delays=${Math.round(span.start * 1000)}:all=1`);
     m.push('apad', `atrim=duration=${n(total)}`);
     filters.push(`[${idx}:a]${m.join(',')}[mus]`);
-    // amix membagi volume dengan jumlah input; volume=2 mengembalikan level aslinya.
-    filters.push(`[${a}][mus]amix=inputs=2:duration=first:dropout_transition=0,volume=2[am]`);
-    a = 'am';
+    extraAudio.push('[mus]');
     idx++;
+  }
+  if (extraAudio.length) {
+    // Semua input dipanjangkan sampai akhir (apad), jadi amix membagi volume dengan jumlah input
+    // secara tetap; volume=N mengembalikan level aslinya.
+    const k = extraAudio.length + 1;
+    filters.push(
+      `[${a}]${extraAudio.join('')}amix=inputs=${k}:duration=first:dropout_transition=0,volume=${k}[am]`,
+    );
+    a = 'am';
   }
   args.push(
     '-filter_complex',
@@ -311,6 +374,38 @@ export function drawText(ctx: CanvasRenderingContext2D, t: TextLayer, w: number,
   });
 }
 
+/** Gambar stiker emoji atau bentuk memenuhi kanvas w x h. */
+export function drawSticker(ctx: CanvasRenderingContext2D, o: Overlay, w: number, h: number): void {
+  ctx.clearRect(0, 0, w, h);
+  if (o.kind === 'emoji') {
+    const size = Math.min(w, h) * 0.86;
+    ctx.font = `${size}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(o.char, w / 2, h / 2 + size * 0.04);
+    return;
+  }
+  ctx.fillStyle = o.fill;
+  ctx.beginPath();
+  if (o.shape === 'circle') ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+  else if (o.shape === 'round') ctx.roundRect(0, 0, w, h, Math.min(w, h) * 0.18);
+  else ctx.rect(0, 0, w, h);
+  ctx.fill();
+}
+
+/** PNG stiker/bentuk berukuran pw x ph. */
+export async function stickerPng(o: Overlay, pw: number, ph: number): Promise<Uint8Array> {
+  const canvas = document.createElement('canvas');
+  canvas.width = pw;
+  canvas.height = ph;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('failed');
+  drawSticker(ctx, o, pw, ph);
+  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+  if (!blob) throw new Error('failed');
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
 /** PNG transparan seukuran video berisi satu lapisan teks. */
 export async function textPng(t: TextLayer, w: number, h: number): Promise<Uint8Array> {
   const canvas = document.createElement('canvas');
@@ -353,7 +448,11 @@ export async function exportVideo(
   const { FFFSType } = await import('@ffmpeg/ffmpeg');
   const { w, h } = outputSize(p.settings.aspect, p.settings.quality);
   const total = totalDuration(p);
-  const used = new Set([...p.clips.map((c) => c.mediaId), ...(p.music ? [p.music.mediaId] : [])]);
+  const used = new Set([
+    ...p.clips.map((c) => c.mediaId),
+    ...p.overlays.filter((o) => o.kind === 'media').map((o) => o.mediaId),
+    ...(p.music ? [p.music.mediaId] : []),
+  ]);
   // Nama file di sistem file ffmpeg memakai ID media agar tidak bentrok (File baru ini hanya
   // merujuk ke data yang sama, tidak menyalin isinya).
   const mounted: File[] = [];
@@ -370,6 +469,7 @@ export async function exportVideo(
   await ff.createDir('/edtxt').catch(() => {});
   await ff.mount(FFFSType.WORKERFS, { files: mounted }, '/edin');
   const textPaths: string[] = [];
+  const overlayPaths: string[] = [];
   const out = '/edtxt/hasil.mp4';
   const onLog = ({ message }: { message: string }) => {
     const m = /time=(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(message);
@@ -378,7 +478,7 @@ export async function exportVideo(
   };
   try {
     const withAudio = new Set<string>();
-    for (const c of p.clips) {
+    for (const c of [...p.clips, ...p.overlays.filter((o) => o.kind === 'media')]) {
       const m = mediaOf(p, c.mediaId);
       if (m?.kind === 'video' && !withAudio.has(m.id) && (await probeAudio(ff, paths.get(m.id)!)))
         withAudio.add(m.id);
@@ -393,7 +493,18 @@ export async function exportVideo(
       await ff.writeFile(path, await textPng(t, w, h));
       textPaths.push(path);
     }
-    const args = buildExportArgs(p, { paths, withAudio, textPaths, out });
+    for (let j = 0; j < p.overlays.length; j++) {
+      const o = p.overlays[j];
+      if (o.kind === 'media') {
+        overlayPaths.push('');
+        continue;
+      }
+      const { pw, ph } = overlayPixels(o, w);
+      const path = `/edtxt/o${j}.png`;
+      await ff.writeFile(path, await stickerPng(o, pw, ph));
+      overlayPaths.push(path);
+    }
+    const args = buildExportArgs(p, { paths, withAudio, textPaths, overlayPaths, out });
     ff.on('log', onLog);
     const code = await ff.exec(limitThreads(args));
     if (code !== 0) throw new Error('failed');
@@ -401,7 +512,7 @@ export async function exportVideo(
     return new Blob([data as Uint8Array<ArrayBuffer>], { type: 'video/mp4' });
   } finally {
     ff.off('log', onLog);
-    for (const path of [...textPaths.filter(Boolean), out])
+    for (const path of [...textPaths.filter(Boolean), ...overlayPaths.filter(Boolean), out])
       await ff.deleteFile(path).catch(() => {});
     await ff.unmount('/edin').catch(() => {});
   }

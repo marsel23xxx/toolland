@@ -5,6 +5,7 @@
 import {
   type Clip,
   type MediaItem,
+  type Overlay,
   type Project,
   type TextLayer,
   MIN_CLIP,
@@ -47,7 +48,10 @@ export interface SnapOptions {
  * Titik magnet: playhead, batas antarklip (indeks batas k = awal klip k, batas terakhir = akhir
  * video), serta awal dan akhir setiap teks.
  */
-export function snapTargets(p: Pick<Project, 'clips' | 'texts'>, o: SnapOptions): number[] {
+export function snapTargets(
+  p: Pick<Project, 'clips' | 'texts'> & { overlays?: Overlay[] },
+  o: SnapOptions,
+): number[] {
   const starts = clipStarts(p);
   const edges = [...starts, totalDuration(p)];
   const out = [o.playhead];
@@ -57,6 +61,8 @@ export function snapTargets(p: Pick<Project, 'clips' | 'texts'>, o: SnapOptions)
     out.push(t);
   });
   for (const t of p.texts) if (t.id !== o.excludeText) out.push(t.start, t.end);
+  for (const v of p.overlays ?? [])
+    if (v.id !== o.excludeText) out.push(v.start, v.start + v.out - v.in);
   return out;
 }
 

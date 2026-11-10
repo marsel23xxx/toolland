@@ -18,6 +18,7 @@ import {
   type Quality,
   type TextLayer,
   newProject,
+  type Overlay,
 } from './project';
 import { FONT_IDS } from './textfx';
 
@@ -26,8 +27,9 @@ export const AYU_FORMAT = 'toolland-ayu';
  * Versi 2: kecepatan, fade audio, putar/balik, zoom, warna, Ken Burns, latar, fps.
  * Versi 3: font, rata, garis tepi, bayangan, kotak, animasi teks; rentang, fade, ducking musik.
  * Versi 4: transisi bertumpuk (crossfade, sapu, geser, lingkaran).
+ * Versi 5: jalur overlay (video/foto, stiker, bentuk).
  */
-export const AYU_VERSION = 4;
+export const AYU_VERSION = 5;
 export const AYU_MIME = 'application/x-toolland-ayu';
 /** Arsip ZIP tanpa ZIP64: total di bawah 4 GB. */
 export const MAX_BUNDLE_BYTES = 4 * 1024 ** 3 - 64 * 1024 ** 2;
@@ -155,6 +157,36 @@ export function sanitizeProject(raw: unknown): Project {
         animDur: num(t.animDur, 0.4, 0.1, 2),
       };
     });
+  p.overlays = arr(o.overlays)
+    .map((v) => v as Record<string, unknown>)
+    .slice(0, 20)
+    .map<Overlay | null>((v) => {
+      const kind = pick(v.kind, ['media', 'emoji', 'shape'] as const, 'shape');
+      const mediaId = str(v.mediaId, '', 40);
+      if (kind === 'media' && !ids.has(mediaId)) return null;
+      const inn = num(v.in, 0, 0, 86400);
+      return {
+        id: str(v.id, '', 40) || `o${Math.random().toString(36).slice(2, 8)}`,
+        kind,
+        mediaId: kind === 'media' ? mediaId : '',
+        char: str(v.char, '', 16),
+        shape: pick(v.shape, ['rect', 'round', 'circle'] as const, 'rect'),
+        fill: /^#[0-9a-f]{6}$/i.test(str(v.fill)) ? (v.fill as string) : '#ffd23f',
+        start: num(v.start, 0, 0, 86400),
+        in: inn,
+        out: num(v.out, inn + 3, inn + 0.05, 86400),
+        x: num(v.x, 0.5, -0.5, 1.5),
+        y: num(v.y, 0.5, -0.5, 1.5),
+        w: num(v.w, 0.3, 0.02, 2),
+        ratio: num(v.ratio, 1, 0.05, 20),
+        rotate: num(v.rotate, 0, -360, 360),
+        opacity: num(v.opacity, 1, 0, 1),
+        volume: num(v.volume, 0, 0, 2),
+        fadeIn: num(v.fadeIn, 0, 0, 10),
+        fadeOut: num(v.fadeOut, 0, 0, 10),
+      };
+    })
+    .filter((v): v is Overlay => v !== null);
   const m = o.music as Record<string, unknown> | null | undefined;
   p.music =
     m && typeof m.mediaId === 'string' && ids.has(m.mediaId)
