@@ -1,0 +1,10 @@
+---
+import VideoEditor from '../../../components/tools/media/editor/VideoEditor.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { messages } from '../../../i18n';
+import { mediaToolProps } from '../../../lib/media/props';
+---
+
+<ToolPage slug="video-editor">
+  <VideoEditor client:only="vue" {...mediaToolProps('en')} t={messages('en', 'editor')} />
+</ToolPage>
