@@ -458,17 +458,17 @@ export const tests = [
     name: 'rencana pernikahan: nama berdua dan tamu, unduh .xlsx',
     path: '/template/rencana-pernikahan',
     async run(h) {
-      await h.type('#tf-partner1', 'Dimas');
-      await h.type('#tf-partner2', 'Anisa');
+      await h.type('#tf-partner1', 'Julian');
+      await h.type('#tf-partner2', 'Ayudiyah');
       await h.type('#tf-guests', 'Keluarga Budi | Keluarga pria | 4');
-      const name = 'Rencana-Pernikahan-Dimas.xlsx';
+      const name = 'Rencana-Pernikahan-Julian.xlsx';
       const x = readXlsx(await h.downloadVia(name, () => h.page.click('#tf-download')));
       expect(
         x.sheets.join('|') ===
           'Menu|Dashboard|Anggaran|Pembayaran|Tamu|Checklist|Pengaturan|_Daftar',
         x.sheets.join('|'),
       );
-      for (const s of ['Dimas', 'Anisa', 'Keluarga Budi', 'Booking gedung / venue'])
+      for (const s of ['Julian', 'Ayudiyah', 'Keluarga Budi', 'Booking gedung / venue'])
         expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
       expect(x.charts === 3, `grafik: ${x.charts}`);
     },
@@ -537,7 +537,7 @@ export const tests = [
       // Isi contoh mengembalikan teks awal.
       await h.page.click('[data-doc-sample]');
       await h.page.waitForFunction(
-        () => document.querySelector('#df-name').value === 'Rina Pratama',
+        () => document.querySelector('#df-name').value === 'Julian Marcell',
       );
     },
   },
@@ -593,7 +593,7 @@ export const tests = [
       await h.type('#df-date', '2026-11-10');
       await docPages(h);
       const xml = docxText(
-        await h.downloadVia('Resignation-Letter-Rina-Pratama.docx', () =>
+        await h.downloadVia('Resignation-Letter-Julian-Marcell.docx', () =>
           h.page.click('[data-doc-docx]'),
         ),
       );
@@ -620,7 +620,9 @@ export const tests = [
       );
       await docPages(h);
       const xml = docxText(
-        await h.downloadVia('Surat-Kuasa-Rina-Pratama.docx', () => h.page.click('[data-doc-docx]')),
+        await h.downloadVia('Surat-Kuasa-Julian-Marcell.docx', () =>
+          h.page.click('[data-doc-docx]'),
+        ),
       );
       for (const t of ['SURAT KUASA', 'Dimas Pratama', 'rapor adik saya', 'w:val="dashed"'])
         expect(xml.includes(t), `"${t}" tidak ada di Word`);
@@ -634,7 +636,7 @@ export const tests = [
       await h.type('#df-amount', '7.250.000');
       await docPages(h);
       const xml = docxText(
-        await h.downloadVia('Kwitansi-Rina-Pratama.docx', () => h.page.click('[data-doc-docx]')),
+        await h.downloadVia('Kwitansi-Julian-Marcell.docx', () => h.page.click('[data-doc-docx]')),
       );
       for (const t of ['Tujuh juta dua ratus lima puluh ribu rupiah', 'Rp7.250.000,-', 'Meterai'])
         expect(xml.includes(t), `"${t}" tidak ada di Word`);

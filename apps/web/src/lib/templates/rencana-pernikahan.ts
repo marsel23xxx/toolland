@@ -189,8 +189,8 @@ const L = {
     nextPayHead: ['Kebutuhan', 'Termin', 'Jatuh tempo', 'Jumlah'],
     noPay: 'Tidak ada pembayaran tertunda.',
     sample: {
-      p1: 'Dimas Pratama',
-      p2: 'Anisa Rahmawati',
+      p1: 'Julian Marcell',
+      p2: 'Ayudiyah Pratiwi',
       venue: 'Gedung Serbaguna Melati, Yogyakarta',
       groups: [
         'Keluarga pria',
@@ -345,8 +345,8 @@ const L = {
     nextPayHead: ['Item', 'Instalment', 'Due', 'Amount'],
     noPay: 'No pending payments.',
     sample: {
-      p1: 'Dimas Pratama',
-      p2: 'Anisa Rahmawati',
+      p1: 'Julian Marcell',
+      p2: 'Ayudiyah Pratiwi',
       venue: 'Melati Hall, Yogyakarta',
       groups: [
         'Partner 1 family',
@@ -501,13 +501,13 @@ const form = (locale: Locale): TemplateForm => {
         key: 'partner1',
         kind: 'text',
         label: id ? 'Mempelai pria' : 'Partner 1',
-        placeholder: 'Dimas',
+        placeholder: 'Julian',
       },
       {
         key: 'partner2',
         kind: 'text',
         label: id ? 'Mempelai wanita' : 'Partner 2',
-        placeholder: 'Anisa',
+        placeholder: 'Ayudiyah',
       },
       {
         key: 'date',

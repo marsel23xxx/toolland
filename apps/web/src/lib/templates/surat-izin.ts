@@ -395,7 +395,7 @@ export function izinForm(locale: Locale): DocForm {
       type: 'sakit-kerja',
       font: 'serif',
       align: 'justify',
-      name: 'Rina Pratama',
+      name: 'Julian Marcell',
       role: L(T('Staf Keuangan', 'Finance Staff')),
       department: L(T('Keuangan & Akuntansi', 'Finance & Accounting')),
       student: 'Nayla Pratama',

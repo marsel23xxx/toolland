@@ -298,7 +298,7 @@ export function kwitansiForm(locale: Locale): DocForm {
       accent: '1f3a5f',
       number: 'KW/2026/011',
       amount: '1500000',
-      payer: 'Rina Pratama',
+      payer: 'Julian Marcell',
       purpose: L(
         T('Sewa kamar kos nomor 7 untuk bulan Desember 2026', 'Rent for room 7 for December 2026'),
       ),

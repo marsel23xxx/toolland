@@ -464,7 +464,7 @@ export function letterForm(locale: Locale): DocForm {
       font: 'serif',
       align: 'justify',
       accent: '1f3a5f',
-      name: 'Rina Pratama',
+      name: 'Julian Marcell',
       birth: L(T('Bandung, 12 Mei 2000', 'Bandung, 12 May 2000')),
       education: L(
         T(
@@ -474,7 +474,7 @@ export function letterForm(locale: Locale): DocForm {
       ),
       address: 'Jl. Melati No. 21, Coblong, Bandung 40132',
       phone: '0812-3456-7890',
-      email: 'rina.pratama@email.com',
+      email: 'julian.marcell@email.com',
       position: L(T('Staf Administrasi Keuangan', 'Finance Administration Staff')),
       company: 'PT Maju Bersama Nusantara',
       recipient: lt.recipient,

@@ -114,7 +114,7 @@ describe('CV', () => {
         expect(pages).toBe(1);
         const docx = renderDocx(spec);
         const xml = strFromU8(unzipSync(docx)['word/document.xml']);
-        expect(xml).toContain('Rina Pratama');
+        expect(xml).toContain('Julian Marcell');
         expect(xml).toContain(lang === 'id' ? 'Pengalaman Kerja' : 'Work Experience');
         if (name === 'pro') expect(Object.keys(unzipSync(docx))).toContain('word/media/image1.png');
         if (DUMP) {

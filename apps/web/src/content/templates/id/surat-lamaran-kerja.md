@@ -88,6 +88,6 @@ Surat lamaran (cover letter) adalah perkenalan singkat sebelum HRD membuka CV-mu
 
 ### Mengirim lewat email
 
-Lampirkan surat lamaran dan CV dalam format PDF dengan nama file yang jelas, misalnya _Surat-Lamaran-Rina-Pratama.pdf_. Isi subjek email sesuai permintaan iklan, atau gunakan format _Lamaran [Posisi] - [Nama]_. Badan email cukup berisi dua atau tiga kalimat pengantar.
+Lampirkan surat lamaran dan CV dalam format PDF dengan nama file yang jelas, misalnya _Surat-Lamaran-Julian-Marcell.pdf_. Isi subjek email sesuai permintaan iklan, atau gunakan format _Lamaran [Posisi] - [Nama]_. Badan email cukup berisi dua atau tiga kalimat pengantar.
 
 Setelah suratmu siap, buat juga [CV ATS](/template/cv-ats) yang mudah dibaca sistem rekrutmen, atau [CV profesional](/template/cv-profesional) dengan foto. Data CV cukup diisi sekali untuk keduanya.

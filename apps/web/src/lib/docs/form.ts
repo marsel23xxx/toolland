@@ -211,7 +211,7 @@ export function todayIso(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** Nama file aman: "CV-ATS-Rina-Pratama". */
+/** Nama file aman: "CV-ATS-Julian-Marcell". */
 export function safeFileName(...parts: string[]): string {
   return parts
     .map((p) =>

@@ -6,8 +6,8 @@ const build = (o: Record<string, unknown>) =>
   unzipXlsx(
     buildFromForm({
       locale: 'id',
-      partner1: 'Dimas',
-      partner2: 'Anisa',
+      partner1: 'Julian',
+      partner2: 'Ayudiyah',
       date: '2027-05-01',
       budget: 100_000_000,
       currency: 'IDR',
@@ -31,7 +31,7 @@ describe('template rencana pernikahan', () => {
   it('nama, kategori, dan tamu dari form; checklist bawaan selalu ada', () => {
     const f = build({});
     const sst = sharedStrings(f);
-    expect(sst).toContain('Dimas');
+    expect(sst).toContain('Julian');
     expect(sst).toContain('Katering');
     expect(sst).toContain('Keluarga Budi');
     expect(sst).toContain('Booking gedung / venue');

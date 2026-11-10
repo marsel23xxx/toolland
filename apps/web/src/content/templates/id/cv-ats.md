@@ -83,6 +83,6 @@ Sebelum dibaca HRD, banyak lamaran disaring dulu oleh ATS. Sistem ini mengubah C
 - Menaruh kontak di header atau footer dokumen. Sebagian ATS melewatkan bagian itu, jadi template ini menaruh kontak di badan dokumen.
 - Menyingkat jabatan atau nama perangkat lunak dengan cara yang tidak umum.
 - Menulis keahlian di dalam gambar atau infografik.
-- Nama file asal-asalan. Gunakan nama yang jelas, misalnya _CV-ATS-Rina-Pratama.pdf_.
+- Nama file asal-asalan. Gunakan nama yang jelas, misalnya _CV-ATS-Julian-Marcell.pdf_.
 
 Melamar langsung ke rekruter atau butuh tampilan yang lebih menarik? Data yang sama bisa dipakai di [CV Profesional](/template/cv-profesional). Jangan lupa siapkan juga [surat lamaran kerja](/template/surat-lamaran-kerja).

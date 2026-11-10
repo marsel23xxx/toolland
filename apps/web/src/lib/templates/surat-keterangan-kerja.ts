@@ -378,7 +378,7 @@ export function keteranganForm(locale: Locale): DocForm {
       number: '045/HRD/SRD/XI/2026',
       signer: 'Andi Wijaya',
       signerRole: L(T('Manajer HRD', 'HR Manager')),
-      employee: 'Rina Pratama',
+      employee: 'Julian Marcell',
       employeeBirth: L(T('Bandung, 12 Mei 2000', 'Bandung, 12 May 2000')),
       employeeId: '2023-0815',
       employeeRole: L(T('Staf Keuangan', 'Finance Staff')),
