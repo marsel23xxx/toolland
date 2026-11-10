@@ -100,7 +100,10 @@ import { SITE } from '../../lib/site';
       donation card appears at most once per session, plus cached AI models and codecs so tools load
       faster next time. The flag is cleared when you close the tab. The Subdomain Finder also keeps
       the times of your searches from the last hour in localStorage to count the 10 searches per
-      hour quota; it holds only timestamps, never domain names.
+      hour quota; it holds only timestamps, never domain names. The Video Editor autosaves your
+      project in this browser's IndexedDB (including media files up to 1 GB in total) so it can be
+      restored if the tab closes. That data is never sent to a server and is removed when you choose
+      New project or Discard, or clear the site's data.
     </p>
 
     <h2>Ads and third parties</h2>

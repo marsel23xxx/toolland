@@ -385,6 +385,52 @@ export const tests = [
     },
   },
   {
+    name: 'edit video: simpan otomatis lalu pulihkan setelah halaman ditutup',
+    path: '/tools/edit-video',
+    async run(h) {
+      const { page } = h;
+      await h.upload('klip.mp4', 'foto.jpg');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 2, {
+        timeout: 30000,
+      });
+      await page.click('[data-add-text]');
+      await h.type('[data-text-input]', 'Jangan hilang');
+      await page.waitForSelector('[data-autosaved]', { timeout: 15000 });
+      await h.sleep(2500);
+      // Tutup paksa (seperti browser crash) lalu buka lagi.
+      const target = page.url();
+      await page.evaluate(() => (window.onbeforeunload = null));
+      const fresh = await page.browserContext().newPage();
+      await fresh.setViewport({ width: 1280, height: 900 });
+      await page.close();
+      await fresh.goto(target, { waitUntil: 'networkidle0' });
+      await fresh.waitForSelector('[data-recovery]', { timeout: 15000 });
+      await fresh.click('[data-recover]');
+      await fresh.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 2, {
+        timeout: 15000,
+      });
+      // File kecil ikut tersimpan: tidak perlu disambungkan ulang.
+      expect(!(await fresh.$('[data-relink]')), 'media diminta disambungkan ulang');
+      await fresh.click('[data-tab="text"]');
+      expect(
+        (await fresh.$eval('[data-text-input]', (e) => e.value)) === 'Jangan hilang',
+        'teks hilang',
+      );
+      // Buang: tawaran tidak muncul lagi.
+      await fresh.click('[data-tab="media"]');
+      await fresh.evaluate(() => (window.confirm = () => true));
+      await fresh.evaluate(() =>
+        [...document.querySelectorAll('button')]
+          .find((b) => b.textContent.trim() === 'Proyek baru')
+          .click(),
+      );
+      await fresh.reload({ waitUntil: 'networkidle0' });
+      await h.sleep(1500);
+      expect(!(await fresh.$('[data-recovery]')), 'tawaran pemulihan muncul lagi');
+      await fresh.close();
+    },
+  },
+  {
     name: 'edit video: panel teks (gaya, font, animasi) dan galeri seret ke timeline',
     path: '/tools/edit-video',
     async run(h) {

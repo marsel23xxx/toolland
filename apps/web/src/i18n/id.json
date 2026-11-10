@@ -813,5 +813,12 @@
   "editor.proxyBadge": "ringan",
   "editor.proxyBadgeHint": "Pratinjau memakai salinan ringan 540p. Hasil ekspor tetap memakai video asli.",
   "editor.makeLight": "Pakai pratinjau ringan (untuk video 4K yang tersendat)",
-  "editor.error.proxy": "Video {name} tidak bisa dibaca, bahkan oleh ffmpeg. Coba konversi dulu ke MP4."
+  "editor.error.proxy": "Video {name} tidak bisa dibaca, bahkan oleh ffmpeg. Coba konversi dulu ke MP4.",
+  "editor.autosaved": "Tersimpan otomatis {time}",
+  "editor.autosavedHint": "Proyek disimpan otomatis di browser ini (bukan di server). Untuk memindahkan atau menyimpan permanen, pakai Simpan .ayu.",
+  "editor.recoveryBanner": "Ada proyek yang belum selesai dari {time} ({n} klip). Pulihkan?",
+  "editor.recover": "Pulihkan",
+  "editor.discardRecovery": "Buang",
+  "editor.restored": "Proyek dipulihkan dari simpan otomatis.",
+  "editor.dateLocale": "id-ID"
 }

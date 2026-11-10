@@ -813,5 +813,12 @@
   "editor.proxyBadge": "light",
   "editor.proxyBadgeHint": "The preview uses a light 540p copy. Exports still use the original video.",
   "editor.makeLight": "Use a light preview (for 4K videos that stutter)",
-  "editor.error.proxy": "Video {name} cannot be read, even by ffmpeg. Try converting it to MP4 first."
+  "editor.error.proxy": "Video {name} cannot be read, even by ffmpeg. Try converting it to MP4 first.",
+  "editor.autosaved": "Autosaved {time}",
+  "editor.autosavedHint": "The project is saved automatically in this browser (not on a server). To move it or keep it for good, use Save .ayu.",
+  "editor.recoveryBanner": "There is an unfinished project from {time} ({n} clips). Restore it?",
+  "editor.recover": "Restore",
+  "editor.discardRecovery": "Discard",
+  "editor.restored": "Project restored from autosave.",
+  "editor.dateLocale": "en-US"
 }

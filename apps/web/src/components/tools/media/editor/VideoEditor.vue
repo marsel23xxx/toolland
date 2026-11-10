@@ -10,7 +10,14 @@ import { downloadBlob } from '../../../../lib/download';
 import { fill, formatBytes } from '../../../../lib/format';
 import { MAX_MEDIA_BYTES, formatTime, useFfmpeg } from '../../../../lib/media/ffmpeg';
 import { useFileResults } from '../../../../lib/results';
-import { matchFiles, openAyu, saveAyu } from '../../../../lib/editor/ayu';
+import { matchFiles, openAyu, sanitizeProject, saveAyu } from '../../../../lib/editor/ayu';
+import {
+  type Snapshot,
+  clearSnapshot,
+  loadSnapshot,
+  pickStoredFiles,
+  saveSnapshot,
+} from '../../../../lib/editor/autosave';
 import {
   type Aspect,
   type AudioItem,
@@ -841,6 +848,8 @@ function onRelink(e: Event) {
 
 function reset() {
   if (dirty.value && !empty.value && !confirm(props.t.confirmDiscard)) return;
+  void clearSnapshot();
+  autosavedAt.value = 0;
   playing.value = false;
   forgetAll();
   results.clear();
@@ -1149,13 +1158,97 @@ function onWideChange(e: MediaQueryListEvent) {
   if (!e.matches) playing.value = false;
 }
 
+// ---------- Simpan otomatis ----------
+// Proyek disimpan ke penyimpanan browser 2 detik setelah perubahan terakhir. Selama tawaran
+// pemulihan belum dijawab, tidak ada yang ditimpa.
+const recovery = ref<Snapshot | null>(null);
+const autosavedAt = ref(0);
+let autoTimer: ReturnType<typeof setTimeout> | undefined;
+let autoBusy = false;
+
+async function autosave() {
+  if (empty.value || recovery.value || autoBusy) return;
+  autoBusy = true;
+  try {
+    const ok = await saveSnapshot(
+      JSON.stringify(project.value),
+      sources.value,
+      pickStoredFiles(project.value.media),
+    );
+    if (ok) autosavedAt.value = Date.now();
+  } finally {
+    autoBusy = false;
+  }
+}
+watch(
+  [project, sources],
+  () => {
+    clearTimeout(autoTimer);
+    autoTimer = setTimeout(() => void autosave(), 2000);
+  },
+  { deep: true },
+);
+
+async function restoreSnapshot() {
+  const snap = recovery.value;
+  if (!snap) return;
+  recovery.value = null;
+  try {
+    const p = sanitizeProject(JSON.parse(snap.json));
+    playing.value = false;
+    forgetAll();
+    project.value = p;
+    for (const m of p.media) {
+      const f = snap.files.get(m.id);
+      if (f) await attach(m, f);
+    }
+    // Belum disimpan sebagai .ayu: tetap dianggap ada perubahan.
+    saved.value = '';
+    resetHistory();
+    time.value = 0;
+    selectedClip.value = p.clips[0]?.id ?? '';
+    selectedText.value = p.texts[0]?.id ?? '';
+    selectedOverlay.value = p.overlays[0]?.id ?? '';
+    selectedAudio.value = p.audios[0]?.id ?? '';
+    notice.value = missing.value.size
+      ? fill(props.t.relinkNeeded, { n: missing.value.size })
+      : props.t.restored;
+  } catch {
+    error.value = props.t['error.invalid'];
+  }
+}
+
+function discardSnapshot() {
+  recovery.value = null;
+  void clearSnapshot();
+}
+
+const recoveryInfo = computed(() => {
+  const snap = recovery.value;
+  if (!snap) return '';
+  let clips = 0;
+  try {
+    clips = (JSON.parse(snap.json) as { clips?: unknown[] }).clips?.length ?? 0;
+  } catch {
+    // Isi rusak: tetap tawarkan, sanitize akan menolak.
+  }
+  return fill(props.t.recoveryBanner, {
+    time: new Date(snap.savedAt).toLocaleString(props.t.dateLocale),
+    n: clips,
+  });
+});
+
 onMounted(() => {
+  void loadSnapshot().then((snap) => {
+    if (snap && empty.value) recovery.value = snap;
+  });
   wideMq.addEventListener('change', onWideChange);
   window.addEventListener('keydown', onKey);
   document.addEventListener('fullscreenchange', onFullscreenChange);
   window.addEventListener('beforeunload', onBeforeUnload);
 });
 onBeforeUnmount(() => {
+  clearTimeout(autoTimer);
   if (recorder?.state === 'recording') recorder.stop();
   recStream?.getTracks().forEach((t) => t.stop());
   clearInterval(recTimer);
@@ -1392,6 +1485,21 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
       >
         ↷
       </button>
+      <span
+        v-if="autosavedAt && !empty"
+        class="text-xs text-ink-3"
+        :title="t.autosavedHint"
+        data-autosaved
+      >
+        {{
+          fill(t.autosaved, {
+            time: new Date(autosavedAt).toLocaleTimeString(t.dateLocale, {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          })
+        }}
+      </span>
       <span class="grow"></span>
       <button
         type="button"
@@ -1426,6 +1534,21 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
     </div>
     <p v-if="error" class="error-text" aria-live="polite">{{ error }}</p>
     <p v-else-if="notice" class="text-sm text-ink-2" aria-live="polite" data-notice>{{ notice }}</p>
+
+    <!-- Tawaran memulihkan proyek dari simpan otomatis -->
+    <div
+      v-if="recovery"
+      class="flex flex-wrap items-center gap-3 rounded-md border border-brand-600/50 bg-brand-600/10 p-3 text-sm"
+      data-recovery
+    >
+      <span class="grow">{{ recoveryInfo }}</span>
+      <button type="button" class="btn btn-primary" data-recover @click="restoreSnapshot">
+        {{ t.recover }}
+      </button>
+      <button type="button" class="btn btn-secondary" data-discard @click="discardSnapshot">
+        {{ t.discardRecovery }}
+      </button>
+    </div>
 
     <!-- Media hilang setelah membuka proyek ringan -->
     <div

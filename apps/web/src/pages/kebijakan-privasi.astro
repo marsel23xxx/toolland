@@ -103,7 +103,10 @@ import { SITE } from '../lib/site';
       agar kartu donasi tidak muncul lebih dari sekali per sesi, serta cache model AI dan codec agar
       tools lebih cepat dimuat berikutnya. Penanda tersebut terhapus saat tab ditutup. Tool Cari
       Subdomain juga menyimpan waktu pencarianmu dalam satu jam terakhir di localStorage untuk
-      menghitung jatah 10 pencarian per jam; isinya hanya angka waktu, tanpa nama domain.
+      menghitung jatah 10 pencarian per jam; isinya hanya angka waktu, tanpa nama domain. Edit Video
+      menyimpan proyekmu secara otomatis di IndexedDB browser ini (termasuk file media sampai total
+      1 GB) agar bisa dipulihkan bila tab tertutup. Data itu tidak pernah dikirim ke server dan
+      terhapus saat kamu memilih Proyek baru, Buang, atau menghapus data situs.
     </p>
 
     <h2>Iklan dan pihak ketiga</h2>
