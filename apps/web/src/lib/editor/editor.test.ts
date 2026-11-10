@@ -11,7 +11,11 @@ import {
   newProject,
   outputSize,
   splitAt,
+  textLayout,
   totalDuration,
+  transitionAt,
+  transitionHalf,
+  clipFades,
   wrapText,
 } from './project';
 import { buildExportArgs } from './render';
@@ -42,6 +46,8 @@ function sample(): Project {
       size: 'm',
       color: '#ffffff',
       box: false,
+      x: 0.5,
+      y: 0.5,
     },
   ];
   p.music = { mediaId: 'm', offset: 5, volume: 0.5, fadeOut: true };
@@ -83,6 +89,25 @@ describe('timeline', () => {
     expect(clampClip({ ...clipFor(m), in: 9.95, out: 9.96 }, m).out - 9.8).toBeGreaterThanOrEqual(
       0,
     );
+  });
+
+  it('transisi dibagi dua di batas klip dan dibatasi panjang klip', () => {
+    const p = sample();
+    p.clips[0] = { ...p.clips[0], trans: 'white', transDur: 1 };
+    expect(transitionHalf(p, 0)).toBe(0.5);
+    expect(transitionHalf(p, 1)).toBe(0); // klip terakhir tidak punya transisi keluar
+    expect(clipFades(p, 1)).toMatchObject({ in: 0.5, inColor: 'white', out: 0 });
+    expect(transitionAt(p, 6)).toEqual({ alpha: 1, color: 'white' }); // tepat di batas
+    expect(transitionAt(p, 5.75).alpha).toBeCloseTo(0.5);
+    expect(transitionAt(p, 3).alpha).toBe(0);
+    p.clips[0].transDur = 20;
+    expect(transitionHalf(p, 0)).toBe(1.5); // separuh gambar 3 detik
+  });
+
+  it('posisi teks bebas memakai titik tengah relatif', () => {
+    const L = textLayout({ size: 'm', position: 'custom', x: 0.25, y: 0.8 }, 1280, 720);
+    expect(L).toMatchObject({ x: 320, y: 576, baseline: 'middle' });
+    expect(textLayout({ size: 'm', position: 'top' }, 1280, 720).x).toBe(640);
   });
 
   it('teks dibungkus per kata', () => {
@@ -200,6 +225,17 @@ describe('perintah ffmpeg', () => {
     expect(graph).toContain('fade=t=in:st=0');
     expect(graph).not.toContain('[0:a]');
     expect(graph).not.toContain('amix');
+  });
+
+  it('transisi memudarkan video dan audio di batas klip', () => {
+    const p = sample();
+    p.clips[0] = { ...p.clips[0], trans: 'black', transDur: 1 };
+    const graph = buildExportArgs(p, input)[
+      buildExportArgs(p, input).indexOf('-filter_complex') + 1
+    ];
+    expect(graph).toContain('fade=t=out:st=5.5:d=0.5:color=black[v0]');
+    expect(graph).toContain('afade=t=out:st=5.5:d=0.5[a0]');
+    expect(graph).toContain('fade=t=in:st=0:d=0.5:color=black[v1]');
   });
 
   it('media yang filenya hilang menghentikan ekspor', () => {

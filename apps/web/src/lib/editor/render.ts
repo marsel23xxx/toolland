@@ -12,6 +12,7 @@ import {
   FPS,
   type Project,
   type TextLayer,
+  clipFades,
   clipLength,
   mediaOf,
   outputSize,
@@ -53,12 +54,24 @@ export function buildExportArgs(p: Project, input: ExportInput): string[] {
       c.fit === 'fill'
         ? `scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}`
         : `scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:black`;
+    // Transisi: pudar ke/dari hitam atau putih di batas klip, audio ikut memudar.
+    const f = clipFades(p, k);
+    let vfade = '';
+    let afade = '';
+    if (f.in) {
+      vfade += `,fade=t=in:st=0:d=${n(f.in)}:color=${f.inColor}`;
+      afade += `,afade=t=in:st=0:d=${n(f.in)}`;
+    }
+    if (f.out) {
+      vfade += `,fade=t=out:st=${n(len - f.out)}:d=${n(f.out)}:color=${f.outColor}`;
+      afade += `,afade=t=out:st=${n(len - f.out)}:d=${n(f.out)}`;
+    }
     filters.push(
-      `[${idx}:v]${scale},setsar=1,fps=${FPS},format=yuv420p,trim=duration=${n(len)},setpts=PTS-STARTPTS[v${k}]`,
+      `[${idx}:v]${scale},setsar=1,fps=${FPS},format=yuv420p,trim=duration=${n(len)},setpts=PTS-STARTPTS${vfade}[v${k}]`,
     );
     if (m.kind === 'video' && input.withAudio.has(c.mediaId) && c.volume > 0)
       filters.push(
-        `[${idx}:a]atrim=duration=${n(len)},asetpts=PTS-STARTPTS,${AFMT},volume=${n(c.volume)}[a${k}]`,
+        `[${idx}:a]atrim=duration=${n(len)},asetpts=PTS-STARTPTS,${AFMT},volume=${n(c.volume)}${afade}[a${k}]`,
       );
     else filters.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${n(len)},${AFMT}[a${k}]`);
     concatIn.push(`[v${k}][a${k}]`);
@@ -170,16 +183,16 @@ export function drawText(ctx: CanvasRenderingContext2D, t: TextLayer, w: number,
     if (t.box && line) {
       const tw = ctx.measureText(line).width;
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(w / 2 - tw / 2 - L.pad, y - lineH / 2, tw + L.pad * 2, lineH);
+      ctx.fillRect(L.x - tw / 2 - L.pad, y - lineH / 2, tw + L.pad * 2, lineH);
     }
     if (!t.box) {
       ctx.lineJoin = 'round';
       ctx.lineWidth = Math.max(2, L.font * 0.12);
       ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-      ctx.strokeText(line, w / 2, y);
+      ctx.strokeText(line, L.x, y);
     }
     ctx.fillStyle = t.color;
-    ctx.fillText(line, w / 2, y);
+    ctx.fillText(line, L.x, y);
   });
 }
 

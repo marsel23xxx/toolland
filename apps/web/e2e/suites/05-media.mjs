@@ -71,8 +71,27 @@ export const tests = [
       await ruler.click({ offset: { x: clipBox.x - rulerBox.x + clipBox.width / 2, y: 8 } });
       await page.click('[data-split]');
       await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 3);
+      // Undo mengembalikan potongan, redo mengulanginya.
+      await h.sleep(500);
+      await page.click('[data-undo]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 2);
+      await page.click('[data-redo]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 3);
+      // Transisi dari klip pertama.
+      await page.click('[data-clip]');
+      await page.select('[data-transition]', 'black');
+      await page.waitForSelector('[data-trans-mark]');
+      // Layar penuh menutupi seluruh jendela.
+      await page.click('[data-fullscreen]');
+      const box = await (await page.$('[data-editor]')).boundingBox();
+      expect(box.width >= 1270 && box.y <= 1, `layar penuh ${JSON.stringify(box)}`);
+      await page.click('[data-fullscreen]');
       await page.click('[data-add-text]');
       await h.type('[data-text-input]', 'Halo Toolland');
+      // Geser teks di pratinjau: posisi jadi bebas.
+      const stage = await (await page.$('[data-stage]')).boundingBox();
+      await page.mouse.click(stage.x + stage.width * 0.3, stage.y + stage.height * 0.25);
+      expect((await h.value('#ed-tp')) === 'custom', 'teks tidak pindah ke posisi bebas');
       await page.click('[data-export]');
       const [c] = await h.results(1, 180000);
       expect(c.includes('proyek-video.mp4'), c);
@@ -88,6 +107,8 @@ export const tests = [
         doc.project.clips.length === 3 && doc.project.texts[0].text === 'Halo Toolland',
         'isi proyek salah',
       );
+      expect(doc.project.clips[0].trans === 'black', 'transisi tidak tersimpan');
+      expect(Math.abs(doc.project.texts[0].x - 0.3) < 0.02, 'posisi teks tidak tersimpan');
       const lightPath = path.join(h.downloads, 'ringan.ayu');
       fs.renameSync(path.join(h.downloads, 'proyek-video.ayu'), lightPath);
 

@@ -133,6 +133,15 @@ onBeforeUnmount(() => ro?.disconnect());
             @dragleave="dropAt = -1"
             @drop.prevent="onDrop(i)"
           >
+            <span
+              v-if="c.trans !== 'none' && i < project.clips.length - 1"
+              class="absolute top-0.5 right-0.5 rounded px-1 text-[10px] leading-4 font-bold"
+              :class="c.trans === 'white' ? 'bg-white text-ink' : 'bg-black text-white'"
+              :title="c.trans"
+              data-trans-mark
+            >
+              ⇢
+            </span>
             <span class="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 py-0.5">
               {{ formatTime(clipLength(c)) }} · {{ mediaOf(project, c.mediaId)?.name }}
             </span>

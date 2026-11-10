@@ -13,9 +13,22 @@ import {
   mediaOf,
   outputSize,
   totalDuration,
+  transitionAt,
 } from '../../../../lib/editor/project';
 
-const props = defineProps<{ project: Project; urls: Map<string, string>; empty: string }>();
+const props = withDefaults(
+  defineProps<{
+    project: Project;
+    urls: Map<string, string>;
+    empty: string;
+    /** Tinggi maksimal pratinjau (persen tinggi layar). */
+    maxVh?: number;
+    /** ID teks yang bisa digeser langsung di pratinjau (kosong = tidak ada). */
+    dragText?: string;
+  }>(),
+  { maxVh: 60, dragText: '' },
+);
+const emit = defineEmits<{ moveText: [id: string, x: number, y: number] }>();
 const time = defineModel<number>('time', { required: true });
 const playing = defineModel<boolean>('playing', { required: true });
 
@@ -33,6 +46,51 @@ const media = computed(() =>
 const imageUrl = computed(() =>
   media.value?.kind === 'image' ? props.urls.get(media.value.id) : undefined,
 );
+
+/** Lapisan pudar: transisi antarklip dan fade awal/akhir video (sama dengan hasil ekspor). */
+const veil = computed(() => {
+  const tr = transitionAt(props.project, time.value);
+  let alpha = tr.alpha;
+  if (props.project.settings.fade && total.value > 1.5) {
+    const d = Math.min(0.6, total.value / 4);
+    const t = time.value;
+    alpha = Math.max(
+      alpha,
+      t < d ? 1 - t / d : 0,
+      t > total.value - d ? 1 - (total.value - t) / d : 0,
+    );
+    if (alpha > tr.alpha) return { alpha, color: 'black' };
+  }
+  return { alpha, color: tr.color };
+});
+
+// Geser teks terpilih dengan mouse/jari: posisi jadi relatif 0-1 terhadap ukuran pratinjau.
+let dragging = false;
+function dragTo(e: PointerEvent) {
+  const s = stage.value;
+  if (!s || !props.dragText) return;
+  const r = s.getBoundingClientRect();
+  const clamp = (v: number) => Math.round(Math.max(0.05, Math.min(0.95, v)) * 1000) / 1000;
+  emit(
+    'moveText',
+    props.dragText,
+    clamp((e.clientX - r.left) / r.width),
+    clamp((e.clientY - r.top) / r.height),
+  );
+}
+function onDown(e: PointerEvent) {
+  if (!props.dragText) return;
+  dragging = true;
+  stage.value?.setPointerCapture(e.pointerId);
+  e.preventDefault();
+  dragTo(e);
+}
+function onMove(e: PointerEvent) {
+  if (dragging) dragTo(e);
+}
+function onUp() {
+  dragging = false;
+}
 
 let loadedClip = '';
 let raf = 0;
@@ -173,8 +231,18 @@ onBeforeUnmount(() => {
 <template>
   <div
     ref="stage"
-    class="relative mx-auto max-h-[60vh] w-full overflow-hidden rounded-md bg-black"
-    :style="{ aspectRatio: `${size.w} / ${size.h}`, maxWidth: `calc(60vh * ${size.w / size.h})` }"
+    class="relative mx-auto w-full overflow-hidden rounded-md bg-black select-none"
+    :class="{ 'cursor-move touch-none': dragText }"
+    :style="{
+      aspectRatio: `${size.w} / ${size.h}`,
+      maxHeight: `${maxVh}vh`,
+      maxWidth: `calc(${maxVh}vh * ${size.w / size.h})`,
+    }"
+    data-stage
+    @pointerdown="onDown"
+    @pointermove="onMove"
+    @pointerup="onUp"
+    @pointercancel="onUp"
   >
     <video
       v-show="media?.kind === 'video'"
@@ -189,9 +257,15 @@ onBeforeUnmount(() => {
       v-if="imageUrl"
       :src="imageUrl"
       alt=""
+      draggable="false"
       class="absolute inset-0 h-full w-full"
       :class="hit?.clip.fit === 'fill' ? 'object-cover' : 'object-contain'"
     />
+    <div
+      v-if="veil.alpha > 0"
+      class="pointer-events-none absolute inset-0"
+      :style="{ backgroundColor: veil.color, opacity: veil.alpha }"
+    ></div>
     <canvas ref="canvas" class="pointer-events-none absolute inset-0 h-full w-full"></canvas>
     <p
       v-if="!project.clips.length"

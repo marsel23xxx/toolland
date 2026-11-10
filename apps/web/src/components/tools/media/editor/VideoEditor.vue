@@ -83,6 +83,7 @@ const missing = computed(
   () => new Set(project.value.media.filter((x) => !sources.value.has(x.id)).map((x) => x.id)),
 );
 const clip = computed(() => project.value.clips.find((c) => c.id === selectedClip.value));
+const clipIndex = computed(() => (clip.value ? project.value.clips.indexOf(clip.value) : -1));
 const clipMedia = computed(() =>
   clip.value ? mediaOf(project.value, clip.value.mediaId) : undefined,
 );
@@ -269,7 +270,7 @@ function removeMedia(m: MediaItem) {
   p.clips = p.clips.filter((c) => c.mediaId !== m.id);
   if (p.music?.mediaId === m.id) p.music = null;
   p.media = p.media.filter((x) => x.id !== m.id);
-  forget(m.id);
+  // File tetap disimpan di memori sesi agar penghapusan bisa dibatalkan (undo).
 }
 
 function forget(id: string) {
@@ -356,6 +357,8 @@ function addText() {
       size: 'm',
       color: '#ffffff',
       box: false,
+      x: 0.5,
+      y: 0.8,
     },
     total.value,
   );
@@ -435,6 +438,7 @@ async function openProject(f: File) {
       if (file) await attach(m, file);
     }
     saved.value = JSON.stringify(project.value);
+    resetHistory();
     time.value = 0;
     selectedClip.value = project.value.clips[0]?.id ?? '';
     selectedText.value = project.value.texts[0]?.id ?? '';
@@ -477,6 +481,7 @@ function reset() {
   results.clear();
   project.value = newProject();
   saved.value = JSON.stringify(project.value);
+  resetHistory();
   time.value = 0;
   selectedClip.value = '';
   selectedText.value = '';
@@ -536,6 +541,21 @@ watch(total, (t) => {
 
 function onKey(e: KeyboardEvent) {
   const el = e.target as HTMLElement;
+  const typing = !!el.closest('input, textarea, select, [contenteditable]');
+  if (!typing) commitHistory();
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && !typing && !empty.value) {
+    const k = e.key.toLowerCase();
+    if (k === 'z' || k === 'y') {
+      e.preventDefault();
+      if (k === 'y' || e.shiftKey) redo();
+      else undo();
+    }
+    return;
+  }
+  if (e.key === 'Escape' && full.value && !document.fullscreenElement) {
+    full.value = false;
+    return;
+  }
   if (
     el.closest('input, textarea, select, [contenteditable]') ||
     e.ctrlKey ||
@@ -560,13 +580,115 @@ function onBeforeUnload(e: BeforeUnloadEvent) {
   }
 }
 
+// ---------- Undo / redo ----------
+// Riwayat berupa snapshot JSON proyek. Perubahan beruntun (mengetik, menggeser) digabung jadi
+// satu langkah lewat jeda 400 ms.
+const MAX_HISTORY = 100;
+const past = ref<string[]>([]);
+const future = ref<string[]>([]);
+let current = JSON.stringify(project.value);
+let histTimer: ReturnType<typeof setTimeout> | undefined;
+
+function commitHistory() {
+  clearTimeout(histTimer);
+  const now = JSON.stringify(project.value);
+  if (now === current) return;
+  past.value = [...past.value.slice(-(MAX_HISTORY - 1)), current];
+  future.value = [];
+  current = now;
+}
+watch(
+  project,
+  () => {
+    clearTimeout(histTimer);
+    histTimer = setTimeout(commitHistory, 400);
+  },
+  { deep: true },
+);
+
+function restore(json: string) {
+  current = json;
+  playing.value = false;
+  project.value = JSON.parse(json) as Project;
+  const p = project.value;
+  if (!p.clips.some((c) => c.id === selectedClip.value)) selectedClip.value = p.clips[0]?.id ?? '';
+  if (!p.texts.some((x) => x.id === selectedText.value)) selectedText.value = p.texts[0]?.id ?? '';
+}
+function undo() {
+  commitHistory();
+  const prev = past.value.at(-1);
+  if (prev === undefined) return;
+  past.value = past.value.slice(0, -1);
+  future.value = [...future.value, current];
+  restore(prev);
+}
+function redo() {
+  commitHistory();
+  const next = future.value.at(-1);
+  if (next === undefined) return;
+  future.value = future.value.slice(0, -1);
+  past.value = [...past.value, current];
+  restore(next);
+}
+function resetHistory() {
+  clearTimeout(histTimer);
+  past.value = [];
+  future.value = [];
+  current = JSON.stringify(project.value);
+}
+
+// ---------- Layar penuh ----------
+const root = ref<HTMLDivElement>();
+const full = ref(false);
+async function toggleFull() {
+  if (full.value) {
+    full.value = false;
+    if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+    return;
+  }
+  full.value = true;
+  // Fullscreen API bila tersedia; jika tidak (misalnya iPhone), cukup menutupi seluruh jendela.
+  await root.value?.requestFullscreen?.().catch(() => {});
+}
+function onFullscreenChange() {
+  if (!document.fullscreenElement && full.value) full.value = false;
+}
+watch(full, (f) => document.documentElement.classList.toggle('overflow-hidden', f));
+
+// ---------- Geser teks di pratinjau ----------
+const dragText = computed(() => (tab.value === 'text' && text.value ? text.value.id : ''));
+function moveText(id: string, x: number, y: number) {
+  const i = project.value.texts.findIndex((t) => t.id === id);
+  if (i < 0) return;
+  const t = project.value.texts[i];
+  if (time.value < t.start || time.value >= t.end) {
+    playing.value = false;
+    time.value = t.start;
+  }
+  project.value.texts[i] = { ...t, position: 'custom', x, y };
+}
+
+function transitionAll() {
+  const c = clip.value;
+  if (!c) return;
+  project.value.clips = project.value.clips.map((x) => ({
+    ...x,
+    trans: c.trans,
+    transDur: c.transDur,
+  }));
+}
+
 onMounted(() => {
   window.addEventListener('keydown', onKey);
+  document.addEventListener('fullscreenchange', onFullscreenChange);
   window.addEventListener('beforeunload', onBeforeUnload);
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey);
   window.removeEventListener('beforeunload', onBeforeUnload);
+  document.removeEventListener('fullscreenchange', onFullscreenChange);
+  document.documentElement.classList.remove('overflow-hidden');
+  clearTimeout(histTimer);
   forgetAll();
 });
 
@@ -582,7 +704,13 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div
+    ref="root"
+    class="space-y-4"
+    :class="{ 'fixed inset-0 z-50 overflow-y-auto bg-paper p-3 sm:p-4': full }"
+    data-editor
+    @pointerdown.capture="commitHistory"
+  >
     <!-- Bilah atas: proyek -->
     <div class="flex flex-wrap items-center gap-2">
       <input
@@ -644,7 +772,38 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
           </button>
         </div>
       </details>
+      <button
+        type="button"
+        class="btn btn-secondary px-3"
+        :disabled="!past.length || exporting"
+        :title="t.undo"
+        :aria-label="t.undo"
+        data-undo
+        @click="undo"
+      >
+        ↶
+      </button>
+      <button
+        type="button"
+        class="btn btn-secondary px-3"
+        :disabled="!future.length || exporting"
+        :title="t.redo"
+        :aria-label="t.redo"
+        data-redo
+        @click="redo"
+      >
+        ↷
+      </button>
       <span class="grow"></span>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        :aria-pressed="full"
+        data-fullscreen
+        @click="toggleFull"
+      >
+        {{ full ? t.exitFullscreen : t.fullscreen }}
+      </button>
       <button
         type="button"
         class="btn btn-primary"
@@ -702,7 +861,10 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
     />
 
     <template v-else>
-      <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div
+        class="grid gap-4"
+        :class="full ? 'lg:grid-cols-[minmax(0,1fr)_24rem]' : 'lg:grid-cols-[minmax(0,1fr)_20rem]'"
+      >
         <!-- Pratinjau -->
         <div class="min-w-0 space-y-2">
           <EditorStage
@@ -711,6 +873,9 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
             :project="project"
             :urls="urls"
             :empty="t.stageEmpty"
+            :max-vh="full ? 62 : 60"
+            :drag-text="dragText"
+            @move-text="moveText"
           />
           <div class="flex flex-wrap items-center gap-2">
             <button
@@ -769,7 +934,11 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
               {{ x.label }}
             </button>
           </div>
-          <div class="max-h-[28rem] space-y-3 overflow-y-auto p-3 text-sm" role="tabpanel">
+          <div
+            class="space-y-3 overflow-y-auto p-3 text-sm"
+            :class="full ? 'max-h-[62vh]' : 'max-h-[28rem]'"
+            role="tabpanel"
+          >
             <!-- Media -->
             <template v-if="tab === 'media'">
               <button type="button" class="btn btn-secondary w-full" @click="addInput?.click()">
@@ -955,6 +1124,39 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                     </label>
                   </div>
                 </fieldset>
+                <div v-if="clipIndex < project.clips.length - 1" class="space-y-2">
+                  <div>
+                    <label for="ed-tr" class="label">{{ t.transition }}</label>
+                    <select id="ed-tr" v-model="clip.trans" class="field" data-transition>
+                      <option value="none">{{ t['transition.none'] }}</option>
+                      <option value="black">{{ t['transition.black'] }}</option>
+                      <option value="white">{{ t['transition.white'] }}</option>
+                    </select>
+                  </div>
+                  <div v-if="clip.trans !== 'none'">
+                    <label for="ed-trd" class="label">
+                      {{ t.transitionDur }} · {{ clip.transDur.toFixed(1) }} s
+                    </label>
+                    <input
+                      id="ed-trd"
+                      v-model.number="clip.transDur"
+                      type="range"
+                      min="0.2"
+                      max="3"
+                      step="0.1"
+                      class="w-full accent-brand-600"
+                    />
+                  </div>
+                  <button
+                    v-if="project.clips.length > 2"
+                    type="button"
+                    class="btn btn-secondary w-full text-xs"
+                    @click="transitionAll"
+                  >
+                    {{ t.transitionAll }}
+                  </button>
+                </div>
+                <p v-else class="text-xs text-ink-3">{{ t.transitionLast }}</p>
                 <div class="grid grid-cols-2 gap-2 border-t border-rule pt-3">
                   <button type="button" class="btn btn-secondary text-xs" @click="shift(-1)">
                     ← {{ t.moveLeft }}
@@ -1001,6 +1203,9 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
               </div>
               <p v-if="!text" class="text-ink-3">{{ t.noText }}</p>
               <template v-else>
+                <p class="rounded bg-nila/10 px-2 py-1.5 text-xs text-ink-2">
+                  {{ t.dragTextHint }}
+                </p>
                 <div>
                   <label for="ed-text" class="label">{{ t.textContent }}</label>
                   <textarea
@@ -1043,6 +1248,7 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                       <option value="top">{{ t['position.top'] }}</option>
                       <option value="center">{{ t['position.center'] }}</option>
                       <option value="bottom">{{ t['position.bottom'] }}</option>
+                      <option value="custom">{{ t['position.custom'] }}</option>
                     </select>
                   </div>
                   <div>

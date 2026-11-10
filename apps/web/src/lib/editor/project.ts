@@ -9,7 +9,9 @@ export type MediaKind = 'video' | 'image' | 'audio';
 export type Aspect = '16:9' | '9:16' | '1:1' | '4:5';
 export type Quality = '480' | '720' | '1080';
 export type Fit = 'fit' | 'fill';
-export type TextPosition = 'top' | 'center' | 'bottom';
+export type TextPosition = 'top' | 'center' | 'bottom' | 'custom';
+/** Transisi ke klip berikutnya: memudar ke hitam atau putih lalu muncul lagi. */
+export type Transition = 'none' | 'black' | 'white';
 export type TextSize = 's' | 'm' | 'l';
 
 /** Berkas sumber. File-nya sendiri disimpan terpisah (tidak ikut JSON proyek). */
@@ -34,6 +36,10 @@ export interface Clip {
   /** Volume audio klip, 0-2 (1 = asli). */
   volume: number;
   fit: Fit;
+  /** Transisi dari klip ini ke klip berikutnya (tidak mengubah durasi total). */
+  trans: Transition;
+  /** Lama transisi (detik), dibagi dua: separuh di akhir klip ini, separuh di awal berikutnya. */
+  transDur: number;
 }
 
 export interface TextLayer {
@@ -46,6 +52,9 @@ export interface TextLayer {
   color: string;
   /** Kotak gelap di belakang teks agar mudah dibaca. */
   box: boolean;
+  /** Titik tengah teks untuk posisi 'custom', relatif 0-1 terhadap lebar dan tinggi video. */
+  x: number;
+  y: number;
 }
 
 export interface Music {
@@ -159,6 +168,8 @@ export function clipFor(m: MediaItem): Clip {
     out: m.kind === 'image' ? IMAGE_SECONDS : m.duration,
     volume: 1,
     fit: 'fit',
+    trans: 'none',
+    transDur: 0.8,
   };
 }
 
@@ -226,14 +237,26 @@ const round = (n: number) => Math.round(n * 1000) / 1000;
  * Tata letak teks yang sama untuk pratinjau (CSS) dan ekspor (canvas): ukuran huruf dan posisi
  * relatif terhadap tinggi video.
  */
-export function textLayout(t: Pick<TextLayer, 'size' | 'position'>, w: number, h: number) {
+export function textLayout(
+  t: Pick<TextLayer, 'size' | 'position'> & Partial<Pick<TextLayer, 'x' | 'y'>>,
+  w: number,
+  h: number,
+) {
   const base = Math.min(w, h);
   const font = Math.round(base * { s: 0.05, m: 0.075, l: 0.11 }[t.size]);
   const margin = Math.round(h * 0.07);
-  const y = t.position === 'top' ? margin : t.position === 'center' ? h / 2 : h - margin;
-  const baseline = t.position === 'top' ? 'top' : t.position === 'center' ? 'middle' : 'bottom';
+  const custom = t.position === 'custom';
+  const y = custom
+    ? h * (t.y ?? 0.5)
+    : t.position === 'top'
+      ? margin
+      : t.position === 'center'
+        ? h / 2
+        : h - margin;
+  const baseline = t.position === 'top' ? 'top' : t.position === 'bottom' ? 'bottom' : 'middle';
   return {
     font,
+    x: custom ? w * (t.x ?? 0.5) : w / 2,
     y,
     baseline: baseline as 'top' | 'middle' | 'bottom',
     maxWidth: w * 0.9,
@@ -256,4 +279,38 @@ export function wrapText(text: string, maxWidth: number, measure: (s: string) =>
     lines.push(line);
   }
   return lines.slice(0, 6);
+}
+
+/** Panjang separuh transisi di batas klip i dan i+1 (0 bila tidak ada transisi). */
+export function transitionHalf(p: Pick<Project, 'clips'>, i: number): number {
+  const a = p.clips[i];
+  const b = p.clips[i + 1];
+  if (!a || !b || a.trans === 'none') return 0;
+  return round(Math.max(0, Math.min(a.transDur / 2, clipLength(a) / 2, clipLength(b) / 2)));
+}
+
+/** Pudar masuk dan keluar untuk klip k (dipakai ekspor dan pratinjau). */
+export function clipFades(p: Pick<Project, 'clips'>, k: number) {
+  const prev = p.clips[k - 1];
+  return {
+    in: transitionHalf(p, k - 1),
+    inColor: prev && prev.trans !== 'none' ? prev.trans : 'black',
+    out: transitionHalf(p, k),
+    outColor: p.clips[k]?.trans === 'white' ? 'white' : 'black',
+  } as const;
+}
+
+/** Warna dan kepekatan lapisan transisi di waktu t (0 = tidak terlihat, 1 = penuh). */
+export function transitionAt(
+  p: Pick<Project, 'clips'>,
+  t: number,
+): { alpha: number; color: string } {
+  const hit = clipAt(p, t);
+  if (!hit) return { alpha: 0, color: 'black' };
+  const f = clipFades(p, hit.index);
+  const pos = t - hit.start;
+  const len = clipLength(hit.clip);
+  if (f.in && pos < f.in) return { alpha: 1 - pos / f.in, color: f.inColor };
+  if (f.out && len - pos < f.out) return { alpha: 1 - (len - pos) / f.out, color: f.outColor };
+  return { alpha: 0, color: 'black' };
 }

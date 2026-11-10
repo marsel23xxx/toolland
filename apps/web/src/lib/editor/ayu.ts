@@ -92,6 +92,8 @@ export function sanitizeProject(raw: unknown): Project {
         out: num(c.out, inn + 1, inn + 0.05, 86400),
         volume: num(c.volume, 1, 0, 2),
         fit: pick(c.fit, ['fit', 'fill'] as const, 'fit'),
+        trans: pick(c.trans, ['none', 'black', 'white'] as const, 'none'),
+        transDur: num(c.transDur, 0.8, 0.2, 3),
       };
     });
   p.texts = arr(o.texts)
@@ -104,10 +106,12 @@ export function sanitizeProject(raw: unknown): Project {
         text: str(t.text, '', 200),
         start,
         end: num(t.end, start + 3, start + 0.1, 86400),
-        position: pick(t.position, ['top', 'center', 'bottom'] as const, 'bottom'),
+        position: pick(t.position, ['top', 'center', 'bottom', 'custom'] as const, 'bottom'),
         size: pick(t.size, ['s', 'm', 'l'] as const, 'm'),
         color: /^#[0-9a-f]{6}$/i.test(str(t.color)) ? (t.color as string) : '#ffffff',
         box: t.box === true,
+        x: num(t.x, 0.5, 0, 1),
+        y: num(t.y, 0.5, 0, 1),
       };
     });
   const m = o.music as Record<string, unknown> | null | undefined;
