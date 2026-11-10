@@ -660,8 +660,8 @@
   "editor.removeMusic": "Remove music",
   "editor.noMusic": "No music yet. Add an audio file (MP3, M4A, WAV) in the Media tab.",
   "editor.zoom": "Zoom",
-  "editor.dragHint": "Drag clips to reorder. Click the ruler to jump in time.",
-  "editor.shortcuts": "Shortcuts: Space = play/pause, S = split, Delete = delete selected clip/text, Ctrl+Z = undo, Ctrl+Shift+Z = redo.",
+  "editor.dragHint": "Drag clips to reorder, drag their edges to trim. Right-click for a menu. Ctrl + scroll to zoom, hold Alt to turn off snapping for a moment.",
+  "editor.shortcuts": "Shortcuts: Space play/pause · ← → one frame (Shift: one second) · Home/End · S split · Delete delete · Ctrl+C/V copy-paste clip · Ctrl+Z undo · Ctrl+Shift+Z redo.",
   "editor.error.missing": "Some media files are not linked. Pick the original files first.",
   "editor.error.missingBundle": "Link all media files before saving with video.",
   "editor.error.tooLarge": "The project is too large for one file (about 4 GB max). Save the light version instead.",
@@ -681,5 +681,15 @@
   "editor.position.custom": "Free",
   "editor.dragTextHint": "Drag on the preview to move this text anywhere.",
   "editor.desktopOnlyTitle": "The video editor only opens on desktop or large tablets",
-  "editor.desktopOnlyBody": "The editor needs a wide screen (at least 1024 pixels) so the timeline and panels are comfortable to use. Open this page on a laptop or computer, or turn your tablet to landscape."
+  "editor.desktopOnlyBody": "The editor needs a wide screen (at least 1024 pixels) so the timeline and panels are comfortable to use. Open this page on a laptop or computer, or turn your tablet to landscape.",
+  "editor.snap": "Snap",
+  "editor.zoomFit": "Fit all",
+  "editor.trimStart": "Drag to trim the start of the clip",
+  "editor.trimEnd": "Drag to trim the end of the clip",
+  "editor.musicDrag": "Drag to choose which part of the song plays",
+  "editor.musicStart": "starts {time}",
+  "editor.copyStyle": "Copy settings",
+  "editor.pasteStyle": "Paste settings",
+  "editor.styleCopied": "Clip settings copied. Right-click another clip and choose Paste settings.",
+  "editor.copied": "Clip copied. Press Ctrl+V to paste it after the selected clip."
 }

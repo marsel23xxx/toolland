@@ -70,6 +70,98 @@ export const tests = [
     },
   },
   {
+    name: 'edit video: timeline interaktif (tarik, geser, scrub, menu, keyboard)',
+    path: '/tools/edit-video',
+    async run(h) {
+      const { page } = h;
+      const drag = async (x1, y1, x2, y2) => {
+        await page.mouse.move(x1, y1);
+        await page.mouse.down();
+        await page.mouse.move(x2, y2, { steps: 12 });
+        await page.mouse.up();
+      };
+      const clips = () =>
+        page.$$eval('[data-clip]', (els) =>
+          els
+            .map((e) => ({
+              media: e.dataset.media,
+              len: Number(e.dataset.len),
+              x: e.getBoundingClientRect().x,
+            }))
+            .sort((a, b) => a.x - b.x),
+        );
+      await h.upload('klip.mp4', 'foto.jpg');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 2, {
+        timeout: 30000,
+      });
+      await page.$eval('[data-tl]', (e) => e.scrollIntoView({ block: 'center' }));
+      // Filmstrip video muncul.
+      await page.waitForFunction(
+        () =>
+          [...document.querySelectorAll('[data-clip] span')].filter((s) =>
+            s.style.backgroundImage.startsWith('url("blob:'),
+          ).length > 2,
+        { timeout: 30000 },
+      );
+      const before = await clips();
+
+      // Tarik ujung kanan klip pertama ke kiri: klip lebih pendek.
+      const out = await (await page.$('[data-clip] [data-trim="out"]')).boundingBox();
+      await drag(out.x + 4, out.y + 20, out.x + 4 - 60, out.y + 20);
+      const trimmed = await clips();
+      expect(trimmed[0].len < before[0].len - 0.2, `potong: ${before[0].len} -> ${trimmed[0].len}`);
+
+      // Geser klip kedua (foto) ke awal.
+      const firstBox = await (
+        await page.$(`[data-clip][data-media="${before[0].media}"]`)
+      ).boundingBox();
+      const second = await (
+        await page.$(`[data-clip][data-media="${before[1].media}"]`)
+      ).boundingBox();
+      await drag(second.x + second.width / 2, second.y + 30, firstBox.x + 3, second.y + 30);
+      await page.waitForFunction(
+        (m) => {
+          const els = [...document.querySelectorAll('[data-clip]')].sort(
+            (a, b) => a.getBoundingClientRect().x - b.getBoundingClientRect().x,
+          );
+          return els[0]?.dataset.media === m;
+        },
+        { timeout: 5000 },
+        before[1].media,
+      );
+
+      // Scrub di penggaris mengubah waktu.
+      const ruler = await (await page.$('[data-ruler]')).boundingBox();
+      await drag(ruler.x + 20, ruler.y + 10, ruler.x + ruler.width * 0.5, ruler.y + 10);
+      const shown = await h.text('[data-time]');
+      expect(!shown.startsWith('0:00 /'), `scrub: ${shown}`);
+
+      // Keyboard: Home lalu Shift+→ = 1 detik.
+      await page.keyboard.press('Home');
+      await page.keyboard.down('Shift');
+      await page.keyboard.press('ArrowRight');
+      await page.keyboard.up('Shift');
+      expect((await h.text('[data-time]')).startsWith('0:01 /'), await h.text('[data-time]'));
+
+      // Teks: geser bar teks ke kanan.
+      await page.keyboard.press('Home');
+      await page.click('[data-add-text]');
+      const bar = await (await page.$('[data-text]')).boundingBox();
+      await drag(bar.x + bar.width / 2, bar.y + 8, bar.x + bar.width / 2 + 80, bar.y + 8);
+      expect(Number(await h.value('#ed-ts')) > 0.2, `teks mulai ${await h.value('#ed-ts')}`);
+
+      // Menu klik kanan: duplikat klip.
+      const first = await (await page.$('[data-clip]')).boundingBox();
+      await page.mouse.click(first.x + first.width / 2, first.y + 30, { button: 'right' });
+      await page.click('[data-menu="duplicate"]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 3);
+
+      // Undo mengembalikan langkah terakhir.
+      await page.click('[data-undo]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 2);
+    },
+  },
+  {
     name: 'edit video: potong, teks, ekspor MP4, simpan dan buka .ayu',
     path: '/tools/edit-video',
     async run(h) {

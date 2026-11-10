@@ -19,6 +19,7 @@ import {
   type Project,
   type Quality,
   type TextLayer,
+  FPS,
   MAX_CLIPS,
   MAX_TEXTS,
   clampClip,
@@ -39,7 +40,8 @@ import Dropzone, { type DropzoneMessages } from '../../../ui/Dropzone.vue';
 import FileResults from '../../../ui/FileResults.vue';
 import ProgressBar from '../../../ui/ProgressBar.vue';
 import EditorStage from './EditorStage.vue';
-import EditorTimeline from './EditorTimeline.vue';
+import EditorTimeline, { type TimelineAction } from './EditorTimeline.vue';
+import { useMediaPreviews } from './useMediaPreviews';
 
 const props = defineProps<{
   m: Messages<'media'>;
@@ -72,6 +74,7 @@ const openInput = ref<HTMLInputElement>();
 const relinkInput = ref<HTMLInputElement>();
 const saveMenu = ref<HTMLDetailsElement>();
 
+const previews = useMediaPreviews();
 const ff = useFfmpeg();
 const results = useFileResults();
 const exporting = ref(false);
@@ -174,6 +177,7 @@ async function attach(m: MediaItem, f: File) {
   const url = URL.createObjectURL(f);
   setMap(sources, m.id, f);
   setMap(urls, m.id, url);
+  previews.add(m, url, f);
   if (m.kind === 'image') setMap(thumbs, m.id, url);
   else if (m.kind === 'video')
     probe(url, 'video')
@@ -275,6 +279,7 @@ function removeMedia(m: MediaItem) {
 }
 
 function forget(id: string) {
+  previews.remove(id);
   const u = urls.value.get(id);
   if (u) URL.revokeObjectURL(u);
   const th = thumbs.value.get(id);
@@ -551,6 +556,13 @@ function onKey(e: KeyboardEvent) {
       e.preventDefault();
       if (k === 'y' || e.shiftKey) redo();
       else undo();
+    } else if (k === 'c' && clip.value && !window.getSelection()?.toString()) {
+      e.preventDefault();
+      clipboard.value = { ...clip.value };
+      notice.value = props.t.copied;
+    } else if (k === 'v' && clipboard.value) {
+      e.preventDefault();
+      pasteClip();
     }
     return;
   }
@@ -568,6 +580,15 @@ function onKey(e: KeyboardEvent) {
   if (e.key === ' ' && project.value.clips.length) {
     e.preventDefault();
     playing.value = !playing.value;
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    playing.value = false;
+    const step = (e.shiftKey ? 1 : 1 / FPS) * (e.key === 'ArrowLeft' ? -1 : 1);
+    time.value = Math.max(0, Math.min(total.value, Math.round((time.value + step) * 1000) / 1000));
+  } else if (e.key === 'Home' || e.key === 'End') {
+    e.preventDefault();
+    playing.value = false;
+    time.value = e.key === 'Home' ? 0 : total.value;
   } else if (e.key === 's' || e.key === 'S') split();
   else if (e.key === 'Delete') {
     if (tab.value === 'text') removeText();
@@ -579,6 +600,65 @@ function onBeforeUnload(e: BeforeUnloadEvent) {
   if (dirty.value && !empty.value) {
     e.preventDefault();
     e.returnValue = '';
+  }
+}
+
+// ---------- Aksi dari timeline ----------
+
+/** Klip yang disalin (Ctrl+C) dan pengaturan yang disalin dari menu klik kanan. */
+const clipboard = ref<Clip | null>(null);
+const styleClip = ref<Pick<Clip, 'volume' | 'fit' | 'trans' | 'transDur'> | null>(null);
+
+function pasteClip() {
+  const c = clipboard.value;
+  if (!c || !mediaOf(project.value, c.mediaId) || project.value.clips.length >= MAX_CLIPS) return;
+  const i = clip.value ? project.value.clips.indexOf(clip.value) : project.value.clips.length - 1;
+  const copy = { ...c, id: uid('c') };
+  project.value.clips.splice(i + 1, 0, copy);
+  select(copy.id);
+}
+
+function onTrimClip(i: number, c: Clip) {
+  if (project.value.clips[i]?.id === c.id) project.value.clips[i] = c;
+}
+
+function onUpdateText(id: string, patch: { start: number; end: number }) {
+  const i = project.value.texts.findIndex((x) => x.id === id);
+  if (i >= 0)
+    project.value.texts[i] = clampText({ ...project.value.texts[i], ...patch }, total.value);
+}
+
+function onMusicOffset(offset: number) {
+  if (project.value.music) project.value.music.offset = offset;
+}
+
+function onAction(kind: TimelineAction, id: string) {
+  const p = project.value;
+  if (kind === 'duplicateText' || kind === 'removeText') {
+    selectedText.value = id;
+    tab.value = 'text';
+    const tx = p.texts.find((x) => x.id === id);
+    if (!tx) return;
+    if (kind === 'removeText') removeText();
+    else if (p.texts.length < MAX_TEXTS) {
+      const copy = { ...tx, id: uid('t') };
+      p.texts.push(copy);
+      selectedText.value = copy.id;
+    }
+    return;
+  }
+  const c = p.clips.find((x) => x.id === id);
+  if (!c) return;
+  select(id);
+  if (kind === 'split') split();
+  else if (kind === 'duplicate') duplicate();
+  else if (kind === 'remove') removeClip();
+  else if (kind === 'copyStyle') {
+    styleClip.value = { volume: c.volume, fit: c.fit, trans: c.trans, transDur: c.transDur };
+    notice.value = props.t.styleCopied;
+  } else if (kind === 'pasteStyle' && styleClip.value) {
+    const i = p.clips.indexOf(c);
+    p.clips[i] = { ...c, ...styleClip.value };
   }
 }
 
@@ -898,7 +978,7 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
             :project="project"
             :urls="urls"
             :empty="t.stageEmpty"
-            :max-vh="full ? 62 : 60"
+            :max-vh="full ? 50 : 60"
             :drag-text="dragText"
             @move-text="moveText"
           />
@@ -961,7 +1041,7 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
           </div>
           <div
             class="space-y-3 overflow-y-auto p-3 text-sm"
-            :class="full ? 'max-h-[62vh]' : 'max-h-[28rem]'"
+            :class="full ? 'max-h-[calc(50vh+2rem)]' : 'max-h-[28rem]'"
             role="tabpanel"
           >
             <!-- Media -->
@@ -1356,21 +1436,24 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
       <EditorTimeline
         :project="project"
         :time="time"
+        :playing="playing"
         :selected-clip="selectedClip"
         :selected-text="selectedText"
+        :frames="previews.frames.value"
+        :peaks="previews.peaks.value"
         :thumbs="thumbs"
         :missing="missing"
-        :labels="{
-          clips: t['tab.clip'],
-          texts: t['tab.text'],
-          music: t['tab.music'],
-          zoom: t.zoom,
-          dragHint: t.dragHint,
-        }"
+        :can-paste-style="!!styleClip"
+        :t="t"
         @seek="(s) => ((playing = false), (time = s))"
         @select-clip="select"
         @select-text="(id) => ((selectedText = id), (tab = 'text'))"
+        @select-music="tab = 'music'"
         @move="(a, b) => (project = moveClip(project, a, b))"
+        @trim-clip="onTrimClip"
+        @update-text="onUpdateText"
+        @music-offset="onMusicOffset"
+        @action="onAction"
       />
       <p class="text-xs text-ink-3">{{ t.shortcuts }}</p>
     </template>

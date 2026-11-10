@@ -3,7 +3,7 @@
 Rencana bertahap untuk tool **Edit Video** (`/tools/edit-video`, `/en/tools/video-editor`).
 Fitur ini di luar PRD dan disetujui pemilik proyek pada 2026-11-10.
 
-Status per 2026-11-10: **Fase 0 selesai**, berikutnya **Fase 1**.
+Status per 2026-11-10: **Fase 0 dan Fase 1 selesai**, berikutnya **Fase 2**.
 
 ## Prinsip yang berlaku di semua fase
 
@@ -37,7 +37,7 @@ Ukuran fase: **S** kecil, **M** sedang, **L** besar (perkiraan kerja relatif, bu
 
 ---
 
-## Fase 1: Timeline interaktif (L), berikutnya
+## Fase 1: Timeline interaktif (L), selesai
 
 Tujuan: semua penyuntingan dasar bisa dilakukan langsung di timeline dengan mouse, tanpa mengetik
 angka.
@@ -50,7 +50,8 @@ angka.
   sekarang.
 - **Geser playhead** (scrub) di penggaris maupun di jalur mana pun. Bingkai diperbarui selama digeser.
 - **Bar teks**: geser untuk memindah waktu, tarik ujung untuk mengubah durasi.
-- **Bar musik**: geser untuk mengatur mulai lagu, tarik ujung untuk memotong.
+- **Bar musik**: geser untuk memilih bagian lagu yang diputar. (Memotong musik dipindah ke Fase 2,
+  karena butuh perubahan model data.)
 - **Snapping (magnet)** ke playhead, tepi klip, dan tepi teks. Bisa dimatikan.
 - **Zoom** dengan Ctrl + scroll dan tombol "muat semua". Saat diputar, timeline ikut menggulir
   mengikuti playhead.
@@ -72,6 +73,10 @@ angka.
 
 **Selesai bila:** potong, susun, atur teks, dan atur musik bisa dikerjakan hanya dengan mouse; e2e
 memakai gerakan mouse sungguhan.
+
+**Hasil:** semua poin di atas sudah dibuat. Logika ada di `lib/editor/timeline.ts`, filmstrip dan
+gelombang suara di `useMediaPreviews.ts`. Saat ditarik dari kiri, klip lain tetap di tempat lalu
+merapat setelah dilepas.
 
 ---
 

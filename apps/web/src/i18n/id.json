@@ -660,8 +660,8 @@
   "editor.removeMusic": "Hapus musik",
   "editor.noMusic": "Belum ada musik. Tambahkan file audio (MP3, M4A, WAV) di tab Media.",
   "editor.zoom": "Zoom",
-  "editor.dragHint": "Geser klip untuk mengubah urutan. Klik penggaris untuk pindah waktu.",
-  "editor.shortcuts": "Pintasan: Spasi = putar/jeda, S = potong, Delete = hapus klip/teks terpilih, Ctrl+Z = batalkan, Ctrl+Shift+Z = ulangi.",
+  "editor.dragHint": "Geser klip untuk ubah urutan, tarik ujungnya untuk memotong. Klik kanan untuk menu. Ctrl + scroll untuk zoom, tahan Alt untuk mematikan magnet sementara.",
+  "editor.shortcuts": "Pintasan: Spasi putar/jeda · ← → satu bingkai (Shift: satu detik) · Home/End · S potong · Delete hapus · Ctrl+C/V salin-tempel klip · Ctrl+Z batalkan · Ctrl+Shift+Z ulangi.",
   "editor.error.missing": "Ada file media yang belum tersambung. Pilih file aslinya dulu.",
   "editor.error.missingBundle": "Sambungkan dulu semua file media sebelum menyimpan beserta video.",
   "editor.error.tooLarge": "Proyek terlalu besar untuk satu file (maksimal ±4 GB). Simpan versi ringan saja.",
@@ -681,5 +681,15 @@
   "editor.position.custom": "Bebas",
   "editor.dragTextHint": "Seret di pratinjau untuk memindahkan teks ini ke mana saja.",
   "editor.desktopOnlyTitle": "Edit video hanya bisa dibuka di desktop atau tablet besar",
-  "editor.desktopOnlyBody": "Editor butuh layar lebar (minimal 1024 piksel) agar timeline dan panelnya nyaman dipakai. Buka halaman ini di laptop atau komputer, atau putar tablet ke posisi mendatar."
+  "editor.desktopOnlyBody": "Editor butuh layar lebar (minimal 1024 piksel) agar timeline dan panelnya nyaman dipakai. Buka halaman ini di laptop atau komputer, atau putar tablet ke posisi mendatar.",
+  "editor.snap": "Magnet",
+  "editor.zoomFit": "Muat semua",
+  "editor.trimStart": "Tarik untuk memotong awal klip",
+  "editor.trimEnd": "Tarik untuk memotong akhir klip",
+  "editor.musicDrag": "Geser untuk memilih bagian lagu yang diputar",
+  "editor.musicStart": "mulai {time}",
+  "editor.copyStyle": "Salin pengaturan",
+  "editor.pasteStyle": "Tempel pengaturan",
+  "editor.styleCopied": "Pengaturan klip disalin. Klik kanan klip lain lalu pilih Tempel pengaturan.",
+  "editor.copied": "Klip disalin. Tekan Ctrl+V untuk menempel setelah klip terpilih."
 }
