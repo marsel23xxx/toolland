@@ -679,5 +679,7 @@
   "editor.transitionAll": "Apply this transition to all clips",
   "editor.transitionLast": "The last clip has no transition. Use Fade in the Media tab for the video ending.",
   "editor.position.custom": "Free",
-  "editor.dragTextHint": "Drag on the preview to move this text anywhere."
+  "editor.dragTextHint": "Drag on the preview to move this text anywhere.",
+  "editor.desktopOnlyTitle": "The video editor only opens on desktop or large tablets",
+  "editor.desktopOnlyBody": "The editor needs a wide screen (at least 1024 pixels) so the timeline and panels are comfortable to use. Open this page on a laptop or computer, or turn your tablet to landscape."
 }

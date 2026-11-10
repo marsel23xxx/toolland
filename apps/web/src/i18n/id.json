@@ -679,5 +679,7 @@
   "editor.transitionAll": "Terapkan transisi ini ke semua klip",
   "editor.transitionLast": "Klip terakhir tidak punya transisi. Pakai Fade di tab Media untuk akhir video.",
   "editor.position.custom": "Bebas",
-  "editor.dragTextHint": "Seret di pratinjau untuk memindahkan teks ini ke mana saja."
+  "editor.dragTextHint": "Seret di pratinjau untuk memindahkan teks ini ke mana saja.",
+  "editor.desktopOnlyTitle": "Edit video hanya bisa dibuka di desktop atau tablet besar",
+  "editor.desktopOnlyBody": "Editor butuh layar lebar (minimal 1024 piksel) agar timeline dan panelnya nyaman dipakai. Buka halaman ini di laptop atau komputer, atau putar tablet ke posisi mendatar."
 }

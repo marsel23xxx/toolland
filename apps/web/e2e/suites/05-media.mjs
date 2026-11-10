@@ -55,6 +55,21 @@ export const tests = [
     },
   },
   {
+    name: 'edit video: di HP hanya keterangan, editor tidak dibuka',
+    path: '/tools/edit-video',
+    async run(h) {
+      const { page } = h;
+      expect(!(await page.$('[data-desktop-only]')), 'keterangan muncul di desktop');
+      await page.setViewport({ width: 390, height: 844 });
+      await page.waitForSelector('[data-desktop-only]');
+      expect(!(await page.$('[data-editor]')), 'editor tetap terbuka di HP');
+      expect(await h.bodyHas('hanya bisa dibuka di desktop'), 'teks keterangan tidak ada');
+      // Tablet mendatar (1024 px) membuka editor lagi.
+      await page.setViewport({ width: 1024, height: 768 });
+      await page.waitForSelector('[data-editor]');
+    },
+  },
+  {
     name: 'edit video: potong, teks, ekspor MP4, simpan dan buka .ayu',
     path: '/tools/edit-video',
     async run(h) {

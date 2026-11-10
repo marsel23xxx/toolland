@@ -34,6 +34,7 @@ import {
   uid,
 } from '../../../../lib/editor/project';
 import { exportVideo } from '../../../../lib/editor/render';
+import IconMonitor from '~icons/lucide/monitor';
 import Dropzone, { type DropzoneMessages } from '../../../ui/Dropzone.vue';
 import FileResults from '../../../ui/FileResults.vue';
 import ProgressBar from '../../../ui/ProgressBar.vue';
@@ -541,6 +542,7 @@ watch(total, (t) => {
 
 function onKey(e: KeyboardEvent) {
   const el = e.target as HTMLElement;
+  if (!wide.value) return;
   const typing = !!el.closest('input, textarea, select, [contenteditable]');
   if (!typing) commitHistory();
   if ((e.ctrlKey || e.metaKey) && !e.altKey && !typing && !empty.value) {
@@ -678,12 +680,24 @@ function transitionAll() {
   }));
 }
 
+// ---------- Hanya layar lebar ----------
+// Timeline dan panel butuh ruang; di HP editor tidak dibuka (cukup keterangan).
+const WIDE_QUERY = '(min-width: 1024px)';
+const wideMq = window.matchMedia(WIDE_QUERY);
+const wide = ref(wideMq.matches);
+function onWideChange(e: MediaQueryListEvent) {
+  wide.value = e.matches;
+  if (!e.matches) playing.value = false;
+}
+
 onMounted(() => {
+  wideMq.addEventListener('change', onWideChange);
   window.addEventListener('keydown', onKey);
   document.addEventListener('fullscreenchange', onFullscreenChange);
   window.addEventListener('beforeunload', onBeforeUnload);
 });
 onBeforeUnmount(() => {
+  wideMq.removeEventListener('change', onWideChange);
   window.removeEventListener('keydown', onKey);
   window.removeEventListener('beforeunload', onBeforeUnload);
   document.removeEventListener('fullscreenchange', onFullscreenChange);
@@ -705,6 +719,17 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
 
 <template>
   <div
+    v-if="!wide"
+    class="flex flex-col items-center gap-3 px-4 py-10 text-center"
+    role="note"
+    data-desktop-only
+  >
+    <IconMonitor class="size-10 text-brand-600 dark:text-brand-400" aria-hidden="true" />
+    <p class="font-display text-xl">{{ t.desktopOnlyTitle }}</p>
+    <p class="max-w-md text-sm leading-relaxed text-ink-2">{{ t.desktopOnlyBody }}</p>
+  </div>
+  <div
+    v-else
     ref="root"
     class="space-y-4"
     :class="{ 'fixed inset-0 z-50 overflow-y-auto bg-paper p-3 sm:p-4': full }"
