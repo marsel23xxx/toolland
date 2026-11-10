@@ -159,7 +159,7 @@ describe('surat kuasa', () => {
       expect(pages).toBe(1);
       const docx = renderDocx(spec);
       const xml = strFromU8(unzipSync(docx)['word/document.xml']);
-      expect(xml).toContain('Dimas Pratama');
+      expect(xml).toContain('Ayudiyah Pratiwi');
       expect(xml).toMatch(/<\/w:tbl><w:p>.*<w:sectPr>/);
       if (lang === 'id') expect(xml).toContain('w:val="dashed"');
       if (DUMP) {
@@ -228,7 +228,7 @@ describe('surat lainnya', () => {
       to: '2026-11-12',
     };
     const xml = strFromU8(unzipSync(renderDocx(izin(v, {})))['word/document.xml']);
-    expect(xml).toContain('Nayla Pratama');
+    expect(xml).toContain('Nayla Marcell');
     expect(xml).toContain('Orang tua/wali siswa');
     expect(xml).toContain('Permohonan Izin Tidak Masuk Sekolah');
   });

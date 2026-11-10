@@ -376,7 +376,7 @@ export function keteranganForm(locale: Locale): DocForm {
       companyAddress: 'Jl. Soekarno-Hatta No. 120, Bandung 40286',
       companyContact: '(022) 555-0123 · hrd@sumberrezeki.co.id',
       number: '045/HRD/SRD/XI/2026',
-      signer: 'Andi Wijaya',
+      signer: 'Ayudiyah Pratiwi',
       signerRole: L(T('Manajer HRD', 'HR Manager')),
       employee: 'Julian Marcell',
       employeeBirth: L(T('Bandung, 12 Mei 2000', 'Bandung, 12 May 2000')),

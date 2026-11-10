@@ -70,7 +70,7 @@ const CLOSING = {
 
 const RECIPIENT = {
   kerja: {
-    recipient: T('Bapak Andi Wijaya', 'Mr Andi Wijaya'),
+    recipient: T('Ibu Ayudiyah Pratiwi', 'Ms Ayudiyah Pratiwi'),
     recipientTitle: T('Kepala Bagian Keuangan', 'Head of Finance'),
     institution: T('PT Sumber Rezeki Distribusi', 'PT Sumber Rezeki Distribusi'),
   },
@@ -398,7 +398,7 @@ export function izinForm(locale: Locale): DocForm {
       name: 'Julian Marcell',
       role: L(T('Staf Keuangan', 'Finance Staff')),
       department: L(T('Keuangan & Akuntansi', 'Finance & Accounting')),
-      student: 'Nayla Pratama',
+      student: 'Nayla Marcell',
       studentClass: '8B',
       from: '',
       to: '',

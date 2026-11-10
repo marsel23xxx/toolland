@@ -310,7 +310,7 @@ export function resignForm(locale: Locale): DocForm {
             kind: 'text',
             label: L(T('Nama atasan / HRD', 'Manager or HR name')),
             max: 100,
-            placeholder: L(T('Bapak Andi Wijaya', 'Mr Andi Wijaya')),
+            placeholder: L(T('Ibu Ayudiyah Pratiwi', 'Ms Ayudiyah Pratiwi')),
           },
           {
             key: 'recipientTitle',
@@ -422,7 +422,7 @@ export function resignForm(locale: Locale): DocForm {
       employeeId: '2023-0815',
       phone: '0812-3456-7890',
       email: 'julian.marcell@email.com',
-      recipient: L(T('Bapak Andi Wijaya', 'Mr Andi Wijaya')),
+      recipient: L(T('Ibu Ayudiyah Pratiwi', 'Ms Ayudiyah Pratiwi')),
       recipientTitle: rt.recipientTitle,
       company: 'PT Sumber Rezeki Distribusi',
       companyAddress: rt.address,

@@ -624,7 +624,7 @@ export const tests = [
           h.page.click('[data-doc-docx]'),
         ),
       );
-      for (const t of ['SURAT KUASA', 'Dimas Pratama', 'rapor adik saya', 'w:val="dashed"'])
+      for (const t of ['SURAT KUASA', 'Ayudiyah Pratiwi', 'rapor adik saya', 'w:val="dashed"'])
         expect(xml.includes(t), `"${t}" tidak ada di Word`);
     },
   },
@@ -636,7 +636,9 @@ export const tests = [
       await h.type('#df-amount', '7.250.000');
       await docPages(h);
       const xml = docxText(
-        await h.downloadVia('Kwitansi-Julian-Marcell.docx', () => h.page.click('[data-doc-docx]')),
+        await h.downloadVia('Kwitansi-Ayudiyah-Pratiwi.docx', () =>
+          h.page.click('[data-doc-docx]'),
+        ),
       );
       for (const t of ['Tujuh juta dua ratus lima puluh ribu rupiah', 'Rp7.250.000,-', 'Meterai'])
         expect(xml.includes(t), `"${t}" tidak ada di Word`);
