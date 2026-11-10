@@ -3,6 +3,7 @@
  * DocumentBuilder.vue (harus bisa diserialisasi: tanpa fungsi). Isian dikirim balik ke fungsi
  * buildDoc() milik template, yang menghasilkan DocSpec untuk PDF dan Word.
  */
+import type { DeckSpec } from '../slides/model';
 import type { DocSpec } from './model';
 
 export type DocItem = Record<string, string>;
@@ -22,7 +23,8 @@ export interface DocField {
   span?: 1 | 2;
   max?: number;
   /** image: "photo" dipotong persegi (JPEG), "signature" tetap transparan (PNG). */
-  image?: 'photo' | 'signature' | 'logo';
+  /** photo: dipotong persegi; cover: foto utuh diperkecil (JPEG); signature/logo: PNG transparan. */
+  image?: 'photo' | 'signature' | 'logo' | 'cover';
   /** Tautan bantuan di bawah field. */
   link?: { href: string; label: string };
 }
@@ -48,6 +50,8 @@ export interface DocSection {
 export interface DocForm {
   /** Kunci pemuat kode template di DocumentBuilder.vue. */
   template: string;
+  /** "deck" untuk template PPT (unduh PPTX + PDF); bawaan dokumen (PDF + Word). */
+  output?: 'doc' | 'deck';
   /** Kunci penyimpanan isian di browser; CV ATS dan CV profesional berbagi "cv". */
   storage: string;
   fileBase: string;
@@ -75,7 +79,8 @@ export type DocAssets = Record<
 >;
 
 export interface DocModule {
-  buildDoc(v: DocValues, assets: DocAssets): DocSpec;
+  buildDoc?(v: DocValues, assets: DocAssets): DocSpec;
+  buildDeck?(v: DocValues, assets: DocAssets): DeckSpec;
 }
 
 export function text(v: DocValues, key: string, max = 200): string {

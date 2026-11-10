@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../../components/templates/TemplatePage.astro';
+import { messages } from '../../../i18n';
+import { SKRIPSI_FORM } from '../../../lib/templates/ppt-skripsi';
+---
+
+<TemplatePage slug="thesis-defense-slides">
+  <DocumentBuilder client:load form={SKRIPSI_FORM.en} m={messages('en', 'docForm')} />
+</TemplatePage>

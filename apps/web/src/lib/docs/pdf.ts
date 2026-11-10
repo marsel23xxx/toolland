@@ -15,7 +15,7 @@ import {
 } from 'pdf-lib';
 import { A4, DEFAULT_LEAD, type Block, type DocSpec, type Run } from './model';
 
-const FONT_FILES = {
+export const FONT_FILES = {
   sans: [
     StandardFonts.Helvetica,
     StandardFonts.HelveticaBold,
@@ -30,7 +30,7 @@ const FONT_FILES = {
   ],
 } as const;
 
-interface Fonts {
+export interface Fonts {
   pick(b?: boolean, i?: boolean): PDFFont;
   clean(text: string): string;
 }
@@ -53,7 +53,7 @@ const SUBSTITUTE: Record<string, string> = {
 };
 
 /** Ganti karakter yang tidak ada di encoding font standar (WinAnsi) dengan padanan terdekat. */
-function makeCleaner(charset: Set<number>) {
+export function makeCleaner(charset: Set<number>) {
   return (text: string) => {
     let out = '';
     for (const ch of text.normalize('NFC').replace(/\t/g, ' ')) {
@@ -92,7 +92,7 @@ export function measure(font: PDFFont, text: string, size: number): number {
   return (w * size) / 1000;
 }
 
-interface Seg {
+export interface Seg {
   text: string;
   font: PDFFont;
   size: number;
@@ -102,21 +102,21 @@ interface Seg {
   w: number;
 }
 /** Satu kata: potongan berurutan tanpa spasi di antaranya (bisa beda gaya, misalnya "kata,"). */
-interface Word {
+export interface Word {
   segs: Seg[];
   w: number;
   /** Lebar spasi setelah kata ini. */
   space: number;
   br?: boolean;
 }
-interface Line {
+export interface Line {
   words: Word[];
   w: number;
   /** Baris terakhir paragraf atau sebelum baris baru paksa: tidak diratakan kanan-kiri. */
   last: boolean;
 }
 
-function toWords(runs: Run[], fonts: Fonts, size: number, color: string): Word[] {
+export function toWords(runs: Run[], fonts: Fonts, size: number, color: string): Word[] {
   const words: Word[] = [];
   let cur: Word | null = null;
   for (const r of runs) {
@@ -587,6 +587,13 @@ function allBlocks(spec: DocSpec): Block[] {
 }
 
 /** Buat PDF dari DocSpec. Mengembalikan byte PDF dan jumlah halaman. */
+/** Pasang empat varian font standar ke dokumen dan siapkan pembersih karakter. */
+export async function embedFonts(doc: PDFDocument, font: 'sans' | 'serif'): Promise<Fonts> {
+  const [r, b, i, bi] = await Promise.all(FONT_FILES[font].map((x) => doc.embedFont(x)));
+  const clean = makeCleaner(new Set(r.getCharacterSet()));
+  return { pick: (bold, italic) => (bold ? (italic ? bi : b) : italic ? i : r), clean };
+}
+
 export async function renderPdf(spec: DocSpec): Promise<{ bytes: Uint8Array; pages: number }> {
   const doc = await PDFDocument.create();
   const files = FONT_FILES[spec.font];

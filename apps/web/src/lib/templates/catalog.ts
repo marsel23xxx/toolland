@@ -25,10 +25,11 @@ export const TEMPLATE_FORMAT_NOTES: Record<TemplateFormat, Record<Locale, string
 };
 
 /** Format yang belum punya template: tab-nya tampil sebagai "segera hadir". */
-export const UPCOMING_FORMATS: TemplateFormat[] = ['ppt'];
+export const UPCOMING_FORMATS: TemplateFormat[] = [];
 
 export const TEMPLATE_CATEGORY_IDS = [
   'karier',
+  'presentasi',
   'surat',
   'keuangan',
   'operasional',
@@ -41,6 +42,7 @@ export type TemplateCategoryId = (typeof TEMPLATE_CATEGORY_IDS)[number];
 
 export const TEMPLATE_CATEGORY_NAMES: Record<TemplateCategoryId, Record<Locale, string>> = {
   karier: { id: 'Lamaran & karier', en: 'Jobs & career' },
+  presentasi: { id: 'Presentasi', en: 'Presentations' },
   surat: { id: 'Surat umum', en: 'Everyday letters' },
   keuangan: { id: 'Keuangan usaha', en: 'Business finance' },
   operasional: { id: 'Operasional & penjualan', en: 'Operations & sales' },
@@ -56,6 +58,10 @@ export const TEMPLATE_CATEGORY_NOTES: Record<TemplateCategoryId, Record<Locale, 
     en: 'Cover letters, resumes, statements, references',
   },
   surat: { id: 'Surat kuasa, surat izin', en: 'Authorization and leave letters' },
+  presentasi: {
+    id: 'Sidang, pitch deck, company profile, laporan',
+    en: 'Thesis, pitch deck, company profile, reports',
+  },
   keuangan: { id: 'Kas, laba rugi, invoice, piutang', en: 'Cash, P&L, invoices, receivables' },
   operasional: { id: 'Stok barang, kasir, penjualan', en: 'Stock, point of sale, sales' },
   proyek: { id: 'RAB, jadwal, Gantt chart', en: 'Cost estimates, schedules, Gantt' },

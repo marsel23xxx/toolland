@@ -46,6 +46,20 @@ export async function processPhoto(file: File): Promise<string> {
   return c.toDataURL('image/jpeg', 0.88);
 }
 
+/** Foto bebas (slide): sisi terpanjang maksimal 1600 px, rasio tetap, JPEG. */
+export async function processCover(file: File): Promise<string> {
+  const img = await fileUrl(file);
+  const s = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(img.naturalWidth * s));
+  c.height = Math.max(1, Math.round(img.naturalHeight * s));
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
 /** Tanda tangan: lebar maksimal 800 px, PNG agar latar transparan tetap. */
 export async function processSignature(file: File): Promise<string> {
   const img = await fileUrl(file);

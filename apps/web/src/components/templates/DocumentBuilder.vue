@@ -38,7 +38,13 @@ const LOADERS: Record<string, () => Promise<DocModule>> = {
   izin: () => import('../../lib/templates/surat-izin'),
   keterangan: () => import('../../lib/templates/surat-keterangan-kerja'),
   kwitansi: () => import('../../lib/templates/kwitansi'),
+  'ppt-skripsi': () => import('../../lib/templates/ppt-skripsi'),
+  'ppt-pitch': () => import('../../lib/templates/ppt-pitch-deck'),
+  'ppt-company': () => import('../../lib/templates/ppt-company-profile'),
+  'ppt-laporan': () => import('../../lib/templates/ppt-laporan'),
 };
+/** Template PPT: unduh PPTX + PDF, pratinjau per slide. */
+const isDeck = f.output === 'deck';
 /** Template yang sebaiknya muat satu halaman (peringatan bila lebih). */
 const LETTERS = new Set([
   'lamaran',
@@ -87,7 +93,7 @@ const sv = values as Record<string, string>;
 const str = (k: string) => (typeof values[k] === 'string' ? (values[k] as string) : '');
 const list = (k: string) => (Array.isArray(values[k]) ? (values[k] as DocItem[]) : []);
 
-const busy = ref<'' | 'pdf' | 'docx'>('');
+const busy = ref<'' | 'pdf' | 'docx' | 'pptx'>('');
 const status = ref('');
 const error = ref('');
 const pages = ref(0);
@@ -156,9 +162,14 @@ async function pickImage(x: DocField, e: Event) {
   if (!file) return;
   imageError.value = '';
   try {
-    const { processPhoto, processSignature } = await import('../../lib/docs/images');
+    const { processCover, processPhoto, processSignature } = await import('../../lib/docs/images');
     // Logo dan tanda tangan sama-sama dipertahankan transparan (PNG).
-    values[x.key] = x.image === 'photo' ? await processPhoto(file) : await processSignature(file);
+    values[x.key] =
+      x.image === 'photo'
+        ? await processPhoto(file)
+        : x.image === 'cover'
+          ? await processCover(file)
+          : await processSignature(file);
   } catch {
     imageError.value = x.key;
   }
@@ -184,12 +195,21 @@ async function collectAssets(): Promise<DocAssets> {
 // --- Buat dokumen ---------------------------------------------------------------------------
 async function buildSpec() {
   const mod = await LOADERS[f.template]();
-  return mod.buildDoc(clone(values), await collectAssets());
+  const assets = await collectAssets();
+  return isDeck
+    ? { deck: mod.buildDeck!(clone(values), assets) }
+    : { doc: mod.buildDoc!(clone(values), assets) };
+}
+
+/** PDF dari dokumen atau presentasi. */
+async function toPdf(spec: Awaited<ReturnType<typeof buildSpec>>) {
+  if (spec.deck) return (await import('../../lib/slides/pdf')).renderDeckPdf(spec.deck);
+  return (await import('../../lib/docs/pdf')).renderPdf(spec.doc!);
 }
 
 const fileBase = computed(() => safeFileName(f.fileBase, str(f.fileKey)) || f.fileBase);
 
-async function download(kind: 'pdf' | 'docx') {
+async function download(kind: 'pdf' | 'docx' | 'pptx') {
   busy.value = kind;
   status.value = '';
   error.value = '';
@@ -197,12 +217,17 @@ async function download(kind: 'pdf' | 'docx') {
     const spec = await buildSpec();
     const name = `${fileBase.value}.${kind}`;
     if (kind === 'pdf') {
-      const { renderPdf } = await import('../../lib/docs/pdf');
-      const { bytes } = await renderPdf(spec);
+      const { bytes } = await toPdf(spec);
       downloadBlob(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }), name);
-    } else {
+    } else if (kind === 'pptx' && spec.deck) {
+      const { renderPptx, PPTX_MIME } = await import('../../lib/slides/pptx');
+      downloadBlob(
+        new Blob([new Uint8Array(await renderPptx(spec.deck))], { type: PPTX_MIME }),
+        name,
+      );
+    } else if (spec.doc) {
       const { renderDocx, DOCX_MIME } = await import('../../lib/docs/docx');
-      downloadBlob(new Blob([new Uint8Array(renderDocx(spec))], { type: DOCX_MIME }), name);
+      downloadBlob(new Blob([new Uint8Array(renderDocx(spec.doc))], { type: DOCX_MIME }), name);
     }
     status.value = fill(m.done, { file: name });
   } catch (e) {
@@ -222,11 +247,8 @@ async function renderPreview() {
   const v = ++version;
   rendering.value = true;
   try {
-    const [{ renderPdf }, pdf] = await Promise.all([
-      import('../../lib/docs/pdf'),
-      import('../../lib/pdf/render'),
-    ]);
-    const { bytes, pages: n } = await renderPdf(await buildSpec());
+    const pdf = await import('../../lib/pdf/render');
+    const { bytes, pages: n } = await toPdf(await buildSpec());
     if (v !== version) return;
     const doc = await pdf.openPdf(
       bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
@@ -513,7 +535,13 @@ const span = (x: DocField) => (x.span === 2 ? 'sm:col-span-2' : '');
                       :src="str(x.key)"
                       alt=""
                       class="h-16 rounded border border-rule bg-white object-contain"
-                      :class="x.image === 'photo' ? 'w-16 object-cover' : 'max-w-40'"
+                      :class="
+                        x.image === 'photo'
+                          ? 'w-16 object-cover'
+                          : x.image === 'cover'
+                            ? 'w-24 object-cover'
+                            : 'max-w-40'
+                      "
                     />
                     <label class="btn btn-secondary px-2.5 py-1.5 cursor-pointer">
                       {{ m.upload }}
@@ -575,14 +603,28 @@ const span = (x: DocField) => (x.span === 2 ? 'sm:col-span-2' : '');
         <p class="flex items-center gap-2 font-semibold">
           <IconFileText class="size-4 text-brand-600" aria-hidden="true" />
           {{ m.preview }}
-          <span v-if="pages" class="eyebrow" data-doc-pages>{{ fill(m.pages, { n: pages }) }}</span>
+          <span v-if="pages" class="eyebrow" data-doc-pages>{{
+            fill(isDeck ? m.slides : m.pages, { n: pages })
+          }}</span>
           <span v-if="rendering" class="text-xs font-normal text-ink-3">{{ m.rendering }}</span>
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
         <button
+          v-if="isDeck"
           type="button"
           class="btn btn-primary"
+          data-doc-pptx
+          :disabled="!!busy"
+          @click="download('pptx')"
+        >
+          <IconDownload aria-hidden="true" />
+          {{ busy === 'pptx' ? m.building : m.pptx }}
+        </button>
+        <button
+          type="button"
+          class="btn"
+          :class="isDeck ? 'btn-secondary' : 'btn-primary'"
           data-doc-pdf
           :disabled="!!busy"
           @click="download('pdf')"
@@ -591,6 +633,7 @@ const span = (x: DocField) => (x.span === 2 ? 'sm:col-span-2' : '');
           {{ busy === 'pdf' ? m.building : m.pdf }}
         </button>
         <button
+          v-if="!isDeck"
           type="button"
           class="btn btn-secondary"
           data-doc-docx

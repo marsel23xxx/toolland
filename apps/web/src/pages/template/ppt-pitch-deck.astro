@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { PITCH_FORM } from '../../lib/templates/ppt-pitch-deck';
+---
+
+<TemplatePage slug="ppt-pitch-deck">
+  <DocumentBuilder client:load form={PITCH_FORM.id} m={messages('id', 'docForm')} />
+</TemplatePage>

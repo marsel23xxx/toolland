@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { COMPANY_FORM } from '../../lib/templates/ppt-company-profile';
+---
+
+<TemplatePage slug="ppt-company-profile">
+  <DocumentBuilder client:load form={COMPANY_FORM.id} m={messages('id', 'docForm')} />
+</TemplatePage>

@@ -25,7 +25,8 @@ const entry = await getEntry('templates', `${locale}/${slug}`);
 if (!entry)
   throw new Error(`Konten template tidak ditemukan: src/content/templates/${locale}/${slug}.md`);
 const { data } = entry;
-const isDoc = data.format === 'dokumen';
+const isDoc = data.format !== 'excel';
+const isPpt = data.format === 'ppt';
 const { Content } = await render(entry);
 
 const idSlug = data.idSlug ?? slug;
@@ -115,7 +116,9 @@ const home = templatesHome(locale);
         <IconCpu class="text-brand-600 dark:text-brand-400" aria-hidden="true" />
         {t(isDoc ? 'template.badgeDoc' : 'template.badge')}
       </span>
-      <span class="text-ink-3">{t(isDoc ? 'template.compatDoc' : 'template.compat')}</span>
+      <span class="text-ink-3">
+        {t(isPpt ? 'template.compatPpt' : isDoc ? 'template.compatDoc' : 'template.compat')}
+      </span>
     </p>
   </header>
 
@@ -139,7 +142,9 @@ const home = templatesHome(locale);
 
   <section class="mt-16 grid gap-10 lg:grid-cols-[1.3fr_1fr]">
     <div>
-      <h2 class="font-display text-3xl">{t(isDoc ? 'template.insideDoc' : 'template.inside')}</h2>
+      <h2 class="font-display text-3xl">
+        {t(isPpt ? 'template.insidePpt' : isDoc ? 'template.insideDoc' : 'template.inside')}
+      </h2>
       <ol class="mt-6 border-t border-ink">
         {data.sheets.map((s, i) => (
           <li class="flex gap-4 border-b border-rule py-3">

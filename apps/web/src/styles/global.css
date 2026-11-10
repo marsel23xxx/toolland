@@ -117,6 +117,11 @@
   --c-dark: var(--secang-dark);
   --c-light: var(--secang-light);
 }
+[data-cat='presentasi'] {
+  --c: var(--terakota);
+  --c-dark: var(--terakota-dark);
+  --c-light: var(--terakota-light);
+}
 [data-cat='surat'] {
   --c: var(--nila);
   --c-dark: var(--nila-dark);

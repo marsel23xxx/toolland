@@ -149,7 +149,9 @@ const cats = TEMPLATE_CATEGORY_IDS.filter(
                     <span class="eyebrow shrink-0">
                       {tpl.data.format === 'excel'
                         ? t('templates.sheets', { n: tpl.data.sheets.length })
-                        : t('templates.docFormats')}
+                        : tpl.data.format === 'ppt'
+                          ? t('templates.pptFormats')
+                          : t('templates.docFormats')}
                     </span>
                   </span>
                   <span class="mt-1 block text-ink-2">{tpl.data.summary}</span>

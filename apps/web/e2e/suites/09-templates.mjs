@@ -72,9 +72,12 @@ export const tests = [
       );
       // Semua template di navbar sudah tersedia (tidak ada label "Segera").
       expect(items.length >= 5 && items.some((x) => x.startsWith('Invoice')), items.join(' | '));
-      // Hanya format PPT yang masih "Segera"; template dokumen dan Excel sudah tersedia.
-      const soonItems = items.filter((x) => x.includes('Segera'));
-      expect(soonItems.length === 1 && soonItems[0].startsWith('PPT'), soonItems.join(' | '));
+      // Semua format (dokumen, Excel, PPT) sudah punya template; tidak ada yang "Segera".
+      expect(!items.some((x) => x.includes('Segera')), items.join(' | '));
+      expect(
+        items.some((x) => x.startsWith('PPT Sidang Skripsi')),
+        'PPT tidak ada di navbar',
+      );
       for (const doc of [
         'Surat Lamaran Kerja',
         'CV ATS',
@@ -488,6 +491,10 @@ export const tests = [
       expect(docs.length === 9 && docs.every((x) => x === 'dokumen'), docs.join(','));
       expect(h.page.url().endsWith('/template?format=dokumen'), h.page.url());
       expect(await h.bodyHas('PDF + Word'), 'label format dokumen tidak tampil');
+      await h.page.click('[data-fmt-tab=ppt]');
+      const ppt = await visible();
+      expect(ppt.length === 4 && ppt.every((x) => x === 'ppt'), ppt.join(','));
+      expect(await h.bodyHas('PPTX + PDF'), 'label format PPT tidak tampil');
       await h.page.click('[data-fmt-tab=excel]');
       const xl = await visible();
       expect(xl.length === 11 && xl.every((x) => x === 'excel'), xl.join(','));
@@ -644,6 +651,65 @@ export const tests = [
         expect(xml.includes(t), `"${t}" tidak ada di Word`);
       // A5 mendatar: lebar halaman 11906 twip, tinggi 8391.
       expect(xml.includes('w:h="8391"'), 'ukuran halaman bukan A5 mendatar');
+    },
+  },
+  {
+    name: 'ppt sidang skripsi: pratinjau slide, ganti gaya, unduh PPTX dan PDF',
+    path: '/template/ppt-sidang-skripsi',
+    async run(h) {
+      const n = await docPages(h);
+      expect(n === 17, `jumlah slide pratinjau ${n}`);
+      expect((await h.text('[data-doc-pages]')) === '17 slide', await h.text('[data-doc-pages]'));
+      await h.page.select('#df-kind', 'sempro');
+      await h.page.select('#df-style', 'gradient');
+      await h.type('#df-name', 'Budi Santoso');
+      await h.page.waitForFunction(
+        () => document.querySelectorAll('[data-doc-preview] canvas').length === 13,
+        { timeout: 30000 },
+      );
+      await docPages(h);
+      const files = unzipSync(
+        new Uint8Array(
+          await h.downloadVia('PPT-Sidang-Budi-Santoso.pptx', () =>
+            h.page.click('[data-doc-pptx]'),
+          ),
+        ),
+      );
+      const slides = Object.keys(files).filter((k) => /^ppt\/slides\/slide\d+\.xml$/.test(k));
+      expect(slides.length === 13, `slide di PPTX: ${slides.length}`);
+      const cover = strFromU8(files['ppt/slides/slide1.xml']);
+      for (const t of ['SEMINAR PROPOSAL', 'Budi Santoso', 'a:gradFill'])
+        expect(cover.includes(t), `"${t}" tidak ada di cover`);
+      const pdf = await h.downloadVia('PPT-Sidang-Budi-Santoso.pdf', () =>
+        h.page.click('[data-doc-pdf]'),
+      );
+      expect(pdf.subarray(0, 5).toString() === '%PDF-', 'bukan PDF');
+      expect(!(await h.page.$('[data-doc-docx]')), 'tombol Word tidak boleh ada di PPT');
+    },
+  },
+  {
+    name: 'company profile: foto galeri masuk ke PPTX',
+    path: '/template/ppt-company-profile',
+    async run(h) {
+      await docPages(h);
+      await h.page.click('[data-doc-section=gallery] summary');
+      const input = await h.page.$('[data-doc-image=gallery1]');
+      await input.uploadFile(h.fixture('foto.jpg'));
+      await h.page.waitForSelector('[data-doc-section=gallery] img', { timeout: 15000 });
+      await docPages(h);
+      const files = unzipSync(
+        new Uint8Array(
+          await h.downloadVia('Company-Profile-Studio-Ruang-Nusa.pptx', () =>
+            h.page.click('[data-doc-pptx]'),
+          ),
+        ),
+      );
+      expect(!!files['ppt/media/image1.jpeg'], Object.keys(files).join(','));
+      const xml = Object.keys(files)
+        .filter((k) => k.startsWith('ppt/slides/slide'))
+        .map((k) => strFromU8(files[k]))
+        .join('');
+      expect(xml.includes('<p:pic>') && xml.includes('Ruang keluarga'), 'galeri tidak ada');
     },
   },
 ];

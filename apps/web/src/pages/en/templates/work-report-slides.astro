@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../../components/templates/TemplatePage.astro';
+import { messages } from '../../../i18n';
+import { LAPORAN_FORM } from '../../../lib/templates/ppt-laporan';
+---
+
+<TemplatePage slug="work-report-slides">
+  <DocumentBuilder client:load form={LAPORAN_FORM.en} m={messages('en', 'docForm')} />
+</TemplatePage>
