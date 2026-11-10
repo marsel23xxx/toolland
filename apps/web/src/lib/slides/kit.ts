@@ -643,7 +643,7 @@ export class Deck {
       if (o.subtitle)
         els.push(
           this.text(
-            { x: 70, y: 404, w: 460, h: 60 },
+            { x: 70, y: 404, w: 360, h: 60 },
             o.subtitle,
             15,
             mix('ffffff', p.primary, 0.2),
@@ -1266,7 +1266,7 @@ export class Deck {
     });
   }
 
-  quote(o: { text: string; by?: string; eyebrow?: string }) {
+  quote(o: { text: string; by?: string; eyebrow?: string; photo?: Asset }) {
     const p = this.p;
     const els: El[] = [];
     let bg: Fill;
@@ -1307,18 +1307,33 @@ export class Deck {
       color = 'ffffff';
       els.push(this.circle(640, -120, 420, { color: 'ffffff', opacity: 0.08 }));
     }
+    // Dengan foto: foto bulat di kiri, kutipan bergeser ke kanan.
+    const qx = o.photo ? 400 : 120;
+    const qw = o.photo ? 480 : 720;
+    if (o.photo) {
+      els.push(this.circle(96, 126, 268, { color: p.accent }));
+      els.push(this.img({ x: 110, y: 140, w: 240, h: 240 }, o.photo, 'cover', 'ellipse'));
+    }
     els.push(
-      this.text({ x: 110, y: 70, w: 140, h: 140 }, [para('“', { b: true })], 160, p.accent, {
-        fit: false,
-      }),
-      this.text({ x: 120, y: 170, w: 720, h: 220 }, [para(o.text, { lead: 1.3 })], 30, color, {
-        valign: 'm',
-      }),
+      this.text(
+        { x: qx - 10, y: 70, w: 140, h: 140 },
+        [para('\u201c', { b: true })],
+        160,
+        p.accent,
+        { fit: false },
+      ),
+      this.text(
+        { x: qx, y: 170, w: qw, h: 220 },
+        [para(o.text, { lead: 1.3 })],
+        o.photo ? 26 : 30,
+        color,
+        { valign: 'm' },
+      ),
     );
     if (o.by)
       els.push(
-        this.rect(120, 410, 40, 3, { color: p.accent }),
-        this.text({ x: 120, y: 422, w: 720, h: 30 }, [para(o.by, { b: true })], 14, color),
+        this.rect(qx, 410, 40, 3, { color: p.accent }),
+        this.text({ x: qx, y: 422, w: qw, h: 30 }, [para(o.by, { b: true })], 14, color),
       );
     this.slides.push({ bg, els });
   }
@@ -1490,5 +1505,694 @@ export class Deck {
           ),
         );
     });
+  }
+
+  // --- Visualisasi data dan slide foto ---------------------------------------------------------
+  /** Warna seri untuk diagram (donat, legenda, SWOT). */
+  get series(): string[] {
+    const p = this.p;
+    return [
+      p.primary,
+      p.accent,
+      p.secondary,
+      mix(p.primary, 'ffffff', 0.55),
+      p.dark,
+      mix(p.accent, 'ffffff', 0.45),
+    ];
+  }
+
+  /** Potongan cincin dari sudut a0 ke a1 (derajat, 0 = atas, searah jarum jam) sebagai poligon. */
+  private ring(
+    cx: number,
+    cy: number,
+    R: number,
+    r: number,
+    a0: number,
+    a1: number,
+    fill: Fill,
+  ): El {
+    const steps = Math.max(2, Math.ceil(((a1 - a0) / 360) * 96));
+    const pt = (rad: number, a: number): [number, number] => {
+      const t = ((a - 90) * Math.PI) / 180;
+      return [(rad * Math.cos(t) + R) / (2 * R), (rad * Math.sin(t) + R) / (2 * R)];
+    };
+    const outer = Array.from({ length: steps + 1 }, (_, i) => pt(R, a0 + ((a1 - a0) * i) / steps));
+    const inner = Array.from({ length: steps + 1 }, (_, i) => pt(r, a1 - ((a1 - a0) * i) / steps));
+    return this.poly(cx - R, cy - R, 2 * R, 2 * R, [...outer, ...inner], fill);
+  }
+
+  donut(o: {
+    title: string;
+    eyebrow?: string;
+    items: { label: string; value: number }[];
+    center?: { value: string; label: string };
+    notes?: string[];
+    format?: (n: number) => string;
+  }) {
+    const { els, body: b } = this.frame(o.title, o.eyebrow);
+    const items = o.items.filter((x) => x.value > 0).slice(0, 6);
+    const total = items.reduce((t, x) => t + x.value, 0) || 1;
+    const R = 155;
+    const cx = b.x + R + 10;
+    const cy = b.y + b.h / 2;
+    let a = 0;
+    items.forEach((it, i) => {
+      const sweep = (it.value / total) * 360;
+      els.push(this.ring(cx, cy, R, R * 0.6, a, a + sweep, { color: this.series[i] }));
+      a += sweep;
+    });
+    if (o.center)
+      els.push(
+        this.text(
+          { x: cx - 80, y: cy - 42, w: 160, h: 46 },
+          [para(o.center.value, { b: true, align: 'c' })],
+          30,
+          this.ink,
+          { valign: 'b', oneLine: true },
+        ),
+        this.text(
+          { x: cx - 70, y: cy + 6, w: 140, h: 36 },
+          [para(o.center.label, { align: 'c' })],
+          11.5,
+          this.body,
+        ),
+      );
+    const lx = b.x + 2 * R + 70;
+    const lw = b.x + b.w - lx;
+    const avail = o.notes?.length ? b.h - 90 : b.h;
+    const rowH = Math.min(54, avail / Math.max(1, items.length));
+    const top = b.y + (avail - rowH * items.length) / 2;
+    const fmt = o.format ?? ((n: number) => n.toLocaleString('id-ID'));
+    items.forEach((it, i) => {
+      const y = top + i * rowH;
+      const pct = Math.round((it.value / total) * 100);
+      els.push(
+        this.round(lx, y + rowH / 2 - 8, 16, 16, this.style === 'geo' ? 0 : 8, {
+          color: this.series[i],
+        }),
+        this.text(
+          { x: lx + 28, y, w: lw - 150, h: rowH },
+          [para(it.label, { b: true })],
+          15,
+          this.ink,
+          { valign: 'm' },
+        ),
+        this.text(
+          { x: lx + lw - 120, y, w: 120, h: rowH },
+          [
+            para(`${pct}%`, { b: true, align: 'r', size: 18, color: this.p.primary }),
+            para(fmt(it.value), { align: 'r', size: 10, color: this.body }),
+          ],
+          18,
+          this.ink,
+          { valign: 'm', fit: false },
+        ),
+      );
+      if (this.style !== 'gradient')
+        els.push(this.rect(lx, y + rowH - 0.5, lw, 0.75, { color: 'e3e1dc' }));
+    });
+    if (o.notes?.length)
+      els.push(
+        this.text(
+          { x: lx, y: b.y + b.h - 80, w: lw, h: 80 },
+          o.notes.filter(Boolean).map((x) => para(x, { bullet: 'dot', after: 4 })),
+          12.5,
+          this.body,
+          { valign: 'b' },
+        ),
+      );
+  }
+
+  lineChart(o: {
+    title: string;
+    eyebrow?: string;
+    points: { label: string; value: number }[];
+    unit?: string;
+    notes?: string[];
+    format?: (n: number) => string;
+  }) {
+    const { els, body: b } = this.frame(o.title, o.eyebrow);
+    const pts = o.points.slice(0, 12);
+    if (!pts.length) return;
+    const p = this.p;
+    const cw = o.notes?.length ? 540 : b.w;
+    const area = { x: b.x + 24, y: b.y + 34, w: cw - 48, h: b.h - 80 };
+    const max = Math.max(...pts.map((x) => x.value), 1);
+    const min = Math.min(0, ...pts.map((x) => x.value));
+    const fmt = o.format ?? ((n: number) => n.toLocaleString('id-ID'));
+    const X = (i: number) =>
+      area.x + (pts.length === 1 ? area.w / 2 : (i * area.w) / (pts.length - 1));
+    const Y = (v: number) => area.y + area.h - ((v - min) / (max - min || 1)) * area.h;
+    if (o.unit)
+      els.push(
+        this.text({ x: b.x, y: b.y - 4, w: cw, h: 18 }, o.unit, 11, this.body, { fit: false }),
+      );
+    for (let g = 0; g <= 3; g++)
+      els.push(
+        this.rect(b.x, area.y + (area.h * g) / 3, cw, 0.6, {
+          color: g === 3 ? mix(p.dark, 'ffffff', 0.7) : 'e4e4e9',
+        }),
+      );
+    if (pts.length > 1) {
+      const poly: [number, number][] = [
+        ...pts.map(
+          (x, i) => [(X(i) - area.x) / area.w, (Y(x.value) - area.y) / area.h] as [number, number],
+        ),
+        [1, 1],
+        [0, 1],
+      ];
+      els.push(
+        this.poly(
+          area.x,
+          area.y,
+          area.w,
+          area.h,
+          poly,
+          this.style === 'gradient'
+            ? { ...this.grad, opacity: 0.25 }
+            : { color: p.primary, opacity: 0.12 },
+        ),
+      );
+    }
+    for (let i = 1; i < pts.length; i++)
+      els.push({
+        t: 'shape',
+        geom: 'line',
+        x: X(i - 1),
+        y: Y(pts[i - 1].value),
+        w: X(i) - X(i - 1),
+        h: Y(pts[i].value) - Y(pts[i - 1].value),
+        line: { color: p.primary, w: 3 },
+      });
+    pts.forEach((pt, i) => {
+      const last = i === pts.length - 1;
+      els.push(
+        this.circle(
+          X(i) - 6,
+          Y(pt.value) - 6,
+          12,
+          { color: last ? p.accent : 'ffffff' },
+          { color: last ? p.accent : p.primary, w: 2.5 },
+        ),
+        this.text(
+          { x: X(i) - 40, y: Y(pt.value) - 30, w: 80, h: 18 },
+          [para(fmt(pt.value), { b: true, align: 'c' })],
+          11,
+          this.ink,
+          { fit: false },
+        ),
+        this.text(
+          { x: X(i) - 45, y: area.y + area.h + 8, w: 90, h: 30 },
+          [para(pt.label, { align: 'c' })],
+          pts.length > 8 ? 9 : 11,
+          this.body,
+        ),
+      );
+    });
+    if (o.notes?.length) {
+      const inner = this.card(els, { x: b.x + 572, y: b.y, w: b.w - 572, h: b.h });
+      els.push(
+        this.text(
+          inner,
+          o.notes.filter(Boolean).map((x) => para(x, { bullet: 'dot', after: 8, lead: 1.3 })),
+          14,
+          this.body,
+          { valign: 'm' },
+        ),
+      );
+    }
+  }
+
+  progress(o: {
+    title: string;
+    eyebrow?: string;
+    items: { label: string; value: number; note?: string }[];
+  }) {
+    const { els, body: b } = this.frame(o.title, o.eyebrow);
+    const items = o.items.slice(0, 6);
+    const p = this.p;
+    const rowH = Math.min(64, b.h / Math.max(1, items.length));
+    const top = b.y + (b.h - rowH * items.length) / 2;
+    const lw = 250;
+    const tx = b.x + lw + 20;
+    const tw = b.w - lw - 110;
+    items.forEach((it, i) => {
+      const y = top + i * rowH;
+      const pct = Math.max(0, it.value);
+      const fillW = Math.max(6, (Math.min(100, pct) / 100) * tw);
+      const done = pct >= 100;
+      const trackFill = { color: mix(p.primary, 'ffffff', 0.88) };
+      const fill: Fill =
+        this.style === 'gradient'
+          ? this.grad
+          : { color: done && this.style === 'geo' ? p.accent : p.primary };
+      els.push(
+        this.text(
+          { x: b.x, y, w: lw, h: rowH },
+          [
+            para(it.label, { b: true }),
+            ...(it.note ? [para(it.note, { size: 10.5, color: this.body })] : []),
+          ],
+          14.5,
+          this.ink,
+          { valign: 'm' },
+        ),
+        this.style === 'gradient'
+          ? this.round(tx, y + rowH / 2 - 7, tw, 14, 7, trackFill)
+          : this.rect(tx, y + rowH / 2 - 6, tw, 12, trackFill),
+        this.style === 'gradient'
+          ? this.round(tx, y + rowH / 2 - 7, fillW, 14, 7, fill)
+          : this.rect(tx, y + rowH / 2 - 6, fillW, 12, fill),
+        this.text(
+          { x: tx + tw + 14, y, w: 80, h: rowH },
+          [para(`${Math.round(pct)}%`, { b: true, align: 'r' })],
+          18,
+          done ? p.primary : this.ink,
+          { valign: 'm', fit: false },
+        ),
+      );
+    });
+  }
+
+  timeline(o: {
+    title: string;
+    eyebrow?: string;
+    items: { when: string; title: string; text?: string }[];
+  }) {
+    const { els, body: b } = this.frame(o.title, o.eyebrow);
+    const items = o.items.slice(0, 6);
+    const n = items.length || 1;
+    const p = this.p;
+    const midY = b.y + b.h / 2;
+    const slot = b.w / n;
+    els.push(
+      this.style === 'gradient'
+        ? this.round(b.x, midY - 2, b.w, 4, 2, this.grad)
+        : this.rect(b.x, midY - 1.5, b.w, 3, {
+            color: this.style === 'minimal' ? mix(p.primary, 'ffffff', 0.5) : p.primary,
+          }),
+    );
+    items.forEach((it, i) => {
+      const cx = b.x + slot * i + slot / 2;
+      const up = i % 2 === 0;
+      const d = 20;
+      const dot: Fill =
+        this.style === 'gradient' ? this.grad : { color: i === n - 1 ? p.accent : p.primary };
+      els.push(
+        this.style === 'geo'
+          ? this.rect(cx - d / 2, midY - d / 2, d, d, dot, { rot: 45 })
+          : this.circle(cx - d / 2, midY - d / 2, d, dot, { color: 'ffffff', w: 3 }),
+        this.rect(cx - 0.5, up ? midY - 34 : midY + 14, 1, 20, {
+          color: mix(p.primary, 'ffffff', 0.5),
+        }),
+      );
+      const bw = Math.min(200, slot - 12);
+      const box = { x: cx - bw / 2, y: up ? b.y : midY + 38, w: bw, h: b.h / 2 - 40 };
+      const paras: TextPara[] = [
+        para(it.when, {
+          b: true,
+          color:
+            this.style === 'minimal' ? p.primary : this.style === 'geo' ? p.accent : p.secondary,
+          size: 18,
+          after: 2,
+          align: 'c',
+        }),
+        para(it.title, { b: true, after: 3, align: 'c' }),
+      ];
+      if (it.text)
+        paras.push(para(it.text, { size: 11, color: this.body, align: 'c', lead: 1.25 }));
+      els.push(this.text(box, paras, 13.5, this.ink, { valign: up ? 'b' : 't' }));
+    });
+  }
+
+  swot(o: { title: string; eyebrow?: string; quads: { head: string; items: string[] }[] }) {
+    const { els, body: b } = this.frame(o.title, o.eyebrow);
+    const gap = 16;
+    const w = (b.w - gap) / 2;
+    const h = (b.h - gap) / 2;
+    const p = this.p;
+    const colors = [p.primary, p.secondary, p.accent, p.dark];
+    o.quads.slice(0, 4).forEach((q, i) => {
+      const x = b.x + (i % 2) * (w + gap);
+      const y = b.y + Math.floor(i / 2) * (h + gap);
+      const letter = q.head.trim()[0]?.toUpperCase() ?? '';
+      const bx = this.style === 'minimal' ? x : x + 14;
+      if (this.style === 'minimal') els.push(this.rect(x, y, w, 2, { color: colors[i] }));
+      else if (this.style === 'gradient')
+        els.push(
+          this.round(
+            x,
+            y,
+            w,
+            h,
+            14,
+            { color: 'ffffff' },
+            { color: mix(p.primary, 'ffffff', 0.82), w: 0.75 },
+          ),
+        );
+      else els.push(this.rect(x, y, w, h, { color: mix(colors[i], 'ffffff', 0.9) }));
+      els.push(
+        this.style === 'gradient'
+          ? this.circle(bx, y + 14, 44, { color: colors[i] })
+          : this.rect(bx, y + 14, 44, 44, { color: colors[i] }),
+        this.text(
+          { x: bx, y: y + 14, w: 44, h: 44 },
+          [para(letter, { b: true, align: 'c' })],
+          22,
+          'ffffff',
+          { valign: 'm', fit: false },
+        ),
+        this.text(
+          { x: bx + 58, y: y + 14, w: w - 90, h: 44 },
+          [para(q.head, { b: true })],
+          17,
+          this.ink,
+          { valign: 'm' },
+        ),
+        this.text(
+          { x: bx + 4, y: y + 68, w: w - 36, h: h - 80 },
+          q.items.filter(Boolean).map((t) => para(t, { bullet: 'dot', after: 4, lead: 1.25 })),
+          12.5,
+          this.body,
+        ),
+      );
+    });
+  }
+
+  /** Lingkaran bertingkat (misalnya TAM, SAM, SOM) dengan keterangan di kanan. */
+  circles(o: {
+    title: string;
+    eyebrow?: string;
+    items: { value: string; label: string; note?: string }[];
+  }) {
+    const { els, body: b } = this.frame(o.title, o.eyebrow);
+    const items = o.items.filter((x) => x.value || x.label).slice(0, 3);
+    const p = this.p;
+    const D = b.h + 6;
+    const base = b.y + b.h + 2;
+    const cx = b.x + D / 2;
+    const fills: Fill[] = [
+      { color: mix(p.primary, 'ffffff', 0.86) },
+      { color: mix(p.primary, 'ffffff', 0.55) },
+      this.style === 'gradient' ? this.grad : { color: p.primary },
+    ];
+    items.forEach((it, i) => {
+      const d = D * [1, 0.66, 0.36][i];
+      els.push(this.circle(cx - d / 2, base - d, d, fills[i]));
+      const ly = i === 2 ? base - d / 2 - 14 : base - d + 16;
+      els.push(
+        this.text(
+          { x: cx - 80, y: ly, w: 160, h: 28 },
+          [para(it.value, { b: true, align: 'c' })],
+          i === 2 ? 18 : 16,
+          i === 2 ? 'ffffff' : this.ink,
+          { oneLine: true },
+        ),
+      );
+    });
+    const lx = b.x + D + 60;
+    const lw = b.x + b.w - lx;
+    const rowH = b.h / Math.max(1, items.length);
+    items.forEach((it, i) => {
+      const y = b.y + i * rowH;
+      els.push(
+        this.circle(
+          lx,
+          y + 14,
+          20,
+          fills[i],
+          i === 0 ? { color: mix(p.primary, 'ffffff', 0.6), w: 1 } : undefined,
+        ),
+        this.text(
+          { x: lx + 34, y, w: lw - 34, h: rowH - 8 },
+          [
+            para(it.value, { b: true, size: 26, color: p.primary, after: 2, lead: 1.05 }),
+            para(it.label, { b: true, after: 2 }),
+            ...(it.note ? [para(it.note, { size: 12, color: this.body })] : []),
+          ],
+          15,
+          this.ink,
+        ),
+      );
+    });
+  }
+
+  pricing(o: {
+    title: string;
+    eyebrow?: string;
+    plans: { name: string; price: string; period?: string; features: string[] }[];
+    highlight?: number;
+  }) {
+    const { els, body: b } = this.frame(o.title, o.eyebrow);
+    const plans = o.plans.slice(0, 3);
+    const n = plans.length || 1;
+    const gap = 22;
+    const w = (b.w - gap * (n - 1)) / n;
+    const p = this.p;
+    const hi = o.highlight ?? Math.min(1, n - 1);
+    plans.forEach((pl, i) => {
+      const x = b.x + i * (w + gap);
+      const on = i === hi;
+      const y = on ? b.y - 8 : b.y + 8;
+      const h = on ? b.h + 16 : b.h - 16;
+      const fg = on ? 'ffffff' : this.ink;
+      const sub = on ? mix('ffffff', p.primary, 0.2) : this.body;
+      if (on)
+        els.push(
+          this.style === 'gradient'
+            ? this.round(x, y, w, h, 16, this.grad)
+            : this.rect(x, y, w, h, { color: this.style === 'minimal' ? p.primary : p.dark }),
+        );
+      else if (this.style === 'gradient')
+        els.push(
+          this.round(
+            x,
+            y,
+            w,
+            h,
+            16,
+            { color: 'ffffff' },
+            { color: mix(p.primary, 'ffffff', 0.82), w: 0.75 },
+          ),
+        );
+      else
+        els.push(
+          this.rect(
+            x,
+            y,
+            w,
+            h,
+            { color: this.style === 'geo' ? mix(p.primary, 'ffffff', 0.93) : 'ffffff' },
+            { line: this.style === 'minimal' ? { color: 'd8d4cb', w: 0.75 } : undefined },
+          ),
+        );
+      if (on && this.style === 'geo') els.push(this.rect(x, y, w, 6, { color: p.accent }));
+      els.push(
+        this.text(
+          { x: x + 22, y: y + 22, w: w - 44, h: 22 },
+          [para(pl.name.toUpperCase(), { b: true })],
+          12,
+          on ? (this.style === 'geo' ? p.accent : 'ffffff') : p.primary,
+          { track: 1.2, fit: false },
+        ),
+        this.text(
+          { x: x + 22, y: y + 48, w: w - 44, h: 46 },
+          [para(pl.price, { b: true })],
+          32,
+          fg,
+          { valign: 'b', oneLine: true },
+        ),
+        this.text({ x: x + 22, y: y + 96, w: w - 44, h: 20 }, pl.period ?? '', 11, sub, {
+          fit: false,
+        }),
+        this.rect(x + 22, y + 124, w - 44, 0.75, {
+          color: on ? mix('ffffff', p.primary, 0.5) : 'dddddd',
+        }),
+        this.text(
+          { x: x + 22, y: y + 136, w: w - 44, h: h - 150 },
+          pl.features.filter(Boolean).map((f) => para(f, { bullet: 'dot', after: 6, lead: 1.25 })),
+          12.5,
+          on ? 'ffffff' : this.body,
+        ),
+      );
+    });
+  }
+
+  /** Slide foto penuh dengan pernyataan besar. */
+  statement(o: { text: string; sub?: string; eyebrow?: string; image?: Asset }) {
+    const p = this.p;
+    const els: El[] = [];
+    let bg: Fill = { color: p.dark };
+    if (this.style === 'minimal') {
+      bg = { color: mix(p.light, 'ffffff', 0.55) };
+      if (o.image) els.push(this.img({ x: 480, y: 0, w: 480, h: SLIDE.h }, o.image));
+      else els.push(this.rect(480, 0, 480, SLIDE.h, { color: mix(p.primary, 'ffffff', 0.85) }));
+      els.push(this.circle(436, 400, 88, { color: p.accent }));
+      if (o.eyebrow)
+        els.push(
+          this.rect(64, 150, 26, 1.5, { color: p.accent }),
+          this.text(
+            { x: 100, y: 142, w: 340, h: 16 },
+            [para(o.eyebrow.toUpperCase(), { b: true })],
+            9.5,
+            p.primary,
+            { track: 2, fit: false },
+          ),
+        );
+      els.push(
+        this.text({ x: 64, y: 170, w: 370, h: 200 }, [para(o.text, { lead: 1.2 })], 32, this.ink),
+      );
+      if (o.sub) els.push(this.text({ x: 64, y: 380, w: 340, h: 90 }, o.sub, 14, '5a5a5a'));
+    } else {
+      if (o.image) els.push(this.img({ x: 0, y: 0, w: SLIDE.w, h: SLIDE.h }, o.image));
+      if (this.style === 'gradient')
+        els.push(
+          this.rect(0, 0, SLIDE.w, SLIDE.h, {
+            grad: {
+              angle: 35,
+              stops: [
+                [p.primary, 0],
+                [p.secondary, 1],
+              ],
+            },
+            opacity: o.image ? 0.8 : 1,
+          }),
+        );
+      else
+        els.push(
+          this.rect(0, 0, SLIDE.w, SLIDE.h, { color: p.dark, opacity: o.image ? 0.64 : 1 }),
+          this.rect(0, 0, 14, SLIDE.h, { color: p.accent }),
+          this.poly(
+            0,
+            0,
+            SLIDE.w,
+            SLIDE.h,
+            [
+              [0.84, 0],
+              [1, 0],
+              [1, 0.3],
+            ],
+            { color: p.accent },
+          ),
+        );
+      if (o.eyebrow)
+        els.push(
+          this.text(
+            { x: 80, y: 150, w: 700, h: 20 },
+            [para(o.eyebrow.toUpperCase(), { b: true })],
+            11,
+            this.style === 'geo' ? p.accent : 'ffffff',
+            { track: 2, fit: false },
+          ),
+        );
+      els.push(
+        this.text(
+          { x: 80, y: 176, w: 720, h: 200 },
+          [para(o.text, { b: true, lead: 1.15 })],
+          38,
+          'ffffff',
+        ),
+      );
+      if (o.sub)
+        els.push(
+          this.rect(80, 392, 60, 4, { color: p.accent }),
+          this.text({ x: 80, y: 408, w: 640, h: 70 }, o.sub, 15, mix('ffffff', p.dark, 0.12)),
+        );
+    }
+    this.slides.push({ bg, els });
+  }
+
+  /** Diagram model penelitian: beberapa variabel (X) menuju satu variabel (Y). */
+  model(o: {
+    title: string;
+    eyebrow?: string;
+    inputs: string[];
+    output: string;
+    labels?: string[];
+    note?: string;
+  }) {
+    const { els, body: b } = this.frame(o.title, o.eyebrow);
+    const inputs = o.inputs.filter(Boolean).slice(0, 5);
+    const n = inputs.length || 1;
+    const p = this.p;
+    const bw = 250;
+    const bh = Math.min(64, (b.h - 20 * (n - 1)) / n);
+    const gap = n > 1 ? (b.h - bh * n) / (n - 1) : 0;
+    const out = { x: b.x + b.w - 260, y: b.y + b.h / 2 - 50, w: 260, h: 100 };
+    const inFill: Fill = { color: this.style === 'geo' ? mix(p.primary, 'ffffff', 0.9) : 'ffffff' };
+    const outFill: Fill =
+      this.style === 'gradient'
+        ? this.grad
+        : { color: this.style === 'minimal' ? p.primary : p.dark };
+    inputs.forEach((label, i) => {
+      const y = n === 1 ? b.y + b.h / 2 - bh / 2 : b.y + i * (bh + gap);
+      const sx = b.x + bw;
+      const sy = y + bh / 2;
+      const ex = out.x;
+      const ey = out.y + out.h / 2;
+      els.push(
+        {
+          t: 'shape',
+          geom: 'line',
+          x: sx,
+          y: sy,
+          w: ex - sx,
+          h: ey - sy,
+          line: { color: mix(p.primary, 'ffffff', 0.35), w: 1.75 },
+        },
+        this.circle(ex - 5, ey - 5, 10, { color: p.accent }),
+        this.style === 'gradient'
+          ? this.round(b.x, y, bw, bh, 12, inFill, { color: mix(p.primary, 'ffffff', 0.75), w: 1 })
+          : this.rect(b.x, y, bw, bh, inFill, {
+              line: { color: mix(p.primary, 'ffffff', 0.6), w: 1 },
+            }),
+      );
+      if (this.style === 'geo') els.push(this.rect(b.x, y, 6, bh, { color: p.primary }));
+      els.push(
+        this.text({ x: b.x + 16, y, w: bw - 26, h: bh }, [para(label, { b: true })], 14, this.ink, {
+          valign: 'm',
+        }),
+      );
+      const lab = o.labels?.[i];
+      if (lab) {
+        const mx = sx + (ex - sx) * 0.42;
+        const my = sy + (ey - sy) * 0.42;
+        els.push(
+          this.round(mx - 22, my - 12, 44, 24, 12, {
+            color: this.style === 'geo' ? p.accent : p.primary,
+          }),
+          this.text(
+            { x: mx - 22, y: my - 12, w: 44, h: 24 },
+            [para(lab, { b: true, align: 'c' })],
+            10.5,
+            'ffffff',
+            { valign: 'm', fit: false },
+          ),
+        );
+      }
+    });
+    els.push(
+      this.style === 'gradient'
+        ? this.round(out.x, out.y, out.w, out.h, 16, outFill)
+        : this.rect(out.x, out.y, out.w, out.h, outFill),
+    );
+    els.push(
+      this.text(
+        { x: out.x + 16, y: out.y, w: out.w - 32, h: out.h },
+        [para(o.output, { b: true, align: 'c' })],
+        18,
+        'ffffff',
+        { valign: 'm' },
+      ),
+    );
+    if (o.note)
+      els.push(
+        this.text(
+          { x: out.x, y: out.y + out.h + 16, w: out.w, h: 80 },
+          [para(o.note, { align: 'c', lead: 1.3 })],
+          11.5,
+          this.body,
+        ),
+      );
   }
 }

@@ -2,7 +2,7 @@
 name: 'Pitch Deck'
 title: 'Free Pitch Deck and Business Proposal PowerPoint Template'
 description: 'Build a pitch deck for investors, competitions, or small-business proposals: problem, solution, market, traction, team, and funding. PowerPoint and PDF.'
-summary: '12-slide pitch deck: problem, market, traction, team, funding.'
+summary: '17-slide pitch deck with photos, traction chart, TAM/SAM/SOM, and funding.'
 category: 'presentasi'
 format: 'ppt'
 idSlug: 'ppt-pitch-deck'
@@ -29,7 +29,8 @@ sheets:
     desc: 'The amount sought, use of funds, and contact details.'
 features:
   - 'The slide order investors and judges expect'
-  - 'Traction chart and comparison table built from the data you type'
+  - '17 slides with line and bar charts, donut charts, a timeline, and pricing cards'
+  - 'Free-to-use (CC0) sample photos you can replace with your own'
   - 'Three design styles and five colour palettes'
   - 'Add a logo, cover photo, and product photo'
   - 'Download an editable PowerPoint (.pptx) and a PDF to send'
@@ -44,13 +45,15 @@ howTo:
   - 'Download PowerPoint to adjust, or PDF to send to investors.'
 faq:
   - q: 'How many slides should a pitch deck have?'
-    a: 'About 10 to 15. This template makes 12 slides covering what investors usually ask.'
+    a: 'About 12 to 20. This template makes 17 slides; delete any you do not need in PowerPoint.'
   - q: 'What are TAM, SAM, and SOM?'
     a: 'TAM is the total market, SAM the part you can serve, and SOM the share you can realistically win in the next few years.'
   - q: 'What if I have no traction yet?'
     a: 'Leave the chart data empty and the traction slide is skipped.'
   - q: 'Is my business data safe?'
     a: 'Yes. Slides are built in your browser and nothing is sent to a server.'
+  - q: 'Can I use the sample photos?'
+    a: 'Yes. All sample photos come from StockSnap.io under the CC0 licence (public domain), so they are free to use, including commercially, with no attribution required. You can also replace them with your own.'
 ---
 
 ## How to structure a convincing pitch deck

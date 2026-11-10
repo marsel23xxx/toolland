@@ -138,3 +138,74 @@ export const numberFormat = (v: DocValues) => {
   const loc = v.lang === 'en' ? 'en-US' : 'id-ID';
   return (n: number) => n.toLocaleString(loc);
 };
+
+const num = (s = '') => {
+  const n = Number(
+    s
+      .replace(/[^\d,.-]/g, '')
+      .replace(/\./g, '')
+      .replace(',', '.'),
+  );
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** Baris "waktu | judul | keterangan" -> item linimasa. */
+export function timelineItems(v: DocValues, key: string, max = 6) {
+  return rows(v, key, max).map(([when = '', title = '', text = '']) => ({ when, title, text }));
+}
+
+/** Baris "label | persen | catatan" -> bilah progres. */
+export function percents(v: DocValues, key: string, max = 6) {
+  return rows(v, key, max).map(([label = '', value = '', note = '']) => ({
+    label,
+    value: num(value),
+    note,
+  }));
+}
+
+/** Baris "nama | harga | periode | fitur; fitur; fitur" -> paket harga. */
+export function plans(v: DocValues, key: string, max = 3) {
+  return rows(v, key, max).map(([name = '', price = '', period = '', features = '']) => ({
+    name,
+    price,
+    period,
+    features: features
+      .split(';')
+      .map((x) => x.trim())
+      .filter(Boolean),
+  }));
+}
+
+/** Baris "huruf/judul: poin; poin" untuk SWOT, satu kuadran per baris. */
+export function quads(v: DocValues, key: string) {
+  return lines(longText(v, key, 3000), 4).map((l) => {
+    const [head, ...rest] = l.split(':');
+    return {
+      head: head.trim(),
+      items: rest
+        .join(':')
+        .split(';')
+        .map((x) => x.trim())
+        .filter(Boolean),
+    };
+  });
+}
+
+/** Field foto dengan foto contoh bawaan (bisa diganti pengguna). */
+export function photoField(
+  key: string,
+  label: { id: string; en: string },
+  locale: Locale,
+): DocField {
+  return {
+    key,
+    kind: 'image',
+    image: 'cover',
+    label: label[locale],
+    span: 2,
+    hint:
+      locale === 'id'
+        ? 'Berisi foto contoh bebas pakai (CC0). Ganti dengan fotomu sendiri atau hapus.'
+        : 'Starts with a free-to-use sample photo (CC0). Replace it with your own or remove it.',
+  };
+}

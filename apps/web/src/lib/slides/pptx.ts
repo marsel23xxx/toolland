@@ -48,8 +48,16 @@ export function fillXml(f?: Fill): string {
 }
 
 function xfrm(x: number, y: number, w: number, h: number, rot?: number) {
-  const r = rot ? ` rot="${Math.round(rot * 60000)}"` : '';
-  return `<a:xfrm${r}><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${Math.max(1, emu(w))}" cy="${Math.max(1, emu(h))}"/></a:xfrm>`;
+  // Lebar/tinggi negatif (garis miring ke kiri atau ke atas) menjadi flipH/flipV.
+  const flipH = w < 0;
+  const flipV = h < 0;
+  if (flipH) x += w;
+  if (flipV) y += h;
+  const attrs =
+    (rot ? ` rot="${Math.round(rot * 60000)}"` : '') +
+    (flipH ? ' flipH="1"' : '') +
+    (flipV ? ' flipV="1"' : '');
+  return `<a:xfrm${attrs}><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${Math.max(1, emu(Math.abs(w)))}" cy="${Math.max(1, emu(Math.abs(h)))}"/></a:xfrm>`;
 }
 
 function geomXml(el: {
@@ -63,7 +71,10 @@ function geomXml(el: {
     case 'ellipse':
       return '<a:prstGeom prst="ellipse"><a:avLst/></a:prstGeom>';
     case 'round': {
-      const adj = Math.min(50000, Math.round(((el.r ?? 8) / Math.min(el.w, el.h)) * 100000));
+      const adj = Math.min(
+        50000,
+        Math.round(((el.r ?? 8) / Math.min(Math.abs(el.w), Math.abs(el.h))) * 100000),
+      );
       return `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val ${adj}"/></a:avLst></a:prstGeom>`;
     }
     case 'line':

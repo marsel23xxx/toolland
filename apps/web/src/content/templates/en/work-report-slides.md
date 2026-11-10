@@ -28,7 +28,8 @@ sheets:
   - name: 'Plan and closing'
     desc: 'Next period’s plan as a flow, then a Q&A slide.'
 features:
-  - 'Bar chart built from "label | number" lines'
+  - '16 slides with line and bar charts, a donut chart, progress bars, and SWOT'
+  - 'Free-to-use (CC0) sample photos you can replace with your own'
   - 'Target vs actual table and big-number KPIs'
   - 'Three design styles and five colour palettes'
   - 'Download an editable PowerPoint (.pptx) and a PDF'
@@ -37,7 +38,7 @@ previews:
   - file: 'cover'
     caption: 'Bold Geometric cover'
   - file: 'isi'
-    caption: 'KPIs as big numbers'
+    caption: 'Donut chart of orders by channel'
 howTo:
   - 'Choose a style and colours, then enter the title, period, and team.'
   - 'Fill in the summary, KPIs, chart data, targets, highlights, challenges, and plan.'
@@ -51,6 +52,8 @@ faq:
     a: 'The chart is made of normal shapes and text, so colours and labels can be changed directly. To change values, update the form here and download again.'
   - q: 'Is my report data uploaded?'
     a: 'No. Slides are built in your browser and saved in this browser only.'
+  - q: 'Can I use the sample photos?'
+    a: 'Yes. All sample photos come from StockSnap.io under the CC0 licence (public domain), so they are free to use, including commercially, with no attribution required. You can also replace them with your own.'
 ---
 
 ## How to present a clear work report

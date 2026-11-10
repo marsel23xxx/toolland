@@ -2,6 +2,7 @@
  * Olah gambar untuk template dokumen di browser: foto dipotong persegi (JPEG), tanda tangan
  * diperkecil dengan latar transparan tetap (PNG), dan versi foto bulat untuk CV profesional.
  */
+import { SAMPLE_PHOTOS, sampleName, samplePhotoUrl } from '../slides/photos';
 import type { DocAssets } from './form';
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -80,8 +81,23 @@ function dataUrlBytes(url: string): Uint8Array {
 
 const cache = new Map<string, DocAssets[string]>();
 
-/** Data URL -> aset siap pakai. `circle` membuat versi bulat transparan (PNG). */
+/** Foto contoh bawaan (sample:<nama>) -> aset, dimuat dari folder publik situs ini. */
+async function sampleAsset(value: string): Promise<DocAssets[string] | undefined> {
+  const name = sampleName(value);
+  if (!name) return undefined;
+  const hit = cache.get(value);
+  if (hit) return hit;
+  const res = await fetch(samplePhotoUrl(name));
+  if (!res.ok) return undefined;
+  const { w, h } = SAMPLE_PHOTOS[name];
+  const asset = { data: new Uint8Array(await res.arrayBuffer()), type: 'jpeg' as const, w, h };
+  cache.set(value, asset);
+  return asset;
+}
+
+/** Data URL atau foto contoh -> aset siap pakai. `circle` membuat versi bulat transparan (PNG). */
 export async function toAsset(url: string, circle = false): Promise<DocAssets[string] | undefined> {
+  if (sampleName(url) && !circle) return sampleAsset(url);
   if (!url.startsWith('data:image/')) return undefined;
   const key = (circle ? 'c:' : '') + url;
   const hit = cache.get(key);

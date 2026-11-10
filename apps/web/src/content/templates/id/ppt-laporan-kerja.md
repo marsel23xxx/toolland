@@ -20,15 +20,16 @@ sheets:
   - name: 'Ringkasan dan KPI'
     desc: 'Poin utama dengan angka sorotan, lalu sampai empat KPI sebagai angka besar.'
   - name: 'Grafik tren'
-    desc: 'Grafik batang per minggu atau per bulan dengan catatan di sampingnya.'
+    desc: 'Grafik garis tren 6 bulan, grafik batang mingguan, dan donat porsi per kanal.'
   - name: 'Target vs realisasi'
-    desc: 'Tabel indikator, target, realisasi, dan persentase capaian.'
+    desc: 'Bilah progres capaian dan tabel indikator, target, realisasi, serta persentase.'
   - name: 'Pencapaian, kendala, dan solusi'
-    desc: 'Pencapaian dalam kartu, lalu kendala dan solusi berdampingan.'
+    desc: 'Pencapaian, foto dokumentasi kegiatan, evaluasi SWOT, serta kendala dan solusi.'
   - name: 'Rencana dan penutup'
-    desc: 'Rencana periode berikutnya sebagai alur, lalu slide tanya jawab.'
+    desc: 'Slide foto fokus berikutnya, rencana sebagai linimasa, dan slide tanya jawab.'
 features:
-  - 'Grafik batang dibuat otomatis dari baris "label | angka"'
+  - '16 slide dengan grafik garis, grafik batang, donat, bilah progres, dan SWOT'
+  - 'Foto contoh bebas pakai (CC0) yang bisa diganti fotomu sendiri'
   - 'Tabel target vs realisasi dan KPI angka besar'
   - 'Tiga gaya desain dan lima palet warna'
   - 'Unduh PowerPoint (.pptx) yang bisa diedit dan PDF untuk arsip'
@@ -38,7 +39,7 @@ previews:
   - file: 'cover'
     caption: 'Cover gaya Geometris Berani'
   - file: 'isi'
-    caption: 'KPI sebagai angka besar'
+    caption: 'Diagram donat pesanan per kanal'
 howTo:
   - 'Pilih gaya dan warna, lalu isi judul, periode, dan tim.'
   - 'Isi ringkasan, KPI, data grafik, target vs realisasi, pencapaian, kendala, dan rencana.'
@@ -52,6 +53,8 @@ faq:
     a: 'Grafik dibuat dari bentuk dan teks biasa, jadi warna, ukuran, dan labelnya bisa diubah langsung. Untuk mengubah angka, paling mudah perbarui isian di halaman ini lalu unduh ulang.'
   - q: 'Apakah data laporan saya dikirim ke server?'
     a: 'Tidak. Slide dibuat di browsermu dan isian disimpan di browser ini saja.'
+  - q: 'Apakah foto contohnya boleh dipakai?'
+    a: 'Boleh. Semua foto contoh berasal dari StockSnap.io dengan lisensi CC0 (domain publik), jadi bebas dipakai, termasuk untuk keperluan komersial, tanpa wajib mencantumkan sumber. Kamu juga bisa menggantinya dengan fotomu sendiri.'
 ---
 
 ## Cara membuat PPT laporan kerja yang jelas

@@ -31,14 +31,15 @@ features:
   - 'Three design styles: Bold Geometric, Elegant Minimal, and Modern Gradient'
   - 'Five colour palettes'
   - 'Thesis defense, research proposal, or master’s thesis from one form'
-  - 'Slides laid out automatically: agenda, dividers, cards, flows, figures, and tables'
+  - 'At least 17 slides: agenda, dividers, research model, donut and bar charts, tables, and a timeline'
+  - 'Free-to-use (CC0) sample photos you can replace with your own'
   - 'Download an editable PowerPoint (.pptx) and a presentation-ready PDF'
   - 'Opens in PowerPoint, Google Slides, Keynote, and WPS'
 previews:
   - file: 'cover'
     caption: 'Bold Geometric cover'
   - file: 'isi'
-    caption: 'Research method as a flow'
+    caption: 'Research model with hypotheses'
 howTo:
   - 'Choose the presentation type, design style, and colours.'
   - 'Fill in your title, details, and research points. The slide preview updates as you type.'
@@ -47,11 +48,13 @@ faq:
   - q: 'Can I edit the PowerPoint file?'
     a: 'Yes. Every text box, shape, and colour is a normal PowerPoint element you can change, move, or add to.'
   - q: 'How many slides should a thesis defense have?'
-    a: 'Usually 12 to 20 slides for a 10 to 15 minute talk. This template makes about 17 slides for a defense and 13 for a proposal.'
+    a: 'Usually 12 to 20 slides for a 10 to 15 minute talk. This template makes 21 slides for a defense and 17 for a proposal; delete any you do not need in PowerPoint.'
   - q: 'Why only Arial or Times New Roman?'
     a: 'So the slides look exactly the same on any computer. Fonts that are not installed are replaced by PowerPoint and can shift the layout.'
   - q: 'Is my research data uploaded?'
     a: 'No. The slides are built in your browser and saved in this browser only.'
+  - q: 'Can I use the sample photos?'
+    a: 'Yes. All sample photos come from StockSnap.io under the CC0 licence (public domain), so they are free to use, including commercially, with no attribution required. You can also replace them with your own.'
 ---
 
 ## How to build convincing thesis defense slides

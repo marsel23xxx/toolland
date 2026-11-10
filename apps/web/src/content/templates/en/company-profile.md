@@ -28,7 +28,8 @@ sheets:
   - name: 'Contact'
     desc: 'Address, phone, email, and website or Instagram.'
 features:
-  - 'Photo gallery, cover photo, and about photo'
+  - '17 slides with a timeline, donut chart, progress bars, and package cards'
+  - 'Free-to-use (CC0) sample photos you can replace with your own'
   - 'Vision and testimonial shown as large quotes'
   - 'Three design styles and five colour palettes'
   - 'Download an editable PowerPoint (.pptx) and a PDF for prospects'
@@ -37,7 +38,7 @@ previews:
   - file: 'cover'
     caption: 'Elegant Minimal cover'
   - file: 'isi'
-    caption: 'Services in cards'
+    caption: 'Photo slide with a big statement'
 howTo:
   - 'Choose a style and colours, then enter your company name, tagline, and story.'
   - 'Fill in services, strengths, workflow, and clients. Add a logo and photos if you have them.'
@@ -51,6 +52,8 @@ faq:
     a: 'No. Without photos, coloured shapes are used instead and the gallery slide is skipped.'
   - q: 'Are my photos uploaded?'
     a: 'No. Photos are processed and placed in the slides inside your browser.'
+  - q: 'Can I use the sample photos?'
+    a: 'Yes. All sample photos come from StockSnap.io under the CC0 licence (public domain), so they are free to use, including commercially, with no attribution required. You can also replace them with your own.'
 ---
 
 ## How to make a company profile that wins clients

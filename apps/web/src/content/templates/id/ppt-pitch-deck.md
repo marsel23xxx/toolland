@@ -2,7 +2,7 @@
 name: 'PPT Pitch Deck'
 title: 'Template Pitch Deck dan Proposal Bisnis Gratis: PowerPoint dan PDF'
 description: 'Buat pitch deck untuk investor, lomba bisnis, atau proposal UMKM: masalah, solusi, pasar, traksi, tim, dan kebutuhan dana. Unduh PowerPoint dan PDF.'
-summary: 'Pitch deck 12 slide: masalah, pasar, traksi, tim, dana. PowerPoint dan PDF.'
+summary: 'Pitch deck 17 slide dengan foto, grafik traksi, TAM/SAM/SOM, dan dana.'
 category: 'presentasi'
 format: 'ppt'
 keywords:
@@ -20,16 +20,17 @@ sheets:
   - name: 'Masalah dan solusi'
     desc: 'Masalah dengan angka sorotan, solusi dalam kartu, dan slide produk dengan foto.'
   - name: 'Pasar dan model bisnis'
-    desc: 'TAM, SAM, dan SOM sebagai angka besar, lalu sumber pendapatan.'
+    desc: 'TAM, SAM, dan SOM sebagai lingkaran bertingkat, lalu kartu paket harga.'
   - name: 'Traksi dan pesaing'
-    desc: 'Grafik batang pertumbuhan dengan catatan, dan tabel perbandingan pesaing.'
+    desc: 'Grafik garis pendapatan, donat segmen pelanggan, dan tabel perbandingan pesaing.'
   - name: 'Strategi dan tim'
-    desc: 'Tahapan strategi pemasaran dan profil tim.'
+    desc: 'Roadmap sebagai linimasa, profil tim, dan grafik proyeksi pendapatan 5 tahun.'
   - name: 'Kebutuhan dana dan penutup'
-    desc: 'Jumlah dana, penggunaannya, dan kontak.'
+    desc: 'Donat penggunaan dana, testimoni pelanggan berfoto, dan kontak.'
 features:
   - 'Urutan slide yang lazim dipakai investor dan juri lomba bisnis'
-  - 'Grafik traksi dan tabel pesaing dibuat otomatis dari data yang kamu ketik'
+  - '17 slide dengan grafik garis, grafik batang, diagram donat, linimasa, dan paket harga'
+  - 'Foto contoh bebas pakai (CC0) yang bisa diganti fotomu sendiri'
   - 'Tiga gaya desain dan lima palet warna'
   - 'Bisa menambah logo, foto cover, dan foto produk'
   - 'Unduh PowerPoint (.pptx) yang bisa diedit dan PDF untuk dikirim'
@@ -45,13 +46,15 @@ howTo:
   - 'Unduh PowerPoint untuk disesuaikan, atau PDF untuk dikirim ke investor.'
 faq:
   - q: 'Berapa slide yang ideal untuk pitch deck?'
-    a: 'Sekitar 10 sampai 15 slide. Template ini menghasilkan 12 slide yang mencakup hal-hal yang biasanya ditanyakan investor.'
+    a: 'Sekitar 12 sampai 20 slide. Template ini menghasilkan 17 slide; slide yang tidak relevan cukup dihapus di PowerPoint.'
   - q: 'Apa itu TAM, SAM, dan SOM?'
     a: 'TAM adalah total pasar untuk produkmu, SAM adalah bagian pasar yang bisa kamu layani, dan SOM adalah bagian yang realistis kamu raih dalam beberapa tahun ke depan.'
   - q: 'Bagaimana kalau belum punya traksi?'
     a: 'Kosongkan data grafik dan slide traksi tidak akan dibuat. Kamu bisa menggantinya dengan hasil uji coba atau jumlah calon pelanggan di bagian masalah.'
   - q: 'Apakah data usaha saya aman?'
     a: 'Ya. Slide dibuat di browsermu dan tidak ada data yang dikirim ke server.'
+  - q: 'Apakah foto contohnya boleh dipakai?'
+    a: 'Boleh. Semua foto contoh berasal dari StockSnap.io dengan lisensi CC0 (domain publik), jadi bebas dipakai, termasuk untuk keperluan komersial, tanpa wajib mencantumkan sumber. Kamu juga bisa menggantinya dengan fotomu sendiri.'
 ---
 
 ## Cara menyusun pitch deck yang meyakinkan

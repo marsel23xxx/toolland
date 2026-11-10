@@ -872,5 +872,6 @@
   "docForm.slides": "{n} slide",
   "template.compatPpt": "PowerPoint · Google Slides · Keynote · WPS · PDF",
   "template.insidePpt": "Isi presentasi",
-  "templates.pptFormats": "PPTX + PDF"
+  "templates.pptFormats": "PPTX + PDF",
+  "docForm.samplePhoto": "Foto contoh"
 }

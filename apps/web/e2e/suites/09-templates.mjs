@@ -658,13 +658,18 @@ export const tests = [
     path: '/template/ppt-sidang-skripsi',
     async run(h) {
       const n = await docPages(h);
-      expect(n === 17, `jumlah slide pratinjau ${n}`);
-      expect((await h.text('[data-doc-pages]')) === '17 slide', await h.text('[data-doc-pages]'));
+      expect(n === 21, `jumlah slide pratinjau ${n}`);
+      expect((await h.text('[data-doc-pages]')) === '21 slide', await h.text('[data-doc-pages]'));
+      // Foto contoh dimuat dari situs sendiri dan tampil di form.
+      expect(
+        await h.page.$('[data-doc-section=id] img[src="/templates/photos/study-desk.jpg"]'),
+        'foto contoh tidak tampil',
+      );
       await h.page.select('#df-kind', 'sempro');
       await h.page.select('#df-style', 'gradient');
       await h.type('#df-name', 'Budi Santoso');
       await h.page.waitForFunction(
-        () => document.querySelectorAll('[data-doc-preview] canvas').length === 13,
+        () => document.querySelectorAll('[data-doc-preview] canvas').length === 17,
         { timeout: 30000 },
       );
       await docPages(h);
@@ -676,7 +681,11 @@ export const tests = [
         ),
       );
       const slides = Object.keys(files).filter((k) => /^ppt\/slides\/slide\d+\.xml$/.test(k));
-      expect(slides.length === 13, `slide di PPTX: ${slides.length}`);
+      expect(slides.length === 17, `slide di PPTX: ${slides.length}`);
+      expect(
+        Object.keys(files).some((k) => k.startsWith('ppt/media/')),
+        'foto contoh tidak masuk PPTX',
+      );
       const cover = strFromU8(files['ppt/slides/slide1.xml']);
       for (const t of ['SEMINAR PROPOSAL', 'Budi Santoso', 'a:gradFill'])
         expect(cover.includes(t), `"${t}" tidak ada di cover`);

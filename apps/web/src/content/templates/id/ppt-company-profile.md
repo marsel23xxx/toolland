@@ -18,17 +18,18 @@ sheets:
   - name: 'Cover'
     desc: 'Nama usaha, tagline, tahun berdiri, kota, logo, dan foto cover.'
   - name: 'Tentang kami dan visi misi'
-    desc: 'Cerita usaha dengan foto, visi sebagai kutipan besar, dan misi.'
+    desc: 'Cerita usaha dengan foto, visi sebagai kutipan besar, misi, dan linimasa perjalanan usaha.'
   - name: 'Angka dan layanan'
     desc: 'Angka penting seperti jumlah proyek dan klien, lalu layanan atau produk dalam kartu.'
   - name: 'Keunggulan dan alur kerja'
-    desc: 'Alasan memilih usahamu dan tahapan kerja sama.'
+    desc: 'Slide foto berisi kalimat besar, alasan memilih usahamu, alur kerja, dan bilah komitmen kualitas.'
   - name: 'Klien, galeri, dan testimoni'
-    desc: 'Klien atau proyek, sampai tiga foto galeri, dan testimoni pelanggan.'
+    desc: 'Donat jenis proyek, klien, kartu paket layanan, galeri tiga foto, dan testimoni berfoto.'
   - name: 'Kontak'
     desc: 'Alamat, telepon, email, dan situs atau Instagram.'
 features:
-  - 'Galeri foto, foto cover, dan foto tentang kami'
+  - '17 slide dengan linimasa, donat, bilah progres, dan kartu paket harga'
+  - 'Foto contoh bebas pakai (CC0) yang bisa diganti fotomu sendiri'
   - 'Visi dan testimoni tampil sebagai kutipan besar'
   - 'Tiga gaya desain dan lima palet warna'
   - 'Unduh PowerPoint (.pptx) yang bisa diedit dan PDF untuk dikirim ke calon klien'
@@ -38,7 +39,7 @@ previews:
   - file: 'cover'
     caption: 'Cover gaya Minimal Elegan'
   - file: 'isi'
-    caption: 'Layanan dalam kartu'
+    caption: 'Slide foto dengan pernyataan besar'
 howTo:
   - 'Pilih gaya dan warna, lalu isi nama usaha, tagline, dan cerita singkat usahamu.'
   - 'Isi layanan, keunggulan, alur kerja, dan klien. Tambahkan logo dan foto bila ada.'
@@ -52,6 +53,8 @@ faq:
     a: 'Tidak. Tanpa foto, slide memakai bentuk berwarna sebagai pengganti, dan slide galeri tidak dibuat.'
   - q: 'Apakah foto saya diunggah?'
     a: 'Tidak. Foto diproses dan dimasukkan ke slide langsung di browsermu.'
+  - q: 'Apakah foto contohnya boleh dipakai?'
+    a: 'Boleh. Semua foto contoh berasal dari StockSnap.io dengan lisensi CC0 (domain publik), jadi bebas dipakai, termasuk untuk keperluan komersial, tanpa wajib mencantumkan sumber. Kamu juga bisa menggantinya dengan fotomu sendiri.'
 ---
 
 ## Cara membuat company profile yang menarik calon klien

@@ -22,6 +22,7 @@ import type {
 } from '../../lib/docs/form';
 import { safeFileName } from '../../lib/docs/form';
 import { downloadBlob } from '../../lib/download';
+import { sampleName, samplePhotoUrl } from '../../lib/slides/photos';
 import { fill } from '../../lib/format';
 
 const props = defineProps<{ form: DocForm; m: Record<string, string> }>();
@@ -72,6 +73,11 @@ const STORE_KEY = `toolland-doc:${f.storage}`;
 
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
 const isRepeat = (x: DocField | DocRepeat): x is DocRepeat => x.kind === 'repeat';
+/** URL gambar untuk pratinjau kecil di form (data URL atau foto contoh). */
+const imageSrc = (v: string) => {
+  const name = sampleName(v);
+  return name ? samplePhotoUrl(name) : v;
+};
 const allFields = f.sections.flatMap((s) => s.items);
 
 function load(): DocValues {
@@ -532,7 +538,7 @@ const span = (x: DocField) => (x.span === 2 ? 'sm:col-span-2' : '');
                   <div class="flex flex-wrap items-center gap-3">
                     <img
                       v-if="str(x.key)"
-                      :src="str(x.key)"
+                      :src="imageSrc(str(x.key))"
                       alt=""
                       class="h-16 rounded border border-rule bg-white object-contain"
                       :class="
@@ -543,6 +549,11 @@ const span = (x: DocField) => (x.span === 2 ? 'sm:col-span-2' : '');
                             : 'max-w-40'
                       "
                     />
+                    <span
+                      v-if="sampleName(str(x.key))"
+                      class="eyebrow rounded border border-rule px-1.5 py-0.5"
+                      >{{ m.samplePhoto }}</span
+                    >
                     <label class="btn btn-secondary px-2.5 py-1.5 cursor-pointer">
                       {{ m.upload }}
                       <input
