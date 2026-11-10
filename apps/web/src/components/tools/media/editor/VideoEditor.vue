@@ -13,6 +13,7 @@ import { useFileResults } from '../../../../lib/results';
 import { matchFiles, openAyu, saveAyu } from '../../../../lib/editor/ayu';
 import {
   type Aspect,
+  type AudioItem,
   type Clip,
   type KenBurns,
   type MediaItem,
@@ -25,6 +26,7 @@ import {
   type TextAnim,
   type TextLayer,
   FPS,
+  MAX_AUDIOS,
   MAX_CLIPS,
   MAX_OVERLAYS,
   MUSIC_DEFAULTS,
@@ -79,6 +81,7 @@ const selectedClip = ref('');
 const selectedText = ref('');
 const tab = ref<'media' | 'clip' | 'overlay' | 'text' | 'music'>('media');
 const selectedOverlay = ref('');
+const selectedAudio = ref('');
 const error = ref('');
 const notice = ref('');
 const busy = ref('');
@@ -108,6 +111,8 @@ const clipMedia = computed(() =>
 );
 const text = computed(() => project.value.texts.find((x) => x.id === selectedText.value));
 const overlay = computed(() => project.value.overlays.find((x) => x.id === selectedOverlay.value));
+const audioItem = computed(() => project.value.audios.find((x) => x.id === selectedAudio.value));
+const hasRecorded = computed(() => project.value.media.some((m) => m.recorded));
 const overlayMedia = computed(() =>
   overlay.value?.kind === 'media' ? mediaOf(project.value, overlay.value.mediaId) : undefined,
 );
@@ -293,6 +298,7 @@ function removeMedia(m: MediaItem) {
   const p = project.value;
   p.clips = p.clips.filter((c) => c.mediaId !== m.id);
   p.overlays = p.overlays.filter((o) => o.mediaId !== m.id);
+  p.audios = p.audios.filter((a) => a.mediaId !== m.id);
   if (p.music?.mediaId === m.id) p.music = null;
   p.media = p.media.filter((x) => x.id !== m.id);
   // File tetap disimpan di memori sesi agar penghapusan bisa dibatalkan (undo).
@@ -511,6 +517,137 @@ function layer(d: number) {
   list.splice(j, 0, o);
 }
 
+// ---------- Audio tambahan dan rekam narasi ----------
+
+function addAudioItem(mediaId: string, at?: number, length?: number) {
+  const m = mediaOf(project.value, mediaId);
+  if (!m || m.kind !== 'audio') return;
+  if (project.value.audios.length >= MAX_AUDIOS) {
+    notice.value = fill(props.t.maxAudios, { n: MAX_AUDIOS });
+    return;
+  }
+  const start = at ?? overlayStart();
+  const len = length ?? Math.min(m.duration, Math.max(1, total.value - start));
+  const a: AudioItem = {
+    id: uid('a'),
+    mediaId,
+    start: Math.round(start * 1000) / 1000,
+    in: 0,
+    out: Math.round(Math.min(m.duration || len, len) * 1000) / 1000,
+    volume: 1,
+    fadeIn: 0,
+    fadeOut: 0,
+  };
+  project.value.audios.push(a);
+  selectedAudio.value = a.id;
+  tab.value = 'music';
+}
+function updateAudio(id: string, patch: Partial<AudioItem>) {
+  const i = project.value.audios.findIndex((x) => x.id === id);
+  if (i >= 0) project.value.audios[i] = { ...project.value.audios[i], ...patch };
+}
+function removeAudio() {
+  const a = audioItem.value;
+  if (!a) return;
+  const i = project.value.audios.indexOf(a);
+  project.value.audios.splice(i, 1);
+  selectedAudio.value =
+    project.value.audios[Math.min(i, project.value.audios.length - 1)]?.id ?? '';
+}
+function downloadRecording(mediaId: string) {
+  const f = sources.value.get(mediaId);
+  if (f) downloadBlob(f, f.name);
+}
+
+const recording = ref(false);
+const micStarting = ref(false);
+const recSeconds = ref(0);
+let recorder: MediaRecorder | null = null;
+let recStream: MediaStream | null = null;
+let recChunks: Blob[] = [];
+let recStart = 0;
+let recT0 = 0;
+let recTimer: ReturnType<typeof setInterval> | undefined;
+let recCount = 0;
+
+/** Rekam narasi dari mikrofon sambil pratinjau diputar (tanpa suara) mulai dari playhead. */
+async function startRecording() {
+  error.value = '';
+  notice.value = '';
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+    error.value = props.t['error.noMic'];
+    return;
+  }
+  // Mikrofon bisa butuh 1-2 detik untuk siap (dan menunggu izin pengguna).
+  micStarting.value = true;
+  try {
+    recStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true },
+    });
+  } catch {
+    error.value = props.t['error.micDenied'];
+    return;
+  } finally {
+    micStarting.value = false;
+  }
+  const type =
+    ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'].find((x) =>
+      MediaRecorder.isTypeSupported(x),
+    ) ?? '';
+  recorder = new MediaRecorder(recStream, type ? { mimeType: type } : undefined);
+  recChunks = [];
+  recorder.ondataavailable = (e) => {
+    if (e.data.size) recChunks.push(e.data);
+  };
+  recorder.onstop = () => void finishRecording();
+  recStart = time.value >= total.value - 0.2 ? 0 : time.value;
+  time.value = recStart;
+  recorder.start(250);
+  recT0 = performance.now();
+  recSeconds.value = 0;
+  recording.value = true;
+  recTimer = setInterval(() => (recSeconds.value = (performance.now() - recT0) / 1000), 200);
+  if (project.value.clips.length) playing.value = true;
+}
+
+function stopRecording() {
+  if (recorder?.state === 'recording') recorder.stop();
+  playing.value = false;
+}
+
+async function finishRecording() {
+  clearInterval(recTimer);
+  recording.value = false;
+  // Durasi dari jam sendiri: file webm hasil MediaRecorder sering tidak mencatat durasinya.
+  const dur = Math.round(((performance.now() - recT0) / 1000) * 1000) / 1000;
+  recStream?.getTracks().forEach((t) => t.stop());
+  recStream = null;
+  const type = recorder?.mimeType || 'audio/webm';
+  recorder = null;
+  const blob = new Blob(recChunks, { type });
+  recChunks = [];
+  if (dur < 0.3 || !blob.size) return;
+  recCount++;
+  const ext = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
+  const name = `${props.t.recordingName}-${recCount}.${ext}`;
+  const file = new File([blob], name, { type: type.split(';')[0], lastModified: Date.now() });
+  const m: MediaItem = {
+    id: uid('m'),
+    kind: 'audio',
+    name,
+    size: file.size,
+    duration: dur,
+    width: 0,
+    height: 0,
+    lastModified: file.lastModified,
+    recorded: true,
+  };
+  project.value.media.push(m);
+  await attach(m, file);
+  addAudioItem(m.id, recStart, dur);
+  notice.value = props.t.recorded;
+}
+
 // ---------- Simpan / buka .ayu ----------
 
 const fileBase = computed(
@@ -573,6 +710,7 @@ async function openProject(f: File) {
     selectedClip.value = project.value.clips[0]?.id ?? '';
     selectedText.value = project.value.texts[0]?.id ?? '';
     selectedOverlay.value = project.value.overlays[0]?.id ?? '';
+    selectedAudio.value = project.value.audios[0]?.id ?? '';
     tab.value = 'media';
     notice.value = missing.value.size
       ? fill(props.t.relinkNeeded, { n: missing.value.size })
@@ -617,6 +755,7 @@ function reset() {
   selectedClip.value = '';
   selectedText.value = '';
   selectedOverlay.value = '';
+  selectedAudio.value = '';
   error.value = '';
   notice.value = '';
   tab.value = 'media';
@@ -721,6 +860,7 @@ function onKey(e: KeyboardEvent) {
   else if (e.key === 'Delete') {
     if (tab.value === 'text') removeText();
     else if (tab.value === 'overlay') removeOverlay();
+    else if (tab.value === 'music') removeAudio();
     else removeClip();
   }
 }
@@ -836,6 +976,8 @@ function restore(json: string) {
   if (!p.texts.some((x) => x.id === selectedText.value)) selectedText.value = p.texts[0]?.id ?? '';
   if (!p.overlays.some((x) => x.id === selectedOverlay.value))
     selectedOverlay.value = p.overlays[0]?.id ?? '';
+  if (!p.audios.some((x) => x.id === selectedAudio.value))
+    selectedAudio.value = p.audios[0]?.id ?? '';
 }
 function undo() {
   commitHistory();
@@ -918,6 +1060,9 @@ onMounted(() => {
   window.addEventListener('beforeunload', onBeforeUnload);
 });
 onBeforeUnmount(() => {
+  if (recorder?.state === 'recording') recorder.stop();
+  recStream?.getTracks().forEach((t) => t.stop());
+  clearInterval(recTimer);
   wideMq.removeEventListener('change', onWideChange);
   window.removeEventListener('keydown', onKey);
   window.removeEventListener('beforeunload', onBeforeUnload);
@@ -1114,6 +1259,9 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
           >
             <span class="block text-sm font-semibold">{{ t.saveLight }}</span>
             <span class="block text-xs text-ink-3">{{ t.saveLightHint }}</span>
+            <span v-if="hasRecorded" class="mt-1 block text-xs text-secang">
+              {{ t.recordedLightWarn }}
+            </span>
           </button>
           <button
             type="button"
@@ -1232,6 +1380,7 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
             :selected-overlay="selectedOverlay"
             :overlay-editable="tab === 'overlay'"
             :voiced="voiced"
+            :muted="recording"
             @select-overlay="(id) => (selectedOverlay = id)"
             @update-overlay="updateOverlay"
             @move-text="moveText"
@@ -1374,6 +1523,17 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                         @click="x.kind === 'audio' ? useAsMusic(x) : addToTimeline(x)"
                       >
                         {{ x.kind === 'audio' ? '♪' : '+' }}
+                      </button>
+                      <button
+                        v-if="x.kind === 'audio'"
+                        type="button"
+                        class="rounded px-1.5 py-0.5 text-xs font-semibold text-brand-700 hover:bg-paper dark:text-brand-300"
+                        :title="t.addAudioTrack"
+                        :aria-label="`${t.addAudioTrack}: ${x.name}`"
+                        :data-add-audio="x.id"
+                        @click="addAudioItem(x.id)"
+                      >
+                        +
                       </button>
                       <button
                         v-if="x.kind !== 'audio'"
@@ -2367,6 +2527,121 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                 </button>
               </template>
               <p v-else class="text-ink-3">{{ t.noMusic }}</p>
+
+              <EditorSection :title="t['section.extraAudio']">
+                <button
+                  v-if="!recording"
+                  type="button"
+                  class="btn btn-secondary w-full"
+                  :disabled="exporting || !!busy || micStarting"
+                  data-record
+                  @click="startRecording"
+                >
+                  🎙 {{ micStarting ? t.micStarting : t.record }}
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  class="btn w-full bg-secang text-white hover:bg-secang/90"
+                  data-record-stop
+                  @click="stopRecording"
+                >
+                  ● {{ fill(t.recordingNow, { time: formatTime(recSeconds) }) }}
+                </button>
+                <p class="text-xs text-ink-3">{{ t.recordHint }}</p>
+                <div v-if="project.audios.length > 1" class="flex flex-wrap gap-1">
+                  <button
+                    v-for="(x, i) in project.audios"
+                    :key="x.id"
+                    type="button"
+                    class="rounded border px-2 py-0.5 text-xs"
+                    :class="
+                      x.id === selectedAudio ? 'border-nila bg-nila text-white' : 'border-rule'
+                    "
+                    @click="selectedAudio = x.id"
+                  >
+                    {{ i + 1 }}
+                  </button>
+                </div>
+                <template v-if="audioItem">
+                  <p class="truncate font-medium">
+                    🎙 {{ mediaOf(project, audioItem.mediaId)?.name }}
+                  </p>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label for="ed-as" class="label">{{ t.textStart }}</label>
+                      <input
+                        id="ed-as"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        class="field"
+                        :value="r1(audioItem.start)"
+                        @change="audioItem.start = Math.max(0, num($event))"
+                      />
+                    </div>
+                    <div>
+                      <label for="ed-avol" class="label">
+                        {{ t.volume }} · {{ Math.round(audioItem.volume * 100) }}%
+                      </label>
+                      <input
+                        id="ed-avol"
+                        v-model.number="audioItem.volume"
+                        type="range"
+                        min="0"
+                        max="2"
+                        step="0.05"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                    <div>
+                      <label for="ed-afi" class="label">
+                        {{ t.fadeIn }} · {{ audioItem.fadeIn.toFixed(1) }} s
+                      </label>
+                      <input
+                        id="ed-afi"
+                        v-model.number="audioItem.fadeIn"
+                        type="range"
+                        min="0"
+                        max="3"
+                        step="0.1"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                    <div>
+                      <label for="ed-afo" class="label">
+                        {{ t.fadeOut }} · {{ audioItem.fadeOut.toFixed(1) }} s
+                      </label>
+                      <input
+                        id="ed-afo"
+                        v-model.number="audioItem.fadeOut"
+                        type="range"
+                        min="0"
+                        max="3"
+                        step="0.1"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button
+                      v-if="mediaOf(project, audioItem.mediaId)?.recorded"
+                      type="button"
+                      class="btn btn-secondary text-xs"
+                      @click="downloadRecording(audioItem.mediaId)"
+                    >
+                      {{ t.downloadRecording }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-secondary text-xs text-secang"
+                      @click="removeAudio"
+                    >
+                      {{ t.removeAudio }}
+                    </button>
+                  </div>
+                </template>
+              </EditorSection>
             </template>
           </div>
         </div>
@@ -2379,6 +2654,7 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
         :selected-clip="selectedClip"
         :selected-text="selectedText"
         :selected-overlay="selectedOverlay"
+        :selected-audio="selectedAudio"
         :frames="previews.frames.value"
         :peaks="previews.peaks.value"
         :thumbs="thumbs"
@@ -2391,6 +2667,9 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
         @select-overlay="(id) => ((selectedOverlay = id), (tab = 'overlay'))"
         @update-overlay="updateOverlay"
         @insert-overlay="(id, at) => addOverlayMedia(id, at)"
+        @select-audio="(id) => ((selectedAudio = id), (tab = 'music'))"
+        @update-audio="updateAudio"
+        @insert-audio="(id, at) => addAudioItem(id, at)"
         @select-music="tab = 'music'"
         @move="(a, b) => (project = moveClip(project, a, b))"
         @trim-clip="onTrimClip"

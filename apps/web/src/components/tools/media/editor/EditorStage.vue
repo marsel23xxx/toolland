@@ -7,6 +7,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { drawText } from '../../../../lib/editor/render';
 import { textAnimAt } from '../../../../lib/editor/textfx';
+import AudioTrackPlayer from './AudioTrackPlayer.vue';
 import ClipLayer from './ClipLayer.vue';
 import OverlayLayer from './OverlayLayer.vue';
 import { loadEditorFonts } from './editorFonts';
@@ -39,8 +40,17 @@ const props = withDefaults(
     /** Overlay terpilih dan apakah overlay bisa digeser di pratinjau (tab Overlay terbuka). */
     selectedOverlay?: string;
     overlayEditable?: boolean;
+    /** Bisukan semua suara pratinjau (saat merekam narasi agar tidak ikut terekam). */
+    muted?: boolean;
   }>(),
-  { maxVh: 60, dragText: '', voiced: undefined, selectedOverlay: '', overlayEditable: false },
+  {
+    maxVh: 60,
+    dragText: '',
+    voiced: undefined,
+    selectedOverlay: '',
+    overlayEditable: false,
+    muted: false,
+  },
 );
 const emit = defineEmits<{
   moveText: [id: string, x: number, y: number];
@@ -159,7 +169,7 @@ function syncMusic(play: boolean) {
   const span = musicSpan(m, total.value);
   const t = time.value;
   const g = musicFadeGain(m, span, t) * (m.duck ? duckGain(spans.value, t) : 1);
-  a.volume = Math.max(0, Math.min(1, m.volume * g));
+  a.volume = props.muted ? 0 : Math.max(0, Math.min(1, m.volume * g));
   if (t < span.start || t >= span.end) {
     a.pause();
     return;
@@ -283,7 +293,7 @@ onBeforeUnmount(() => {
       :urls="urls"
       :stage-w="stageW"
       :fx="l.fx"
-      :gain="l.gain"
+      :gain="muted ? 0 : l.gain"
       :data-layer="l.slot"
     />
     <div
@@ -316,5 +326,14 @@ onBeforeUnmount(() => {
       {{ empty }}
     </p>
     <audio ref="music" preload="auto"></audio>
+    <AudioTrackPlayer
+      v-for="a in project.audios"
+      :key="a.id"
+      :item="a"
+      :time="time"
+      :playing="playing"
+      :url="urls.get(a.mediaId)"
+      :muted="muted"
+    />
   </div>
 </template>

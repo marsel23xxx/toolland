@@ -4,6 +4,7 @@
  */
 import {
   type Clip,
+  type AudioItem,
   type MediaItem,
   type Overlay,
   type Project,
@@ -49,7 +50,7 @@ export interface SnapOptions {
  * video), serta awal dan akhir setiap teks.
  */
 export function snapTargets(
-  p: Pick<Project, 'clips' | 'texts'> & { overlays?: Overlay[] },
+  p: Pick<Project, 'clips' | 'texts'> & { overlays?: Overlay[]; audios?: AudioItem[] },
   o: SnapOptions,
 ): number[] {
   const starts = clipStarts(p);
@@ -61,6 +62,8 @@ export function snapTargets(
     out.push(t);
   });
   for (const t of p.texts) if (t.id !== o.excludeText) out.push(t.start, t.end);
+  for (const v of p.audios ?? [])
+    if (v.id !== o.excludeText) out.push(v.start, v.start + v.out - v.in);
   for (const v of p.overlays ?? [])
     if (v.id !== o.excludeText) out.push(v.start, v.start + v.out - v.in);
   return out;

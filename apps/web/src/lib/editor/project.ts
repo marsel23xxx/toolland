@@ -49,6 +49,8 @@ export interface MediaItem {
   width: number;
   height: number;
   lastModified: number;
+  /** Direkam di editor (narasi): tidak ada file aslinya di perangkat. */
+  recorded?: boolean;
 }
 
 export interface Clip {
@@ -195,21 +197,26 @@ export function musicSpan(
  * bila tidak diketahui, semua klip video bervolume dianggap bersuara.
  */
 export function voicedSpans(
-  p: Pick<Project, 'clips' | 'media'>,
+  p: Pick<Project, 'clips' | 'media'> & { audios?: AudioItem[] },
   withAudio?: Set<string>,
 ): [number, number][] {
-  const out: [number, number][] = [];
+  const raw: [number, number][] = [];
   const starts = clipStarts(p);
   p.clips.forEach((c, i) => {
-    const len = clipLength(c);
-    const t = starts[i];
     const m = p.media.find((x) => x.id === c.mediaId);
-    if (m?.kind === 'video' && c.volume > 0 && (!withAudio || withAudio.has(m.id))) {
-      const last = out.at(-1);
-      if (last && last[1] >= t - 1e-6) last[1] = Math.max(last[1], t + len);
-      else out.push([t, t + len]);
-    }
+    if (m?.kind === 'video' && c.volume > 0 && (!withAudio || withAudio.has(m.id)))
+      raw.push([starts[i], starts[i] + clipLength(c)]);
   });
+  // Narasi dan efek suara juga membuat musik mengecil.
+  for (const a of p.audios ?? [])
+    if (a.volume > 0) raw.push([a.start, a.start + Math.max(0, a.out - a.in)]);
+  raw.sort((x, y) => x[0] - y[0]);
+  const out: [number, number][] = [];
+  for (const [a, b] of raw) {
+    const last = out.at(-1);
+    if (last && last[1] >= a - 1e-6) last[1] = Math.max(last[1], b);
+    else out.push([a, b]);
+  }
   return out;
 }
 
@@ -317,12 +324,25 @@ export function overlayPixels(
   return { pw, ph: even(pw * o.ratio) };
 }
 
+/** Audio tambahan di timeline: narasi rekaman atau efek suara. */
+export interface AudioItem {
+  id: string;
+  mediaId: string;
+  start: number;
+  in: number;
+  out: number;
+  volume: number;
+  fadeIn: number;
+  fadeOut: number;
+}
+
 export interface Project {
   name: string;
   settings: Settings;
   media: MediaItem[];
   clips: Clip[];
   overlays: Overlay[];
+  audios: AudioItem[];
   texts: TextLayer[];
   music: Music | null;
 }
@@ -332,6 +352,7 @@ export const MIN_CLIP = 0.2;
 export const MAX_CLIPS = 100;
 export const MAX_TEXTS = 30;
 export const MAX_OVERLAYS = 20;
+export const MAX_AUDIOS = 20;
 export const FPS = 30;
 
 export function newProject(name = ''): Project {
@@ -341,6 +362,7 @@ export function newProject(name = ''): Project {
     media: [],
     clips: [],
     overlays: [],
+    audios: [],
     texts: [],
     music: null,
   };
@@ -511,6 +533,7 @@ export function pruneMedia(p: Project): Project {
   const used = new Set([
     ...p.clips.map((c) => c.mediaId),
     ...p.overlays.map((o) => o.mediaId),
+    ...p.audios.map((a) => a.mediaId),
     ...(p.music ? [p.music.mediaId] : []),
   ]);
   return { ...p, media: p.media.filter((m) => used.has(m.id)) };

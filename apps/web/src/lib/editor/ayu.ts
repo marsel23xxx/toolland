@@ -19,6 +19,7 @@ import {
   type TextLayer,
   newProject,
   type Overlay,
+  type AudioItem,
 } from './project';
 import { FONT_IDS } from './textfx';
 
@@ -28,8 +29,9 @@ export const AYU_FORMAT = 'toolland-ayu';
  * Versi 3: font, rata, garis tepi, bayangan, kotak, animasi teks; rentang, fade, ducking musik.
  * Versi 4: transisi bertumpuk (crossfade, sapu, geser, lingkaran).
  * Versi 5: jalur overlay (video/foto, stiker, bentuk).
+ * Versi 6: jalur audio tambahan dan narasi rekaman.
  */
-export const AYU_VERSION = 5;
+export const AYU_VERSION = 6;
 export const AYU_MIME = 'application/x-toolland-ayu';
 /** Arsip ZIP tanpa ZIP64: total di bawah 4 GB. */
 export const MAX_BUNDLE_BYTES = 4 * 1024 ** 3 - 64 * 1024 ** 2;
@@ -88,6 +90,7 @@ export function sanitizeProject(raw: unknown): Project {
       width: num(m.width, 0, 0, 20000),
       height: num(m.height, 0, 0, 20000),
       lastModified: num(m.lastModified, 0, 0),
+      ...(m.recorded === true ? { recorded: true } : {}),
     }));
   const ids = new Set(p.media.map((m) => m.id));
   p.clips = arr(o.clips)
@@ -187,6 +190,23 @@ export function sanitizeProject(raw: unknown): Project {
       };
     })
     .filter((v): v is Overlay => v !== null);
+  p.audios = arr(o.audios)
+    .map((a) => a as Record<string, unknown>)
+    .filter((a) => typeof a.mediaId === 'string' && ids.has(a.mediaId))
+    .slice(0, 20)
+    .map<AudioItem>((a) => {
+      const inn = num(a.in, 0, 0, 86400);
+      return {
+        id: str(a.id, '', 40) || `a${Math.random().toString(36).slice(2, 8)}`,
+        mediaId: a.mediaId as string,
+        start: num(a.start, 0, 0, 86400),
+        in: inn,
+        out: num(a.out, inn + 1, inn + 0.05, 86400),
+        volume: num(a.volume, 1, 0, 2),
+        fadeIn: num(a.fadeIn, 0, 0, 10),
+        fadeOut: num(a.fadeOut, 0, 0, 10),
+      };
+    });
   const m = o.music as Record<string, unknown> | null | undefined;
   p.music =
     m && typeof m.mediaId === 'string' && ids.has(m.mediaId)

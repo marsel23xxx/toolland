@@ -22,6 +22,7 @@ import {
   overlayEnd,
   totalDuration,
   type Overlay,
+  type AudioItem,
 } from '../../../../lib/editor/project';
 import {
   SNAP_PX,
@@ -47,6 +48,7 @@ const props = defineProps<{
   selectedClip: string;
   selectedText: string;
   selectedOverlay: string;
+  selectedAudio: string;
   frames: Map<string, Frame[]>;
   peaks: Map<string, Float32Array>;
   thumbs: Map<string, string>;
@@ -61,6 +63,9 @@ const emit = defineEmits<{
   selectOverlay: [id: string];
   updateOverlay: [id: string, patch: Partial<Overlay>];
   insertOverlay: [mediaId: string, start: number];
+  selectAudio: [id: string];
+  updateAudio: [id: string, patch: Partial<AudioItem>];
+  insertAudio: [mediaId: string, start: number];
   selectMusic: [];
   move: [from: number, to: number];
   trimClip: [index: number, clip: Clip];
@@ -123,6 +128,8 @@ type Drag =
     }
   | {
       kind: 'overlay';
+      /** Overlay atau audio tambahan (aturan geser/potong sama). */
+      target: 'overlay' | 'audio';
       id: string;
       mode: 'move' | 'start' | 'end';
       start: number;
@@ -245,6 +252,7 @@ function startOverlay(e: PointerEvent, id: string, mode: 'move' | 'start' | 'end
   const m = o.kind === 'media' ? mediaOf(props.project, o.mediaId) : undefined;
   begin(e, {
     kind: 'overlay',
+    target: 'overlay',
     id,
     mode,
     start: o.start,
@@ -256,6 +264,33 @@ function startOverlay(e: PointerEvent, id: string, mode: 'move' | 'start' | 'end
     moved: false,
     targets: snapTargets(props.project, { playhead: props.time, excludeText: id }),
   });
+}
+
+function startAudio(e: PointerEvent, id: string, mode: 'move' | 'start' | 'end') {
+  const a = props.project.audios.find((x) => x.id === id);
+  if (!a) return;
+  emit('selectAudio', id);
+  const m = mediaOf(props.project, a.mediaId);
+  begin(e, {
+    kind: 'overlay',
+    target: 'audio',
+    id,
+    mode,
+    start: a.start,
+    inn: a.in,
+    out: a.out,
+    max: m?.duration || Infinity,
+    startT: timeAt(e.clientX),
+    startX: e.clientX,
+    moved: false,
+    targets: snapTargets(props.project, { playhead: props.time, excludeText: id }),
+  });
+}
+
+/** Kirim perubahan item overlay/audio sesuai jenisnya. */
+function emitItem(d: { target: 'overlay' | 'audio'; id: string }, patch: Partial<AudioItem>) {
+  if (d.target === 'audio') emit('updateAudio', d.id, patch);
+  else emit('updateOverlay', d.id, patch);
 }
 
 function startMusic(e: PointerEvent, mode: 'slip' | 'start' | 'end') {
@@ -321,15 +356,14 @@ function onMove(e: PointerEvent) {
         start = use1 ? s1.value : s2.value - len;
         snapLine.value = use1 ? s1.hit : s2.hit;
       } else snapLine.value = null;
-      emit('updateOverlay', d.id, { start: r3(Math.max(0, start)) });
+      emitItem(d, { start: r3(Math.max(0, start)) });
     } else if (d.mode === 'start') {
       // Awal dipotong: video menggeser titik masuk sumber, lainnya memendekkan durasi.
       const lo = video ? d.start - d.inn : 0;
       const ns = Math.max(lo, Math.min(end - 0.2, snapTo(d.start + dt, d.targets, e)));
       const delta = ns - d.start;
-      emit(
-        'updateOverlay',
-        d.id,
+      emitItem(
+        d,
         video
           ? { start: r3(ns), in: r3(d.inn + delta) }
           : { start: r3(ns), out: r3(d.out - delta) },
@@ -337,7 +371,7 @@ function onMove(e: PointerEvent) {
     } else {
       const hi = video ? d.start + (d.max - d.inn) : Infinity;
       const ne = Math.max(d.start + 0.2, Math.min(hi, snapTo(end + dt, d.targets, e)));
-      emit('updateOverlay', d.id, { out: r3(d.inn + (ne - d.start)) });
+      emitItem(d, { out: r3(d.inn + (ne - d.start)) });
     }
   } else if (d.kind === 'text') {
     if (!d.moved && Math.abs(e.clientX - d.startX) < 3) return;
@@ -453,6 +487,13 @@ function onDragOver(e: DragEvent) {
 }
 function onDrop(e: DragEvent) {
   const id = e.dataTransfer?.getData(MEDIA_TYPE);
+  // Dijatuhkan di jalur audio: jadi audio tambahan mulai di posisi kursor.
+  if (id && (e.target as HTMLElement).closest('[data-track="audios"]')) {
+    galleryDrop.value = null;
+    e.preventDefault();
+    emit('insertAudio', id, Math.min(total.value, timeAt(e.clientX)));
+    return;
+  }
   // Dijatuhkan di jalur overlay: jadi overlay mulai di posisi kursor.
   if (id && (e.target as HTMLElement).closest('[data-track="overlays"]')) {
     galleryDrop.value = null;
@@ -515,6 +556,22 @@ const visuals = computed(() => {
 });
 
 const lanes = computed(() => textLanes(props.project.texts));
+const auLanes = computed(() =>
+  textLanes(
+    props.project.audios.map((a) => ({ id: a.id, start: a.start, end: a.start + a.out - a.in })),
+  ),
+);
+/** Gelombang suara item audio tambahan. */
+function audioWave(a: AudioItem): { d: string; w: number } {
+  const m = mediaOf(props.project, a.mediaId);
+  const pk = props.peaks.get(a.mediaId);
+  const w = Math.min(Math.max(1, px(a.out - a.in)), 4000);
+  if (!pk || !m?.duration) return { d: '', w };
+  return {
+    d: waveformPath(peaksRange(pk, m.duration, a.in, a.out, Math.max(4, Math.floor(w / 3))), w, 16),
+    w,
+  };
+}
 const ovLanes = computed(() =>
   textLanes(props.project.overlays.map((o) => ({ id: o.id, start: o.start, end: overlayEnd(o) }))),
 );
@@ -918,6 +975,65 @@ const musicMedia = computed(() =>
               class="absolute inset-y-0 right-0 w-2 cursor-ew-resize group-hover:bg-daun/60"
               data-music-edge="end"
               @pointerdown.stop="startMusic($event, 'end')"
+            ></span>
+          </div>
+        </div>
+
+        <!-- Jalur audio tambahan (narasi, efek suara) -->
+        <div
+          class="relative mt-1"
+          :style="{ height: `${auLanes.count * LANE_H + 2}px` }"
+          data-track="audios"
+          @pointerdown.self="startScrub"
+        >
+          <span
+            v-if="!project.audios.length"
+            class="pointer-events-none absolute inset-y-0 left-1 flex items-center text-[10px] text-ink-3"
+          >
+            {{ t.audioTrackHint }}
+          </span>
+          <div
+            v-for="a in project.audios"
+            :key="a.id"
+            role="button"
+            tabindex="0"
+            class="group absolute flex cursor-grab items-center overflow-hidden rounded border text-[10px]"
+            :class="
+              a.id === selectedAudio
+                ? 'z-10 border-nila bg-nila/80 text-white'
+                : 'border-nila/40 bg-nila/10 text-nila dark:text-[#94aee6]'
+            "
+            :style="{
+              left: `${px(a.start)}px`,
+              width: `${Math.max(8, px(a.out - a.in))}px`,
+              top: `${(auLanes.lane.get(a.id) ?? 0) * LANE_H}px`,
+              height: `${LANE_H - 3}px`,
+            }"
+            :data-audio-bar="a.id"
+            @pointerdown.stop="startAudio($event, a.id, 'move')"
+            @keydown.enter.prevent="(emit('selectAudio', a.id), emit('seek', a.start))"
+          >
+            <svg
+              v-if="audioWave(a).d"
+              class="pointer-events-none absolute inset-y-0 left-0 h-full opacity-50"
+              :width="audioWave(a).w"
+              height="16"
+              :viewBox="`0 0 ${audioWave(a).w} 16`"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <path :d="audioWave(a).d" fill="currentColor" />
+            </svg>
+            <span class="pointer-events-none relative truncate px-2">
+              🎙 {{ mediaOf(project, a.mediaId)?.name }}
+            </span>
+            <span
+              class="absolute inset-y-0 left-0 w-2 cursor-ew-resize group-hover:bg-nila/60"
+              @pointerdown.stop="startAudio($event, a.id, 'start')"
+            ></span>
+            <span
+              class="absolute inset-y-0 right-0 w-2 cursor-ew-resize group-hover:bg-nila/60"
+              @pointerdown.stop="startAudio($event, a.id, 'end')"
             ></span>
           </div>
         </div>

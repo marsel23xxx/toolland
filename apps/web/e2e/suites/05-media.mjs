@@ -307,6 +307,45 @@ export const tests = [
     },
   },
   {
+    name: 'edit video: rekam narasi (mikrofon uji), ekspor, simpan beserta rekaman',
+    path: '/tools/edit-video',
+    async run(h) {
+      const { page } = h;
+      await ready(h);
+      await h.upload('foto.jpg', 'klip.mp4');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 2, {
+        timeout: 30000,
+      });
+      await page.click('[data-tab="music"]');
+      await page.click('[data-record]');
+      await page.waitForSelector('[data-record-stop]', { timeout: 10000 });
+      await h.sleep(1500);
+      await page.click('[data-record-stop]');
+      await page.waitForSelector('[data-audio-bar]', { timeout: 10000 });
+      // Simpan ringan memberi peringatan karena rekaman tidak ada di perangkat.
+      await page.click('[data-save]');
+      expect(await h.bodyHas('narasi rekaman'), 'peringatan rekaman tidak muncul');
+      await page.click('[data-save]');
+      await page.click('[data-export]');
+      const [c] = await h.results(1, 180000);
+      const mp4 = await h.download('proyek-video.mp4');
+      expect(mp4.subarray(4, 8).toString('latin1') === 'ftyp', 'bukan MP4');
+      // Beserta video: rekaman ikut tersimpan dan terbuka lagi tanpa sambung ulang.
+      await page.click('[data-save]');
+      const bundle = await h.downloadVia('proyek-video.ayu', () =>
+        page.click('[data-save-bundle]'),
+      );
+      expect(bundle.subarray(0, 2).toString('latin1') === 'PK', 'bukan arsip');
+      await page.goto(page.url(), { waitUntil: 'networkidle0' });
+      await (
+        await page.waitForSelector('[data-open-input]')
+      ).uploadFile(path.join(h.downloads, 'proyek-video.ayu'));
+      await page.waitForSelector('[data-audio-bar]', { timeout: 10000 });
+      expect(!(await page.$('[data-relink]')), 'rekaman meminta sambung ulang');
+      return [c];
+    },
+  },
+  {
     name: 'edit video: panel teks (gaya, font, animasi) dan galeri seret ke timeline',
     path: '/tools/edit-video',
     async run(h) {

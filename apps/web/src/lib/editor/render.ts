@@ -229,6 +229,26 @@ export function buildExportArgs(p: Project, input: ExportInput): string[] {
     v = `t${j}`;
     idx++;
   });
+  // Audio tambahan (narasi, efek suara).
+  p.audios.forEach((au, j) => {
+    const path = input.paths.get(au.mediaId);
+    if (!path) throw new Error('missing-media');
+    const len = Math.min(au.out - au.in, total - au.start);
+    if (len <= 0.01 || au.volume <= 0) return;
+    args.push('-ss', n(au.in), '-t', n(len), '-i', path);
+    const c = [`atrim=duration=${n(len)}`, 'asetpts=PTS-STARTPTS', AFMT, `volume=${n(au.volume)}`];
+    if (au.fadeIn > 0) c.push(`afade=t=in:st=0:d=${n(Math.min(au.fadeIn, len))}`);
+    if (au.fadeOut > 0) {
+      const d = Math.min(au.fadeOut, len);
+      c.push(`afade=t=out:st=${n(len - d)}:d=${n(d)}`);
+    }
+    if (au.start > 0) c.push(`adelay=delays=${Math.round(au.start * 1000)}:all=1`);
+    c.push('apad', `atrim=duration=${n(total)}`);
+    filters.push(`[${idx}:a]${c.join(',')}[xa${j}x]`);
+    extraAudio.push(`[xa${j}x]`);
+    idx++;
+  });
+
   const music = p.music;
   const musicPath = music ? input.paths.get(music.mediaId) : undefined;
   const span = music ? musicSpan(music, total) : { start: 0, end: 0 };
@@ -451,6 +471,7 @@ export async function exportVideo(
   const used = new Set([
     ...p.clips.map((c) => c.mediaId),
     ...p.overlays.filter((o) => o.kind === 'media').map((o) => o.mediaId),
+    ...p.audios.map((a) => a.mediaId),
     ...(p.music ? [p.music.mediaId] : []),
   ]);
   // Nama file di sistem file ffmpeg memakai ID media agar tidak bentrok (File baru ini hanya

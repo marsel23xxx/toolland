@@ -3,7 +3,7 @@
 Rencana bertahap untuk tool **Edit Video** (`/tools/edit-video`, `/en/tools/video-editor`).
 Fitur ini di luar PRD dan disetujui pemilik proyek pada 2026-11-10.
 
-Status per 2026-11-10: **Fase 0, 1, dan 2 selesai**, berikutnya **Fase 3** (atau Fase 4 lebih dulu).
+Status per 2026-11-10: **Fase 0-3 selesai**, berikutnya **Fase 4**.
 
 ## Prinsip yang berlaku di semua fase
 
@@ -130,7 +130,7 @@ versi 3.
 
 ---
 
-## Fase 3: Banyak jalur dan overlay (L)
+## Fase 3: Banyak jalur dan overlay (L), selesai
 
 Tujuan: menumpuk lebih dari satu video/gambar/audio.
 
@@ -151,6 +151,14 @@ Tujuan: menumpuk lebih dari satu video/gambar/audio.
 - Perintah ffmpeg makin panjang. Batas jumlah item per proyek perlu diukur ulang.
 
 **Selesai bila:** proyek dengan 3 jalur video + 2 jalur audio bisa dipratinjau lancar dan diekspor.
+
+**Hasil:** dikerjakan dalam tiga tahap. 3a: transisi bertumpuk (crossfade, sapu, geser, lingkaran)
+dengan xfade/acrossfade; pratinjau memakai dua lapisan `ClipLayer` dan satu jam utama. 3b: jalur
+overlay (video/foto, stiker emoji, bentuk) yang bisa digeser dan diubah ukurannya di pratinjau,
+dengan urutan lapisan. 3c: jalur audio tambahan dan rekam narasi dari mikrofon; izin mikrofon dibuka
+hanya untuk halaman editor (Permissions-Policy lewat map di `infra/nginx/web.conf`), dan halaman
+privasi diperbarui. Model tetap "jalur utama berurutan + jalur bebas" (bukan semua jalur bebas),
+sehingga tidak perlu pindah ke WebCodecs. Format `.ayu` sekarang versi 6.
 
 ---
 

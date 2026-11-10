@@ -27,7 +27,8 @@ const { server, url } = await startServer(DIST, NGINX);
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME_PATH ?? '/usr/bin/google-chrome',
   headless: true,
-  args: ['--no-sandbox'],
+  // Mikrofon palsu (nada uji) tanpa dialog izin, untuk uji rekam narasi.
+  args: ['--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
 });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
