@@ -294,6 +294,8 @@ export const tests = [
         () => document.querySelectorAll('[data-overlay-bar]').length === 2,
       );
       await page.click('[data-layer-down]');
+      // Tombol Ekspor di atas: gulir dulu agar tidak tertutup navbar yang menempel.
+      await page.evaluate(() => window.scrollTo(0, 0));
       await page.click('[data-export]');
       const [c] = await h.results(1, 180000);
       const mp4 = await h.download('proyek-video.mp4');
@@ -428,6 +430,40 @@ export const tests = [
       await h.sleep(1500);
       expect(!(await fresh.$('[data-recovery]')), 'tawaran pemulihan muncul lagi');
       await fresh.close();
+    },
+  },
+  {
+    name: 'edit video: opsi ekspor (MP3 sebagian dan GIF)',
+    path: '/tools/edit-video',
+    async run(h) {
+      const { page } = h;
+      await ready(h);
+      await h.upload('klip.mp4', 'foto.jpg');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 2, {
+        timeout: 30000,
+      });
+      // MP3, hanya detik 1-3.
+      await page.click('[data-export-options]');
+      await page.click('[data-format="mp3"]');
+      await page.click('[data-partial]');
+      await h.type('[data-range-start]', '1');
+      await h.type('[data-range-end]', '3');
+      await page.click('[data-export-start]');
+      const [c1] = await h.results(1, 180000);
+      const mp3 = await h.download('proyek-video.mp3');
+      const id3 = mp3.subarray(0, 3).toString('latin1') === 'ID3';
+      expect(id3 || (mp3[0] === 0xff && (mp3[1] & 0xe0) === 0xe0), 'bukan MP3');
+      // GIF seluruh video; tombol utama ikut format terakhir.
+      await page.click('[data-export-options]');
+      await page.click('[data-format="gif"]');
+      await page.click('[data-partial]');
+      await page.click('[data-export-options]');
+      expect((await h.text('[data-export]')) === 'Ekspor GIF', await h.text('[data-export]'));
+      await page.click('[data-export]');
+      await page.waitForSelector('a[download="proyek-video.gif"]', { timeout: 180000 });
+      const gif = await h.download('proyek-video.gif');
+      expect(gif.subarray(0, 6).toString('latin1') === 'GIF89a', 'bukan GIF');
+      return [c1, `GIF ${Math.round(gif.length / 1024)} KB`];
     },
   },
   {

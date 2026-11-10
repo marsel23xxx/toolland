@@ -57,7 +57,15 @@ import { COLOR_PRESETS } from '../../../../lib/editor/look';
 import { FONTS, FONT_IDS, TEXT_STYLES, type TextStyleId } from '../../../../lib/editor/textfx';
 import { loadEditorFonts } from './editorFonts';
 import { makeProxy, suggestProxy } from '../../../../lib/editor/proxy';
-import { exportVideo, limitThreads } from '../../../../lib/editor/render';
+import {
+  DEFAULT_EXPORT,
+  type ExportFormat,
+  type ExportOptions,
+  GIF_MAX_SECONDS,
+  exportRange,
+  exportVideo,
+  limitThreads,
+} from '../../../../lib/editor/render';
 import IconMonitor from '~icons/lucide/monitor';
 import Dropzone, { type DropzoneMessages } from '../../../ui/Dropzone.vue';
 import FileResults from '../../../ui/FileResults.vue';
@@ -868,6 +876,67 @@ function reset() {
 
 // ---------- Ekspor ----------
 
+// Opsi ekspor (format, kualitas, rentang). Format terakhir diingat per pengunjung.
+const exportMenu = ref<HTMLDetailsElement>();
+const exportOpts = ref<ExportOptions>({ ...DEFAULT_EXPORT });
+try {
+  const f = localStorage.getItem('toolland.editor.exportFormat');
+  const q = localStorage.getItem('toolland.editor.exportQuality');
+  if (f === 'mp4' || f === 'mp3' || f === 'gif') exportOpts.value.format = f;
+  if (q === 'small' || q === 'balanced' || q === 'high') exportOpts.value.quality = q;
+} catch {
+  // Penyimpanan browser tidak tersedia: pakai bawaan.
+}
+watch(
+  () => [exportOpts.value.format, exportOpts.value.quality],
+  ([f, q]) => {
+    try {
+      localStorage.setItem('toolland.editor.exportFormat', f as string);
+      localStorage.setItem('toolland.editor.exportQuality', q as string);
+    } catch {
+      // Abaikan.
+    }
+  },
+);
+const partial = ref(false);
+const rangeStart = ref(0);
+const rangeEnd = ref(0);
+watch(partial, (on) => {
+  if (on) {
+    rangeStart.value = 0;
+    rangeEnd.value = Math.round(total.value * 10) / 10;
+  }
+});
+/** Rentang yang akan diekspor (GIF dibatasi GIF_MAX_SECONDS). */
+const effectiveRange = computed(() =>
+  exportRange(
+    {
+      ...exportOpts.value,
+      range: partial.value ? { start: rangeStart.value, end: rangeEnd.value } : null,
+    },
+    total.value,
+  ),
+);
+const exportLabel = computed(() =>
+  fill(props.t.exportAs, { format: exportOpts.value.format.toUpperCase() }),
+);
+
+/** Perkiraan sisa waktu dari kemajuan dan waktu yang sudah berjalan. */
+let exportT0 = 0;
+const eta = computed(() => {
+  const p = exportProgress.value / 100;
+  if (!exporting.value || p < 0.03) return undefined;
+  const left = ((performance.now() - exportT0) / 1000) * ((1 - p) / p);
+  return left < 60
+    ? fill(props.t.etaSeconds, { n: Math.max(1, Math.round(left)) })
+    : fill(props.t.etaMinutes, { n: Math.round(left / 60) });
+});
+
+function startExport() {
+  if (exportMenu.value) exportMenu.value.open = false;
+  void runExport();
+}
+
 async function runExport() {
   if (!project.value.clips.length || exporting.value) return;
   error.value = '';
@@ -880,6 +949,11 @@ async function runExport() {
   cancelled = false;
   exporting.value = true;
   exportProgress.value = 0;
+  exportT0 = performance.now();
+  const opts: ExportOptions = {
+    ...exportOpts.value,
+    range: partial.value ? { ...effectiveRange.value } : null,
+  };
   try {
     const engine = await ff.load();
     // Font teks harus sudah dimuat sebelum teks digambar ke PNG.
@@ -889,9 +963,10 @@ async function runExport() {
       project.value,
       sources.value,
       (p) => (exportProgress.value = p * 100),
+      opts,
     );
     results.clear();
-    results.add(`${fileBase.value}.mp4`, blob, formatBytes(blob.size));
+    results.add(`${fileBase.value}.${opts.format}`, blob, formatBytes(blob.size));
   } catch (e) {
     const msg = String((e as Error)?.message ?? e);
     error.value = cancelled
@@ -1275,6 +1350,11 @@ const overlaySliders = computed(() => [
     show: (v: number) => `${v}°`,
   },
 ]);
+const formats = computed<{ id: ExportFormat; label: string }[]>(() => [
+  { id: 'mp4', label: 'MP4' },
+  { id: 'mp3', label: props.t['format.mp3'] },
+  { id: 'gif', label: 'GIF' },
+]);
 const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 const anims: TextAnim[] = ['none', 'fade', 'up', 'left'];
 const aligns = computed(() => [
@@ -1510,15 +1590,126 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
       >
         {{ full ? t.exitFullscreen : t.fullscreen }}
       </button>
-      <button
-        type="button"
-        class="btn btn-primary"
-        :disabled="!project.clips.length || exporting || !!busy"
-        data-export
-        @click="runExport"
-      >
-        {{ t.export }}
-      </button>
+      <div class="flex">
+        <button
+          type="button"
+          class="btn btn-primary rounded-r-none"
+          :disabled="!project.clips.length || exporting || !!busy"
+          data-export
+          @click="runExport"
+        >
+          {{ exportLabel }}
+        </button>
+        <details ref="exportMenu" class="relative">
+          <summary
+            class="btn btn-primary h-full cursor-pointer list-none rounded-l-none border-l border-white/30 px-2"
+            :class="{ 'pointer-events-none opacity-50': !project.clips.length || exporting }"
+            :aria-label="t.exportOptions"
+            data-export-options
+          >
+            ▾
+          </summary>
+          <div
+            class="absolute right-0 z-30 mt-1 w-80 space-y-3 rounded-md border border-rule bg-paper p-3 text-sm shadow-lg"
+          >
+            <fieldset>
+              <legend class="label">{{ t.format }}</legend>
+              <div class="grid grid-cols-3 gap-1">
+                <button
+                  v-for="fm in formats"
+                  :key="fm.id"
+                  type="button"
+                  class="rounded border px-1 py-1.5 text-xs"
+                  :class="
+                    exportOpts.format === fm.id
+                      ? 'border-brand-600 bg-brand-600 text-white'
+                      : 'border-rule hover:border-ink-3'
+                  "
+                  :aria-pressed="exportOpts.format === fm.id"
+                  :data-format="fm.id"
+                  @click="exportOpts.format = fm.id"
+                >
+                  {{ fm.label }}
+                </button>
+              </div>
+            </fieldset>
+            <fieldset v-if="exportOpts.format === 'mp4'">
+              <legend class="label">{{ t.exportQuality }}</legend>
+              <select v-model="exportOpts.quality" class="field" data-export-quality>
+                <option value="small">{{ t['exportQuality.small'] }}</option>
+                <option value="balanced">{{ t['exportQuality.balanced'] }}</option>
+                <option value="high">{{ t['exportQuality.high'] }}</option>
+              </select>
+            </fieldset>
+            <div class="space-y-2">
+              <label class="flex items-center gap-2">
+                <input v-model="partial" type="checkbox" class="accent-brand-600" data-partial />
+                {{ t.exportPartial }}
+              </label>
+              <div v-if="partial" class="grid grid-cols-2 gap-2">
+                <div>
+                  <label for="ed-rs" class="label">{{ t.rangeFrom }}</label>
+                  <input
+                    id="ed-rs"
+                    v-model.number="rangeStart"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    class="field"
+                    data-range-start
+                  />
+                  <button
+                    type="button"
+                    class="mt-1 text-xs text-brand-700 hover:underline dark:text-brand-300"
+                    @click="rangeStart = Math.round(time * 10) / 10"
+                  >
+                    {{ t.fromPlayhead }}
+                  </button>
+                </div>
+                <div>
+                  <label for="ed-re" class="label">{{ t.rangeTo }}</label>
+                  <input
+                    id="ed-re"
+                    v-model.number="rangeEnd"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    class="field"
+                    data-range-end
+                  />
+                  <button
+                    type="button"
+                    class="mt-1 text-xs text-brand-700 hover:underline dark:text-brand-300"
+                    @click="rangeEnd = Math.round(time * 10) / 10"
+                  >
+                    {{ t.fromPlayhead }}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-ink-3">
+              {{
+                fill(t.exportSummary, {
+                  time: formatTime(effectiveRange.end - effectiveRange.start),
+                })
+              }}
+              <template v-if="exportOpts.format === 'gif'">
+                {{ fill(t.gifHint, { n: GIF_MAX_SECONDS }) }}</template
+              >
+              <template v-else-if="exportOpts.format === 'mp3'"> {{ t.mp3Hint }}</template>
+            </p>
+            <button
+              type="button"
+              class="btn btn-primary w-full"
+              :disabled="effectiveRange.end - effectiveRange.start < 0.2 || !!busy"
+              data-export-start
+              @click="startExport"
+            >
+              {{ exportLabel }}
+            </button>
+          </div>
+        </details>
+      </div>
     </div>
 
     <ProgressBar v-if="busy" :label="busy" :value="saveProgress ?? undefined" />
@@ -1529,6 +1720,7 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
         class="flex-1"
         :label="fill(m.processing, { percent: Math.round(exportProgress) })"
         :value="exportProgress"
+        :detail="eta"
       />
       <button type="button" class="btn btn-secondary" @click="cancelExport">{{ m.cancel }}</button>
     </div>

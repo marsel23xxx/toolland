@@ -50,7 +50,39 @@ const n = (x: number) => String(Math.round(x * 1000) / 1000);
 const AFMT = 'aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo';
 
 /** Susun argumen ffmpeg untuk ekspor (fungsi murni, dites terpisah). */
-export function buildExportArgs(p: Project, input: ExportInput): string[] {
+export type ExportFormat = 'mp4' | 'mp3' | 'gif';
+export type ExportQuality = 'small' | 'balanced' | 'high';
+
+export interface ExportOptions {
+  format: ExportFormat;
+  quality: ExportQuality;
+  /** Rentang waktu yang diekspor; kosong = seluruh video. */
+  range?: { start: number; end: number } | null;
+}
+
+export const DEFAULT_EXPORT: ExportOptions = { format: 'mp4', quality: 'balanced', range: null };
+/** GIF dibatasi agar ukuran file wajar. */
+export const GIF_MAX_SECONDS = 30;
+const CRF: Record<ExportQuality, number> = { small: 28, balanced: 23, high: 18 };
+export const EXPORT_MIME: Record<ExportFormat, string> = {
+  mp4: 'video/mp4',
+  mp3: 'audio/mpeg',
+  gif: 'image/gif',
+};
+
+/** Rentang ekspor yang dirapikan ke dalam durasi video. */
+export function exportRange(o: ExportOptions, total: number): { start: number; end: number } {
+  const start = Math.max(0, Math.min(o.range?.start ?? 0, total));
+  let end = Math.max(start, Math.min(o.range?.end ?? total, total));
+  if (o.format === 'gif') end = Math.min(end, start + GIF_MAX_SECONDS);
+  return { start, end };
+}
+
+export function buildExportArgs(
+  p: Project,
+  input: ExportInput,
+  opts: ExportOptions = DEFAULT_EXPORT,
+): string[] {
   const { w, h } = outputSize(p.settings.aspect, p.settings.quality);
   const total = totalDuration(p);
   const args: string[] = ['-hide_banner', '-y'];
@@ -289,6 +321,32 @@ export function buildExportArgs(p: Project, input: ExportInput): string[] {
     );
     a = 'am';
   }
+  // Rentang sebagian: dipotong di akhir rantai (setelah semua efek), jadi hasilnya sama persis
+  // dengan bagian itu di video penuh.
+  const r = exportRange(opts, total);
+  const dur = r.end - r.start;
+  if (r.start > 0.001 || r.end < total - 0.001) {
+    filters.push(`[${v}]trim=start=${n(r.start)}:end=${n(r.end)},setpts=PTS-STARTPTS[vr]`);
+    filters.push(`[${a}]atrim=start=${n(r.start)}:end=${n(r.end)},asetpts=PTS-STARTPTS[ar]`);
+    v = 'vr';
+    a = 'ar';
+  }
+  if (opts.format === 'mp3') {
+    // Hanya audio: keluaran video dibuang (nullsink) agar graf tetap lengkap.
+    filters.push(`[${v}]nullsink`);
+    args.push('-filter_complex', filters.join(';'), '-map', `[${a}]`);
+    args.push('-c:a', 'libmp3lame', '-b:a', '192k', '-t', n(dur), input.out);
+    return args;
+  }
+  if (opts.format === 'gif') {
+    filters.push(
+      `[${v}]fps=12,scale='min(480,iw)':-2:flags=lanczos,split[g1][g2];[g1]palettegen=stats_mode=diff[gpal];[g2][gpal]paletteuse=dither=bayer:bayer_scale=5[gif]`,
+    );
+    filters.push(`[${a}]anullsink`);
+    args.push('-filter_complex', filters.join(';'), '-map', '[gif]');
+    args.push('-loop', '0', '-t', n(dur), input.out);
+    return args;
+  }
   args.push(
     '-filter_complex',
     filters.join(';'),
@@ -301,7 +359,7 @@ export function buildExportArgs(p: Project, input: ExportInput): string[] {
     '-preset',
     'veryfast',
     '-crf',
-    '23',
+    String(CRF[opts.quality] ?? 23),
     '-pix_fmt',
     'yuv420p',
     '-r',
@@ -309,11 +367,11 @@ export function buildExportArgs(p: Project, input: ExportInput): string[] {
     '-c:a',
     'aac',
     '-b:a',
-    '128k',
+    opts.quality === 'high' ? '192k' : '128k',
     '-movflags',
     '+faststart',
     '-t',
-    n(total),
+    n(dur),
     input.out,
   );
   return args;
@@ -464,6 +522,7 @@ export async function exportVideo(
   p: Project,
   files: Map<string, File>,
   onProgress: (p: number) => void,
+  opts: ExportOptions = DEFAULT_EXPORT,
 ): Promise<Blob> {
   const { FFFSType } = await import('@ffmpeg/ffmpeg');
   const { w, h } = outputSize(p.settings.aspect, p.settings.quality);
@@ -491,11 +550,13 @@ export async function exportVideo(
   await ff.mount(FFFSType.WORKERFS, { files: mounted }, '/edin');
   const textPaths: string[] = [];
   const overlayPaths: string[] = [];
-  const out = '/edtxt/hasil.mp4';
+  const out = `/edtxt/hasil.${opts.format}`;
+  const range = exportRange(opts, total);
+  const span = range.end - range.start;
   const onLog = ({ message }: { message: string }) => {
     const m = /time=(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(message);
-    if (m && total > 0)
-      onProgress(Math.min(1, (Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3])) / total));
+    if (m && span > 0)
+      onProgress(Math.min(1, (Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3])) / span));
   };
   try {
     const withAudio = new Set<string>();
@@ -525,12 +586,12 @@ export async function exportVideo(
       await ff.writeFile(path, await stickerPng(o, pw, ph));
       overlayPaths.push(path);
     }
-    const args = buildExportArgs(p, { paths, withAudio, textPaths, overlayPaths, out });
+    const args = buildExportArgs(p, { paths, withAudio, textPaths, overlayPaths, out }, opts);
     ff.on('log', onLog);
     const code = await ff.exec(limitThreads(args));
     if (code !== 0) throw new Error('failed');
     const data = (await ff.readFile(out)) as Uint8Array;
-    return new Blob([data as Uint8Array<ArrayBuffer>], { type: 'video/mp4' });
+    return new Blob([data as Uint8Array<ArrayBuffer>], { type: EXPORT_MIME[opts.format] });
   } finally {
     ff.off('log', onLog);
     for (const path of [...textPaths.filter(Boolean), ...overlayPaths.filter(Boolean), out])

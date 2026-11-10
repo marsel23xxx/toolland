@@ -25,7 +25,7 @@ faq:
   - q: 'Kenapa ekspor lama?'
     a: 'Video dikodekan ulang di perangkatmu. Kecepatannya bergantung pada prosesor, panjang video, dan kualitas. Pilih 480p atau 720p agar lebih cepat, dan gunakan laptop untuk video panjang.'
   - q: 'Format apa yang bisa dipakai?'
-    a: 'Video yang bisa diputar browser (MP4, WebM, MOV H.264), foto JPG, PNG, dan WebP, serta audio MP3, M4A, WAV, OGG, atau FLAC. Hasil selalu MP4 (H.264 dan AAC) yang bisa diputar di mana saja.'
+    a: 'Video MP4, MOV, WebM, dan MKV, termasuk HEVC dari iPhone (dibuatkan salinan ringan untuk pratinjau), foto JPG, PNG, dan WebP, serta audio MP3, M4A, WAV, OGG, atau FLAC. Hasil bisa MP4 (H.264 dan AAC), MP3, atau GIF.'
   - q: 'Apakah bisa dipakai di HP?'
     a: 'Belum. Editor butuh layar minimal 1024 piksel, jadi hanya terbuka di laptop, komputer, atau tablet besar dalam posisi mendatar. Di HP kamu tetap bisa memakai Kompres Video, Video ke GIF, dan Ekstrak Audio.'
   - q: 'Apakah bisa untuk Reels, TikTok, atau Shorts?'

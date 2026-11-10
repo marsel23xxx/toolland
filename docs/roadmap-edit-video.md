@@ -3,7 +3,7 @@
 Rencana bertahap untuk tool **Edit Video** (`/tools/edit-video`, `/en/tools/video-editor`).
 Fitur ini di luar PRD dan disetujui pemilik proyek pada 2026-11-10.
 
-Status per 2026-11-10: **Fase 0-3 selesai**, berikutnya **Fase 4**.
+Status per 2026-11-10: **Fase 0-4 selesai** (WebCodecs ditunda), berikutnya **Fase 5** (opsional).
 
 ## Prinsip yang berlaku di semua fase
 
@@ -162,7 +162,7 @@ sehingga tidak perlu pindah ke WebCodecs. Format `.ayu` sekarang versi 6.
 
 ---
 
-## Fase 4: Kinerja, format, dan keamanan kerja (M)
+## Fase 4: Kinerja, format, dan keamanan kerja (M), selesai
 
 - **Video HEVC dan format lain yang tidak bisa diputar browser**: ffmpeg.wasm membuat salinan
   H.264 kecil khusus pratinjau. Ekspor tetap memakai file asli.
@@ -175,6 +175,18 @@ sehingga tidak perlu pindah ke WebCodecs. Format `.ayu` sekarang versi 6.
 - **WebCodecs** (bila didukung) untuk ekspor yang jauh lebih cepat daripada ffmpeg.wasm, dengan
   ffmpeg.wasm sebagai cadangan.
 - Uji beban: proyek 30 menit, 100 klip, laptop RAM 8 GB.
+
+**Hasil:** dikerjakan dalam tiga tahap. 4a: video yang tidak bisa diputar browser (HEVC) dan video
+4K memakai salinan H.264 540p khusus pratinjau (`lib/editor/proxy.ts`), ekspor tetap memakai file
+asli. 4b: simpan otomatis ke IndexedDB (`lib/editor/autosave.ts`) dengan file media sampai 1 GB
+dan rekaman narasi, plus tawaran pulihkan/buang saat editor dibuka. File System Access tidak
+dipakai karena IndexedDB sudah memulihkan proyek tanpa sambung ulang di semua browser. 4c: ekspor
+MP4 dengan tiga pilihan kualitas, MP3, dan GIF, rentang sebagian, serta perkiraan sisa waktu.
+
+**Ditunda:** ekspor dengan WebCodecs. ffmpeg.wasm sudah menangani semua efek dalam satu graf;
+WebCodecs berarti menulis ulang seluruh penggabungan efek di canvas/WebGL, jadi lebih masuk akal
+dikerjakan bila kecepatan ekspor benar-benar dikeluhkan. Uji beban 30 menit belum dijalankan di
+perangkat sungguhan (perlu dicoba pemilik proyek di laptop RAM 8 GB).
 
 ---
 

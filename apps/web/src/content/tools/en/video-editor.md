@@ -26,7 +26,7 @@ faq:
   - q: 'Why is exporting slow?'
     a: 'The video is re-encoded on your device. Speed depends on your processor, the video length, and the quality. Choose 480p or 720p for faster exports, and use a laptop for long videos.'
   - q: 'Which formats can I use?'
-    a: 'Videos your browser can play (MP4, WebM, H.264 MOV), JPG, PNG, and WebP photos, and MP3, M4A, WAV, OGG, or FLAC audio. The output is always MP4 (H.264 and AAC) that plays anywhere.'
+    a: 'MP4, MOV, WebM, and MKV videos, including HEVC from iPhones (a light copy is made for the preview), JPG, PNG, and WebP photos, and MP3, M4A, WAV, OGG, or FLAC audio. You can export MP4 (H.264 and AAC), MP3, or GIF.'
   - q: 'Can I use it on my phone?'
     a: 'Not yet. The editor needs a screen at least 1024 pixels wide, so it only opens on laptops, computers, or large tablets in landscape. On phones you can still use Compress Video, Video to GIF, and Extract Audio.'
   - q: 'Can I make Reels, TikTok, or Shorts?'

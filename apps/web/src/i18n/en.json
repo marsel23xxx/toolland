@@ -820,5 +820,22 @@
   "editor.recover": "Restore",
   "editor.discardRecovery": "Discard",
   "editor.restored": "Project restored from autosave.",
-  "editor.dateLocale": "en-US"
+  "editor.dateLocale": "en-US",
+  "editor.exportAs": "Export {format}",
+  "editor.exportOptions": "Export options",
+  "editor.format": "Format",
+  "editor.format.mp3": "MP3 (audio)",
+  "editor.exportQuality": "Quality",
+  "editor.exportQuality.small": "Small file (good for WhatsApp)",
+  "editor.exportQuality.balanced": "Balanced",
+  "editor.exportQuality.high": "High quality (larger file)",
+  "editor.exportPartial": "Export only part",
+  "editor.rangeFrom": "From (seconds)",
+  "editor.rangeTo": "To (seconds)",
+  "editor.fromPlayhead": "Use playhead position",
+  "editor.exportSummary": "Result length {time}.",
+  "editor.gifHint": "GIF 480 pixels wide, 12 fps, up to {n} seconds, no sound.",
+  "editor.mp3Hint": "Sound only (clips, music, narration).",
+  "editor.etaSeconds": "about {n} seconds left",
+  "editor.etaMinutes": "about {n} minutes left"
 }

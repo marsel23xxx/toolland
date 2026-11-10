@@ -820,5 +820,22 @@
   "editor.recover": "Pulihkan",
   "editor.discardRecovery": "Buang",
   "editor.restored": "Proyek dipulihkan dari simpan otomatis.",
-  "editor.dateLocale": "id-ID"
+  "editor.dateLocale": "id-ID",
+  "editor.exportAs": "Ekspor {format}",
+  "editor.exportOptions": "Opsi ekspor",
+  "editor.format": "Format",
+  "editor.format.mp3": "MP3 (audio)",
+  "editor.exportQuality": "Kualitas",
+  "editor.exportQuality.small": "Ukuran kecil (cocok untuk WhatsApp)",
+  "editor.exportQuality.balanced": "Seimbang",
+  "editor.exportQuality.high": "Kualitas tinggi (file lebih besar)",
+  "editor.exportPartial": "Ekspor sebagian saja",
+  "editor.rangeFrom": "Dari (detik)",
+  "editor.rangeTo": "Sampai (detik)",
+  "editor.fromPlayhead": "Pakai posisi playhead",
+  "editor.exportSummary": "Panjang hasil {time}.",
+  "editor.gifHint": "GIF lebar 480 piksel, 12 fps, maksimal {n} detik, tanpa suara.",
+  "editor.mp3Hint": "Hanya suara (klip, musik, narasi).",
+  "editor.etaSeconds": "± {n} detik lagi",
+  "editor.etaMinutes": "± {n} menit lagi"
 }
