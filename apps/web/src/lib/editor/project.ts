@@ -19,6 +19,10 @@ export type TextPosition = 'top' | 'center' | 'bottom' | 'custom';
 /** Transisi ke klip berikutnya: memudar ke hitam atau putih lalu muncul lagi. */
 export type Transition = 'none' | 'black' | 'white';
 export type TextSize = 's' | 'm' | 'l';
+export type TextAlign = 'left' | 'center' | 'right';
+export type FontId = 'jakarta' | 'bebas' | 'montserrat' | 'playfair' | 'caveat' | 'pacifico';
+/** Animasi masuk/keluar teks: pudar, atau pudar sambil bergeser dari bawah/kiri. */
+export type TextAnim = 'none' | 'fade' | 'up' | 'left';
 
 /** Berkas sumber. File-nya sendiri disimpan terpisah (tidak ikut JSON proyek). */
 export interface MediaItem {
@@ -96,19 +100,125 @@ export interface TextLayer {
   position: TextPosition;
   size: TextSize;
   color: string;
-  /** Kotak gelap di belakang teks agar mudah dibaca. */
+  /** Kotak di belakang teks agar mudah dibaca. */
   box: boolean;
   /** Titik tengah teks untuk posisi 'custom', relatif 0-1 terhadap lebar dan tinggi video. */
   x: number;
   y: number;
+  font: FontId;
+  align: TextAlign;
+  /** Garis tepi gelap dan bayangan. */
+  stroke: boolean;
+  shadow: boolean;
+  boxColor: string;
+  /** Kepekatan kotak 0-1. */
+  boxOpacity: number;
+  animIn: TextAnim;
+  animOut: TextAnim;
+  /** Lama animasi (detik). */
+  animDur: number;
 }
+
+export const TEXT_DEFAULTS = {
+  position: 'bottom',
+  size: 'm',
+  color: '#ffffff',
+  box: false,
+  x: 0.5,
+  y: 0.8,
+  font: 'jakarta',
+  align: 'center',
+  stroke: true,
+  shadow: false,
+  boxColor: '#000000',
+  boxOpacity: 0.6,
+  animIn: 'none',
+  animOut: 'none',
+  animDur: 0.4,
+} as const satisfies Omit<TextLayer, 'id' | 'text' | 'start' | 'end'>;
 
 export interface Music {
   mediaId: string;
   /** Mulai dari detik ke berapa di lagu. */
   offset: number;
   volume: number;
-  fadeOut: boolean;
+  /** Rentang waktu musik di timeline; end = null berarti sampai akhir video. */
+  start: number;
+  end: number | null;
+  /** Fade in/out musik (detik). */
+  fadeIn: number;
+  fadeOut: number;
+  /** Musik otomatis mengecil saat klip video bersuara. */
+  duck: boolean;
+}
+
+export const MUSIC_DEFAULTS = {
+  offset: 0,
+  volume: 0.6,
+  start: 0,
+  end: null,
+  fadeIn: 0,
+  fadeOut: 2,
+  duck: false,
+} as const satisfies Omit<Music, 'mediaId'>;
+
+/** Kepekatan musik saat diredam (ducking) dan lama peralihannya. */
+export const DUCK_LEVEL = 0.3;
+export const DUCK_RAMP = 0.3;
+
+/** Rentang musik yang benar-benar terdengar [start, end) di dalam durasi total. */
+export function musicSpan(
+  m: Pick<Music, 'start' | 'end'>,
+  total: number,
+): { start: number; end: number } {
+  const start = Math.max(0, Math.min(m.start, total));
+  const end = Math.max(start, Math.min(m.end ?? total, total));
+  return { start, end };
+}
+
+/**
+ * Rentang waktu klip video yang bersuara (untuk ducking). withAudio = mediaId yang punya audio;
+ * bila tidak diketahui, semua klip video bervolume dianggap bersuara.
+ */
+export function voicedSpans(
+  p: Pick<Project, 'clips' | 'media'>,
+  withAudio?: Set<string>,
+): [number, number][] {
+  const out: [number, number][] = [];
+  let t = 0;
+  for (const c of p.clips) {
+    const len = clipLength(c);
+    const m = p.media.find((x) => x.id === c.mediaId);
+    if (m?.kind === 'video' && c.volume > 0 && (!withAudio || withAudio.has(m.id))) {
+      const last = out.at(-1);
+      if (last && Math.abs(last[1] - t) < 1e-6) last[1] = t + len;
+      else out.push([t, t + len]);
+    }
+    t += len;
+  }
+  return out;
+}
+
+/** Penguatan musik akibat ducking pada waktu t (sama untuk pratinjau dan ekspor). */
+export function duckGain(spans: [number, number][], t: number): number {
+  let g = 1;
+  for (const [a, b] of spans) {
+    const ramp = Math.max(0, Math.min(1, (t - a) / DUCK_RAMP, (b - t) / DUCK_RAMP));
+    g = Math.min(g, 1 - (1 - DUCK_LEVEL) * ramp);
+  }
+  return g;
+}
+
+/** Penguatan fade in/out musik pada waktu t. */
+export function musicFadeGain(
+  m: Pick<Music, 'fadeIn' | 'fadeOut'>,
+  span: { start: number; end: number },
+  t: number,
+): number {
+  let g = 1;
+  if (m.fadeIn > 0) g = Math.min(g, (t - span.start) / m.fadeIn);
+  if (m.fadeOut > 0) g = Math.min(g, (span.end - t) / m.fadeOut);
+  return Math.max(0, Math.min(1, g));
 }
 
 export interface Settings {

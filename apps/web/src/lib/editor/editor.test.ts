@@ -4,6 +4,8 @@ import { crc32, matchFiles, openAyu, sanitizeProject, saveAyu, unzipStore, zipSt
 import {
   type MediaItem,
   type Project,
+  MUSIC_DEFAULTS,
+  TEXT_DEFAULTS,
   clampClip,
   clipAt,
   clipFor,
@@ -42,15 +44,12 @@ function sample(): Project {
       text: 'Halo',
       start: 1,
       end: 4,
-      position: 'bottom',
-      size: 'm',
-      color: '#ffffff',
-      box: false,
+      ...TEXT_DEFAULTS,
       x: 0.5,
       y: 0.5,
     },
   ];
-  p.music = { mediaId: 'm', offset: 5, volume: 0.5, fadeOut: true };
+  p.music = { ...MUSIC_DEFAULTS, mediaId: 'm', offset: 5, volume: 0.5, fadeOut: 2 };
   return p;
 }
 
@@ -209,7 +208,7 @@ describe('perintah ffmpeg', () => {
     expect(graph).toContain('[0:a]atrim=duration=6');
     expect(graph).toContain('anullsrc=r=48000:cl=stereo,atrim=duration=3'); // gambar tanpa audio
     expect(graph).toContain('concat=n=2:v=1:a=1[vc][ac]');
-    expect(graph).toContain("overlay=0:0:enable='between(t,1,4)'");
+    expect(graph).toContain("overlay=x=0:y=0:eof_action=pass:enable='between(t,1,4)'");
     expect(graph).toContain('afade=t=out:st=7:d=2');
     expect(args.at(-1)).toBe('/edtxt/hasil.mp4');
     expect(args.slice(-3, -1)).toEqual(['-t', '9']);

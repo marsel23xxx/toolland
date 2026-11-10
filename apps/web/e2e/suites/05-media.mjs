@@ -202,13 +202,70 @@ export const tests = [
       const light = await h.downloadVia('proyek-video.ayu', () => page.click('[data-save-light]'));
       const doc = JSON.parse(light.toString('utf8'));
       const [v, img] = doc.project.clips;
-      expect(doc.version === 2, `versi ${doc.version}`);
+      expect(doc.version === 3, `versi ${doc.version}`);
       expect(
         v.speed === 2 && v.preset === 'bw' && v.fit === 'blur' && v.rotate === 90 && v.volume === 0,
         JSON.stringify(v),
       );
       expect(img.kenBurns === 'in' && doc.project.settings.bg === '#224488', JSON.stringify(img));
       return [c];
+    },
+  },
+  {
+    name: 'edit video: panel teks (gaya, font, animasi) dan galeri seret ke timeline',
+    path: '/tools/edit-video',
+    async run(h) {
+      const { page } = h;
+      await ready(h);
+      await h.upload('klip.mp4', 'foto.jpg');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 2, {
+        timeout: 30000,
+      });
+      // Seret foto dari galeri ke awal timeline.
+      await page.evaluate(() => {
+        const items = document.querySelectorAll('[data-media-item]');
+        const item = items[items.length - 1];
+        const tl = document.querySelector('[data-tl]');
+        const r = tl.getBoundingClientRect();
+        const dt = new DataTransfer();
+        item.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+        const at = {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: dt,
+          clientX: r.left + 14,
+          clientY: r.top + 40,
+        };
+        tl.dispatchEvent(new DragEvent('dragover', at));
+        tl.dispatchEvent(new DragEvent('drop', at));
+      });
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 3);
+      await page.click('[data-tab="media"]');
+      const usedBadge = await page.$eval('[data-gallery]', (g) => g.innerText.includes('2×'));
+      expect(usedBadge, 'penanda pemakaian 2× tidak muncul');
+
+      // Teks: gaya Judul, font Pacifico, animasi masuk Naik.
+      await page.click('[data-add-text]');
+      await page.click('[data-text-style="title"]');
+      expect((await h.value('#ed-tz')) === 'l', 'gaya judul tidak diterapkan');
+      await page.click('[data-font="pacifico"]');
+      await page.select('[data-anim-in]', 'fade');
+      await page.click('[data-text-box]');
+      await page.waitForSelector('#ed-bo');
+      // Font Pacifico termuat.
+      await page.waitForFunction(() => document.fonts.check('400 20px "Pacifico"'), {
+        timeout: 10000,
+      });
+      await page.click('[data-save]');
+      const light = await h.downloadVia('proyek-video.ayu', () => page.click('[data-save-light]'));
+      const doc = JSON.parse(light.toString('utf8'));
+      const t = doc.project.texts[0];
+      expect(doc.version === 3, `versi ${doc.version}`);
+      expect(
+        t.font === 'pacifico' && t.animIn === 'fade' && t.box === true && t.size === 'l',
+        JSON.stringify(t),
+      );
+      expect(doc.project.clips[0].mediaId !== doc.project.clips[1].mediaId, 'foto tidak disisip');
     },
   },
   {

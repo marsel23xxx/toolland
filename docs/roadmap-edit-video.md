@@ -3,7 +3,7 @@
 Rencana bertahap untuk tool **Edit Video** (`/tools/edit-video`, `/en/tools/video-editor`).
 Fitur ini di luar PRD dan disetujui pemilik proyek pada 2026-11-10.
 
-Status per 2026-11-10: **Fase 0 dan Fase 1 selesai**, berikutnya **Fase 2**.
+Status per 2026-11-10: **Fase 0, 1, dan 2 selesai**, berikutnya **Fase 3** (atau Fase 4 lebih dulu).
 
 ## Prinsip yang berlaku di semua fase
 
@@ -80,7 +80,7 @@ merapat setelah dilepas.
 
 ---
 
-## Fase 2: Panel samping lengkap (L)
+## Fase 2: Panel samping lengkap (L), selesai
 
 Tujuan: panel kanan jadi "inspektur" yang kaya seperti editor populer, tetap sederhana.
 
@@ -120,6 +120,13 @@ Tujuan: panel kanan jadi "inspektur" yang kaya seperti editor populer, tetap sed
 
 **Selesai bila:** setiap pengaturan di panel terlihat sama di pratinjau dan di MP4 (diuji
 per efek dengan perbandingan bingkai).
+
+**Hasil:** semua poin dibuat, dalam dua tahap (2a klip, 2b teks/musik/galeri). Font yang dipilih
+pemilik proyek: Plus Jakarta Sans, Bebas Neue, Montserrat, Playfair Display, Caveat, Pacifico.
+Animasi teks dibuat sebagai fade alpha + posisi overlay (tanpa "muncul membesar"). Ducking
+memakai otomasi volume yang sama di pratinjau dan ekspor (bukan sidechain), sehingga hasilnya bisa
+diprediksi. Rumus ada di `lib/editor/look.ts` dan `lib/editor/textfx.ts`. Format `.ayu` sekarang
+versi 3.
 
 ---
 

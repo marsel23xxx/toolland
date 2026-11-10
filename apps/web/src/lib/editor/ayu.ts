@@ -19,10 +19,14 @@ import {
   type TextLayer,
   newProject,
 } from './project';
+import { FONT_IDS } from './textfx';
 
 export const AYU_FORMAT = 'toolland-ayu';
-/** Versi 2: kecepatan, fade audio, putar/balik, zoom, warna, Ken Burns, latar, fps. */
-export const AYU_VERSION = 2;
+/**
+ * Versi 2: kecepatan, fade audio, putar/balik, zoom, warna, Ken Burns, latar, fps.
+ * Versi 3: font, rata, garis tepi, bayangan, kotak, animasi teks; rentang, fade, ducking musik.
+ */
+export const AYU_VERSION = 3;
 export const AYU_MIME = 'application/x-toolland-ayu';
 /** Arsip ZIP tanpa ZIP64: total di bawah 4 GB. */
 export const MAX_BUNDLE_BYTES = 4 * 1024 ** 3 - 64 * 1024 ** 2;
@@ -54,6 +58,7 @@ const str = (v: unknown, d = '', max = 300) => (typeof v === 'string' ? v.slice(
 const pick = <T extends string | number>(v: unknown, allowed: readonly T[], d: T): T =>
   allowed.includes(v as T) ? (v as T) : d;
 const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+const ANIMS = ['none', 'fade', 'up', 'left'] as const;
 
 /** Ambil proyek dari objek apa pun dengan aman: nilai aneh diganti bawaan, entri rusak dibuang. */
 export function sanitizeProject(raw: unknown): Project {
@@ -133,6 +138,16 @@ export function sanitizeProject(raw: unknown): Project {
         box: t.box === true,
         x: num(t.x, 0.5, 0, 1),
         y: num(t.y, 0.5, 0, 1),
+        font: pick(t.font, FONT_IDS, 'jakarta'),
+        align: pick(t.align, ['left', 'center', 'right'] as const, 'center'),
+        // Proyek lama: teks tanpa kotak selalu bergaris tepi.
+        stroke: typeof t.stroke === 'boolean' ? t.stroke : t.box !== true,
+        shadow: t.shadow === true,
+        boxColor: /^#[0-9a-f]{6}$/i.test(str(t.boxColor)) ? (t.boxColor as string) : '#000000',
+        boxOpacity: num(t.boxOpacity, 0.6, 0, 1),
+        animIn: pick(t.animIn, ANIMS, 'none'),
+        animOut: pick(t.animOut, ANIMS, 'none'),
+        animDur: num(t.animDur, 0.4, 0.1, 2),
       };
     });
   const m = o.music as Record<string, unknown> | null | undefined;
@@ -142,7 +157,12 @@ export function sanitizeProject(raw: unknown): Project {
           mediaId: m.mediaId,
           offset: num(m.offset, 0, 0, 86400),
           volume: num(m.volume, 0.6, 0, 2),
-          fadeOut: m.fadeOut !== false,
+          start: num(m.start, 0, 0, 86400),
+          end: m.end === null || m.end === undefined ? null : num(m.end, 0, 0, 86400),
+          fadeIn: num(m.fadeIn, 0, 0, 10),
+          // Versi 1-2 menyimpan fadeOut sebagai true/false (2 detik).
+          fadeOut: typeof m.fadeOut === 'boolean' ? (m.fadeOut ? 2 : 0) : num(m.fadeOut, 2, 0, 10),
+          duck: m.duck === true,
         } satisfies Music)
       : null;
   return p;

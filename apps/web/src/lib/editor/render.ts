@@ -12,8 +12,12 @@ import {
   FPS,
   type Project,
   type TextLayer,
+  DUCK_LEVEL,
+  DUCK_RAMP,
   clipFades,
   clipLength,
+  musicSpan,
+  voicedSpans,
   mediaOf,
   outputSize,
   textLayout,
@@ -21,6 +25,7 @@ import {
   wrapText,
 } from './project';
 import { atempoChain, colorFilter, geometryFilter, orientFilter } from './look';
+import { fontCss, textOverlay } from './textfx';
 
 export interface ExportInput {
   /** Path file media di sistem file ffmpeg, per mediaId. */
@@ -122,21 +127,45 @@ export function buildExportArgs(p: Project, input: ExportInput): string[] {
   p.texts.forEach((t, j) => {
     const path = input.textPaths[j];
     if (!path || !t.text.trim() || t.start >= total) return;
-    args.push('-i', path);
+    // PNG diulang selama teks tampil; animasi = fade alpha + posisi overlay berdasarkan waktu.
+    const end = Math.min(t.end, total);
+    args.push('-loop', '1', '-framerate', String(fps), '-t', n(end - t.start), '-i', path);
+    const o = textOverlay(t, end);
+    filters.push(`[${idx}:v]${o.chain}[tx${j}]`);
     filters.push(
-      `[${v}][${idx}:v]overlay=0:0:enable='between(t,${n(t.start)},${n(Math.min(t.end, total))})'[t${j}]`,
+      `[${v}][tx${j}]overlay=x=${o.x}:y=${o.y}:eof_action=pass:enable='between(t,${n(t.start)},${n(end)})'[t${j}]`,
     );
     v = `t${j}`;
     idx++;
   });
   const music = p.music;
   const musicPath = music ? input.paths.get(music.mediaId) : undefined;
-  if (music && musicPath && music.volume > 0) {
+  const span = music ? musicSpan(music, total) : { start: 0, end: 0 };
+  if (music && musicPath && music.volume > 0 && span.end - span.start > 0.05) {
     args.push('-stream_loop', '-1', '-ss', n(music.offset), '-i', musicPath);
-    const fade = music.fadeOut && total > 3 ? `,afade=t=out:st=${n(total - 2)}:d=2` : '';
-    filters.push(
-      `[${idx}:a]atrim=duration=${n(total)},asetpts=PTS-STARTPTS,${AFMT},volume=${n(music.volume)}${fade}[mus]`,
-    );
+    const slen = span.end - span.start;
+    const m = [
+      `atrim=duration=${n(slen)}`,
+      'asetpts=PTS-STARTPTS',
+      AFMT,
+      `volume=${n(music.volume)}`,
+    ];
+    if (music.duck) {
+      // Musik mengecil saat klip bersuara; t di sini dihitung dari awal musik.
+      const f = voicedSpans(p, input.withAudio).map(
+        ([a, b]) =>
+          `(1-${n(1 - DUCK_LEVEL)}*clip(min((t+${n(span.start)}-${n(a)})/${DUCK_RAMP}\\,(${n(b)}-t-${n(span.start)})/${DUCK_RAMP})\\,0\\,1))`,
+      );
+      if (f.length) m.push(`volume='${f.join('*')}':eval=frame`);
+    }
+    if (music.fadeIn > 0) m.push(`afade=t=in:st=0:d=${n(Math.min(music.fadeIn, slen))}`);
+    if (music.fadeOut > 0) {
+      const d = Math.min(music.fadeOut, slen);
+      m.push(`afade=t=out:st=${n(slen - d)}:d=${n(d)}`);
+    }
+    if (span.start > 0) m.push(`adelay=delays=${Math.round(span.start * 1000)}:all=1`);
+    m.push('apad', `atrim=duration=${n(total)}`);
+    filters.push(`[${idx}:a]${m.join(',')}[mus]`);
     // amix membagi volume dengan jumlah input; volume=2 mengembalikan level aslinya.
     filters.push(`[${a}][mus]amix=inputs=2:duration=first:dropout_transition=0,volume=2[am]`);
     a = 'am';
@@ -202,29 +231,48 @@ export const TEXT_FONT = '"Plus Jakarta Sans Variable", "Plus Jakarta Sans", sys
 /** Gambar satu lapisan teks ke konteks canvas berukuran w x h. */
 export function drawText(ctx: CanvasRenderingContext2D, t: TextLayer, w: number, h: number): void {
   const L = textLayout(t, w, h);
-  ctx.font = `800 ${L.font}px ${TEXT_FONT}`;
-  ctx.textAlign = 'center';
+  ctx.font = fontCss(t.font, L.font);
   ctx.textBaseline = 'middle';
   const lines = wrapText(t.text, L.maxWidth, (s) => ctx.measureText(s).width);
-  const lineH = L.font * 1.2;
+  const widths = lines.map((l) => ctx.measureText(l).width);
+  const blockW = Math.max(0, ...widths);
+  const lineH = L.font * 1.25;
   const blockH = lineH * lines.length;
   const top =
     L.baseline === 'top' ? L.y : L.baseline === 'middle' ? L.y - blockH / 2 : L.y - blockH;
+  const align = t.align ?? 'center';
+  // Baris rata kiri/kanan di dalam blok yang titik tengahnya tetap di L.x.
+  const ax = align === 'left' ? L.x - blockW / 2 : align === 'right' ? L.x + blockW / 2 : L.x;
+  ctx.textAlign = align;
+  // Kepekatan dari luar (animasi pratinjau) tetap dihormati.
+  const a0 = ctx.globalAlpha;
   lines.forEach((line, i) => {
+    if (!line) return;
     const y = top + lineH * (i + 0.5);
-    if (t.box && line) {
-      const tw = ctx.measureText(line).width;
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(L.x - tw / 2 - L.pad, y - lineH / 2, tw + L.pad * 2, lineH);
+    const tw = widths[i];
+    const left = align === 'left' ? ax : align === 'right' ? ax - tw : ax - tw / 2;
+    if (t.box) {
+      ctx.globalAlpha = a0 * Math.max(0, Math.min(1, t.boxOpacity ?? 0.6));
+      ctx.fillStyle = t.boxColor ?? '#000000';
+      ctx.fillRect(left - L.pad, y - lineH / 2, tw + L.pad * 2, lineH);
+      ctx.globalAlpha = a0;
     }
-    if (!t.box) {
+    ctx.save();
+    if (t.shadow) {
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = L.font * 0.18;
+      ctx.shadowOffsetY = L.font * 0.06;
+    }
+    if (t.stroke) {
       ctx.lineJoin = 'round';
       ctx.lineWidth = Math.max(2, L.font * 0.12);
       ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-      ctx.strokeText(line, L.x, y);
+      ctx.strokeText(line, ax, y);
+      ctx.shadowColor = 'transparent';
     }
     ctx.fillStyle = t.color;
-    ctx.fillText(line, L.x, y);
+    ctx.fillText(line, ax, y);
+    ctx.restore();
   });
 }
 

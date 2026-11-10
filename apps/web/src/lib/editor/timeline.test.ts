@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type MediaItem, clipFor, newProject } from './project';
+import { type MediaItem, TEXT_DEFAULTS, clipFor, newProject } from './project';
 import {
   computePeaks,
   nearestFrame,
@@ -41,10 +41,7 @@ describe('interaksi timeline', () => {
         text: 'a',
         start: 1,
         end: 2,
-        position: 'top',
-        size: 's',
-        color: '#fff',
-        box: false,
+        ...TEXT_DEFAULTS,
         x: 0.5,
         y: 0.5,
       },

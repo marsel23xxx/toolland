@@ -20,9 +20,12 @@ import {
   type Project,
   type Quality,
   type Rotate,
+  type TextAnim,
   type TextLayer,
   FPS,
   MAX_CLIPS,
+  MUSIC_DEFAULTS,
+  TEXT_DEFAULTS,
   MAX_TEXTS,
   clampClip,
   clampText,
@@ -37,6 +40,8 @@ import {
   uid,
 } from '../../../../lib/editor/project';
 import { COLOR_PRESETS } from '../../../../lib/editor/look';
+import { FONTS, FONT_IDS, TEXT_STYLES, type TextStyleId } from '../../../../lib/editor/textfx';
+import { loadEditorFonts } from './editorFonts';
 import { exportVideo } from '../../../../lib/editor/render';
 import IconMonitor from '~icons/lucide/monitor';
 import Dropzone, { type DropzoneMessages } from '../../../ui/Dropzone.vue';
@@ -231,7 +236,7 @@ async function addFiles(list: File[]) {
       project.value.media.push(m);
       await attach(m, f);
       if (kind === 'audio') {
-        project.value.music = { mediaId: m.id, offset: 0, volume: 0.6, fadeOut: true };
+        project.value.music = { mediaId: m.id, ...MUSIC_DEFAULTS };
       } else {
         const c = clipFor(m);
         project.value.clips.push(c);
@@ -270,7 +275,7 @@ function addToTimeline(m: MediaItem) {
 }
 
 function useAsMusic(m: MediaItem) {
-  project.value.music = { mediaId: m.id, offset: 0, volume: 0.6, fadeOut: true };
+  project.value.music = { mediaId: m.id, ...MUSIC_DEFAULTS };
   tab.value = 'music';
 }
 
@@ -363,10 +368,7 @@ function addText() {
       text: props.t.sampleText,
       start: time.value >= total.value - 0.5 ? 0 : time.value,
       end: (time.value >= total.value - 0.5 ? 0 : time.value) + 3,
-      position: 'bottom',
-      size: 'm',
-      color: '#ffffff',
-      box: false,
+      ...TEXT_DEFAULTS,
       x: 0.5,
       y: 0.8,
     },
@@ -516,6 +518,8 @@ async function runExport() {
   exportProgress.value = 0;
   try {
     const engine = await ff.load();
+    // Font teks harus sudah dimuat sebelum teks digambar ke PNG.
+    await loadEditorFonts();
     const blob = await exportVideo(
       engine,
       project.value,
@@ -642,8 +646,8 @@ function onUpdateText(id: string, patch: { start: number; end: number }) {
     project.value.texts[i] = clampText({ ...project.value.texts[i], ...patch }, total.value);
 }
 
-function onMusicOffset(offset: number) {
-  if (project.value.music) project.value.music.offset = offset;
+function onUpdateMusic(patch: { offset?: number; start?: number; end?: number | null }) {
+  if (project.value.music) Object.assign(project.value.music, patch);
 }
 
 function onAction(kind: TimelineAction, id: string) {
@@ -801,6 +805,64 @@ onBeforeUnmount(() => {
 });
 
 const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
+const anims: TextAnim[] = ['none', 'fade', 'up', 'left'];
+const aligns = computed(() => [
+  { id: 'left' as const, label: props.t['align.left'] },
+  { id: 'center' as const, label: props.t['align.center'] },
+  { id: 'right' as const, label: props.t['align.right'] },
+]);
+const textStyles = computed(() =>
+  (Object.keys(TEXT_STYLES) as TextStyleId[]).map((id) => ({ id, label: props.t[`style.${id}`] })),
+);
+function applyTextStyle(id: TextStyleId) {
+  const tx = text.value;
+  if (tx) Object.assign(tx, TEXT_STYLES[id]);
+}
+
+/** Atur rentang musik dari isian angka (akhir kosong = sampai akhir video). */
+function setMusicSpan(patch: { start?: number; end?: string }) {
+  const m = project.value.music;
+  if (!m) return;
+  if (patch.start !== undefined)
+    m.start = Math.max(0, Math.min(patch.start, Math.max(0, total.value - 0.5)));
+  if (patch.end !== undefined) {
+    const v = Number(patch.end);
+    m.end =
+      patch.end.trim() === '' || !Number.isFinite(v) || v >= total.value
+        ? null
+        : Math.max(m.start + 0.5, v);
+  }
+}
+
+/** Berapa kali setiap media dipakai di timeline (termasuk sebagai musik). */
+const usage = computed(() => {
+  const u = new Map<string, number>();
+  for (const c of project.value.clips) u.set(c.mediaId, (u.get(c.mediaId) ?? 0) + 1);
+  if (project.value.music)
+    u.set(project.value.music.mediaId, (u.get(project.value.music.mediaId) ?? 0) + 1);
+  return u;
+});
+
+/** Seret media dari galeri ke timeline. */
+function onGalleryDrag(e: DragEvent, m: MediaItem) {
+  e.dataTransfer?.setData('application/x-toolland-media', m.id);
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy';
+}
+function insertMedia(id: string, index: number) {
+  const m = mediaOf(project.value, id);
+  if (!m) return;
+  if (m.kind === 'audio') return useAsMusic(m);
+  if (project.value.clips.length >= MAX_CLIPS) {
+    notice.value = fill(props.t.maxClips, { n: MAX_CLIPS });
+    return;
+  }
+  const c = clipFor(m);
+  project.value.clips.splice(Math.max(0, Math.min(index, project.value.clips.length)), 0, c);
+  select(c.id);
+}
+
+/** Media yang sudah terbukti punya audio (gelombangnya berhasil dibaca), untuk ducking. */
+const voiced = computed(() => new Set(previews.peaks.value.keys()));
 const kenBurnsList: KenBurns[] = ['none', 'in', 'out', 'left', 'right'];
 const fits = computed(() => [
   { id: 'fit' as const, label: props.t.fitFit },
@@ -1029,6 +1091,7 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
             :empty="t.stageEmpty"
             :max-vh="full ? 50 : 60"
             :drag-text="dragText"
+            :voiced="voiced"
             @move-text="moveText"
           />
           <div class="flex flex-wrap items-center gap-2">
@@ -1107,54 +1170,80 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                 data-add-input
                 @change="onAddInput"
               />
-              <ul class="space-y-2">
+              <p v-if="project.media.length" class="text-xs text-ink-3">{{ t.galleryHint }}</p>
+              <ul class="grid grid-cols-2 gap-2" data-gallery>
                 <li
                   v-for="x in project.media"
                   :key="x.id"
-                  class="flex items-center gap-2 rounded border border-rule p-2"
-                  :class="{ 'border-secang/60 bg-secang/5': missing.has(x.id) }"
+                  class="group relative overflow-hidden rounded border border-rule bg-paper-2"
+                  :class="{
+                    'border-secang/60': missing.has(x.id),
+                    'cursor-grab': true,
+                  }"
+                  draggable="true"
+                  :data-media-item="x.id"
+                  @dragstart="onGalleryDrag($event, x)"
                 >
                   <span
-                    class="size-10 shrink-0 rounded bg-ink/10 bg-cover bg-center"
+                    class="relative block aspect-video bg-ink/10 bg-cover bg-center"
                     :style="
                       thumbs.get(x.id) ? { backgroundImage: `url(${thumbs.get(x.id)})` } : undefined
                     "
-                  ></span>
-                  <span class="min-w-0 grow">
-                    <span class="block truncate font-medium" :title="x.name">{{ x.name }}</span>
-                    <span class="block text-xs text-ink-3">
-                      {{ kindLabel(x.kind) }}
-                      <template v-if="x.duration"> · {{ formatTime(x.duration) }}</template>
-                      · {{ formatBytes(x.size) }}
-                      <template v-if="missing.has(x.id)"> · {{ t.missingShort }}</template>
+                  >
+                    <span
+                      v-if="x.kind === 'audio'"
+                      class="absolute inset-0 grid place-items-center text-2xl text-daun"
+                      aria-hidden="true"
+                      >♪</span
+                    >
+                    <span
+                      v-if="x.duration"
+                      class="absolute right-1 bottom-1 rounded bg-black/70 px-1 font-mono text-[10px] text-white"
+                    >
+                      {{ formatTime(x.duration) }}
+                    </span>
+                    <span
+                      v-if="usage.get(x.id)"
+                      class="absolute top-1 left-1 rounded bg-brand-600 px-1 text-[10px] font-semibold text-white"
+                      :title="t.used"
+                    >
+                      {{ usage.get(x.id) }}×
+                    </span>
+                    <span
+                      v-if="missing.has(x.id)"
+                      class="absolute inset-x-0 top-0 bg-secang/90 px-1 text-[10px] text-white"
+                    >
+                      {{ t.missingShort }}
                     </span>
                   </span>
-                  <button
-                    v-if="x.kind !== 'audio'"
-                    type="button"
-                    class="rounded px-1.5 py-1 text-xs font-semibold text-brand-700 hover:bg-paper-2 dark:text-brand-300"
-                    :title="t.addToTimeline"
-                    @click="addToTimeline(x)"
-                  >
-                    +
-                  </button>
-                  <button
-                    v-else
-                    type="button"
-                    class="rounded px-1.5 py-1 text-xs font-semibold text-brand-700 hover:bg-paper-2 dark:text-brand-300"
-                    @click="useAsMusic(x)"
-                  >
-                    ♪
-                  </button>
-                  <button
-                    type="button"
-                    class="rounded px-1.5 py-1 text-xs text-ink-3 hover:bg-paper-2 hover:text-secang"
-                    :title="t.removeMedia"
-                    :aria-label="`${t.removeMedia}: ${x.name}`"
-                    @click="removeMedia(x)"
-                  >
-                    ✕
-                  </button>
+                  <span class="block truncate px-1.5 pt-1 text-xs font-medium" :title="x.name">
+                    {{ x.name }}
+                  </span>
+                  <span class="flex items-center justify-between px-1 pb-1">
+                    <span class="truncate px-0.5 text-[10px] text-ink-3">
+                      {{ kindLabel(x.kind) }} · {{ formatBytes(x.size) }}
+                    </span>
+                    <span class="flex shrink-0">
+                      <button
+                        type="button"
+                        class="rounded px-1.5 py-0.5 text-xs font-semibold text-brand-700 hover:bg-paper dark:text-brand-300"
+                        :title="x.kind === 'audio' ? t.useAsMusic : t.addToTimeline"
+                        :aria-label="`${x.kind === 'audio' ? t.useAsMusic : t.addToTimeline}: ${x.name}`"
+                        @click="x.kind === 'audio' ? useAsMusic(x) : addToTimeline(x)"
+                      >
+                        {{ x.kind === 'audio' ? '♪' : '+' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded px-1.5 py-0.5 text-xs text-ink-3 hover:bg-paper hover:text-secang"
+                        :title="t.removeMedia"
+                        :aria-label="`${t.removeMedia}: ${x.name}`"
+                        @click="removeMedia(x)"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  </span>
                 </li>
               </ul>
               <div class="grid grid-cols-2 gap-2 border-t border-rule pt-3">
@@ -1599,30 +1688,143 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                     data-text-input
                   ></textarea>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
-                  <div>
-                    <label for="ed-ts" class="label">{{ t.textStart }}</label>
-                    <input
-                      id="ed-ts"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      class="field"
-                      :value="r1(text.start)"
-                      @change="updateText({ start: num($event) })"
-                    />
+
+                <EditorSection :title="t['section.style']">
+                  <div class="grid grid-cols-3 gap-1" role="group" :aria-label="t['section.style']">
+                    <button
+                      v-for="st in textStyles"
+                      :key="st.id"
+                      type="button"
+                      class="rounded border border-rule px-1 py-1.5 text-xs hover:border-ink-3"
+                      :data-text-style="st.id"
+                      @click="applyTextStyle(st.id)"
+                    >
+                      {{ st.label }}
+                    </button>
                   </div>
                   <div>
-                    <label for="ed-te" class="label">{{ t.textEnd }}</label>
-                    <input
-                      id="ed-te"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      class="field"
-                      :value="r1(text.end)"
-                      @change="updateText({ end: num($event) })"
-                    />
+                    <span class="label">{{ t.font }}</span>
+                    <div class="grid grid-cols-2 gap-1" role="group" :aria-label="t.font">
+                      <button
+                        v-for="fid in FONT_IDS"
+                        :key="fid"
+                        type="button"
+                        class="truncate rounded border px-2 py-1 text-left text-sm"
+                        :class="
+                          text.font === fid
+                            ? 'border-brand-600 bg-brand-600 text-white'
+                            : 'border-rule hover:border-ink-3'
+                        "
+                        :style="{
+                          fontFamily: `'${FONTS[fid].family}'`,
+                          fontWeight: FONTS[fid].weight,
+                        }"
+                        :aria-pressed="text.font === fid"
+                        :data-font="fid"
+                        @click="text.font = fid"
+                      >
+                        {{ FONTS[fid].label }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label for="ed-tz" class="label">{{ t.size }}</label>
+                      <select id="ed-tz" v-model="text.size" class="field">
+                        <option value="s">{{ t['size.s'] }}</option>
+                        <option value="m">{{ t['size.m'] }}</option>
+                        <option value="l">{{ t['size.l'] }}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="ed-tc" class="label">{{ t.color }}</label>
+                      <input id="ed-tc" v-model="text.color" type="color" class="h-9 w-full" />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-3 gap-1" role="group" :aria-label="t.align">
+                    <button
+                      v-for="al in aligns"
+                      :key="al.id"
+                      type="button"
+                      class="rounded border px-1 py-1 text-xs"
+                      :class="
+                        text.align === al.id
+                          ? 'border-brand-600 bg-brand-600 text-white'
+                          : 'border-rule hover:border-ink-3'
+                      "
+                      :aria-pressed="text.align === al.id"
+                      @click="text.align = al.id"
+                    >
+                      {{ al.label }}
+                    </button>
+                  </div>
+                  <div class="flex flex-wrap gap-x-4 gap-y-2">
+                    <label class="flex items-center gap-2">
+                      <input v-model="text.stroke" type="checkbox" class="accent-brand-600" />
+                      {{ t.stroke }}
+                    </label>
+                    <label class="flex items-center gap-2">
+                      <input v-model="text.shadow" type="checkbox" class="accent-brand-600" />
+                      {{ t.shadow }}
+                    </label>
+                    <label class="flex items-center gap-2">
+                      <input
+                        v-model="text.box"
+                        type="checkbox"
+                        class="accent-brand-600"
+                        data-text-box
+                      />
+                      {{ t.box }}
+                    </label>
+                  </div>
+                  <div v-if="text.box" class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label for="ed-bc" class="label">{{ t.boxColor }}</label>
+                      <input id="ed-bc" v-model="text.boxColor" type="color" class="h-9 w-full" />
+                    </div>
+                    <div>
+                      <label for="ed-bo" class="label">
+                        {{ t.boxOpacity }} · {{ Math.round(text.boxOpacity * 100) }}%
+                      </label>
+                      <input
+                        id="ed-bo"
+                        v-model.number="text.boxOpacity"
+                        type="range"
+                        min="0.1"
+                        max="1"
+                        step="0.05"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                  </div>
+                </EditorSection>
+
+                <EditorSection :title="t['section.placement']">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label for="ed-ts" class="label">{{ t.textStart }}</label>
+                      <input
+                        id="ed-ts"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        class="field"
+                        :value="r1(text.start)"
+                        @change="updateText({ start: num($event) })"
+                      />
+                    </div>
+                    <div>
+                      <label for="ed-te" class="label">{{ t.textEnd }}</label>
+                      <input
+                        id="ed-te"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        class="field"
+                        :value="r1(text.end)"
+                        @change="updateText({ end: num($event) })"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label for="ed-tp" class="label">{{ t.position }}</label>
@@ -1633,23 +1835,43 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                       <option value="custom">{{ t['position.custom'] }}</option>
                     </select>
                   </div>
-                  <div>
-                    <label for="ed-tz" class="label">{{ t.size }}</label>
-                    <select id="ed-tz" v-model="text.size" class="field">
-                      <option value="s">{{ t['size.s'] }}</option>
-                      <option value="m">{{ t['size.m'] }}</option>
-                      <option value="l">{{ t['size.l'] }}</option>
-                    </select>
+                </EditorSection>
+
+                <EditorSection :title="t['section.animation']">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label for="ed-ai" class="label">{{ t.animIn }}</label>
+                      <select id="ed-ai" v-model="text.animIn" class="field" data-anim-in>
+                        <option v-for="an in anims" :key="an" :value="an">
+                          {{ t[`anim.${an}`] }}
+                        </option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="ed-ao" class="label">{{ t.animOut }}</label>
+                      <select id="ed-ao" v-model="text.animOut" class="field">
+                        <option v-for="an in anims" :key="an" :value="an">
+                          {{ t[`anim.${an}`] }}
+                        </option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label for="ed-tc" class="label">{{ t.color }}</label>
-                    <input id="ed-tc" v-model="text.color" type="color" class="h-9 w-full" />
+                  <div v-if="text.animIn !== 'none' || text.animOut !== 'none'">
+                    <label for="ed-ad" class="label">
+                      {{ t.animDur }} · {{ text.animDur.toFixed(1) }} s
+                    </label>
+                    <input
+                      id="ed-ad"
+                      v-model.number="text.animDur"
+                      type="range"
+                      min="0.1"
+                      max="1.5"
+                      step="0.1"
+                      class="w-full accent-brand-600"
+                    />
                   </div>
-                  <label class="flex items-end gap-2 pb-2">
-                    <input v-model="text.box" type="checkbox" class="accent-brand-600" />
-                    {{ t.box }}
-                  </label>
-                </div>
+                </EditorSection>
+
                 <button
                   type="button"
                   class="btn btn-secondary w-full text-secang"
@@ -1667,18 +1889,6 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                   ♪ {{ mediaOf(project, project.music.mediaId)?.name }}
                 </p>
                 <div>
-                  <label for="ed-mo" class="label">{{ t.musicOffset }}</label>
-                  <input
-                    id="ed-mo"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    class="field"
-                    :value="r1(project.music.offset)"
-                    @change="project.music.offset = Math.max(0, num($event))"
-                  />
-                </div>
-                <div>
                   <label for="ed-mv" class="label">
                     {{ t.volume }} · {{ Math.round(project.music.volume * 100) }}%
                   </label>
@@ -1692,10 +1902,93 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                     class="w-full accent-brand-600"
                   />
                 </div>
-                <label class="flex items-center gap-2">
-                  <input v-model="project.music.fadeOut" type="checkbox" class="accent-brand-600" />
-                  {{ t.musicFade }}
+                <label class="flex items-start gap-2">
+                  <input
+                    v-model="project.music.duck"
+                    type="checkbox"
+                    class="mt-1 accent-brand-600"
+                    data-duck
+                  />
+                  <span>
+                    {{ t.duck }}
+                    <span class="block text-xs text-ink-3">{{ t.duckHint }}</span>
+                  </span>
                 </label>
+                <EditorSection :title="t['section.musicRange']">
+                  <div>
+                    <label for="ed-mo" class="label">{{ t.musicOffset }}</label>
+                    <input
+                      id="ed-mo"
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      class="field"
+                      :value="r1(project.music.offset)"
+                      @change="project.music.offset = Math.max(0, num($event))"
+                    />
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label for="ed-ms" class="label">{{ t.musicFrom }}</label>
+                      <input
+                        id="ed-ms"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        class="field"
+                        :value="r1(project.music.start)"
+                        data-music-start
+                        @change="setMusicSpan({ start: num($event) })"
+                      />
+                    </div>
+                    <div>
+                      <label for="ed-me" class="label">{{ t.musicTo }}</label>
+                      <input
+                        id="ed-me"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        class="field"
+                        :placeholder="t.musicToEnd"
+                        :value="project.music.end === null ? '' : r1(project.music.end)"
+                        @change="setMusicSpan({ end: ($event.target as HTMLInputElement).value })"
+                      />
+                    </div>
+                  </div>
+                  <p class="text-xs text-ink-3">{{ t.musicRangeHint }}</p>
+                </EditorSection>
+                <EditorSection :title="t['section.musicFade']">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label for="ed-mfi" class="label">
+                        {{ t.fadeIn }} · {{ project.music.fadeIn.toFixed(1) }} s
+                      </label>
+                      <input
+                        id="ed-mfi"
+                        v-model.number="project.music.fadeIn"
+                        type="range"
+                        min="0"
+                        max="5"
+                        step="0.5"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                    <div>
+                      <label for="ed-mfo" class="label">
+                        {{ t.fadeOut }} · {{ project.music.fadeOut.toFixed(1) }} s
+                      </label>
+                      <input
+                        id="ed-mfo"
+                        v-model.number="project.music.fadeOut"
+                        type="range"
+                        min="0"
+                        max="5"
+                        step="0.5"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                  </div>
+                </EditorSection>
                 <button
                   type="button"
                   class="btn btn-secondary w-full text-secang"
@@ -1729,7 +2022,8 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
         @move="(a, b) => (project = moveClip(project, a, b))"
         @trim-clip="onTrimClip"
         @update-text="onUpdateText"
-        @music-offset="onMusicOffset"
+        @update-music="onUpdateMusic"
+        @insert-media="insertMedia"
         @action="onAction"
       />
       <p class="text-xs text-ink-3">{{ t.shortcuts }}</p>

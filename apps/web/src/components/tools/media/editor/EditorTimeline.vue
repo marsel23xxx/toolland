@@ -18,6 +18,7 @@ import {
   clipLength,
   clipStarts,
   mediaOf,
+  musicSpan,
   totalDuration,
 } from '../../../../lib/editor/project';
 import {
@@ -58,8 +59,9 @@ const emit = defineEmits<{
   move: [from: number, to: number];
   trimClip: [index: number, clip: Clip];
   updateText: [id: string, patch: { start: number; end: number }];
-  musicOffset: [offset: number];
+  updateMusic: [patch: { offset?: number; start?: number; end?: number | null }];
   action: [kind: TimelineAction, id: string];
+  insertMedia: [mediaId: string, index: number];
 }>();
 
 const PAD = 12;
@@ -124,7 +126,17 @@ type Drag =
       moved: boolean;
       targets: number[];
     }
-  | { kind: 'music'; offset: number; startT: number; startX: number; moved: boolean };
+  | {
+      kind: 'music';
+      mode: 'slip' | 'start' | 'end';
+      offset: number;
+      start: number;
+      end: number;
+      startT: number;
+      startX: number;
+      moved: boolean;
+      targets: number[];
+    };
 
 const drag = ref<Drag | null>(null);
 
@@ -206,16 +218,21 @@ function startText(e: PointerEvent, id: string, mode: 'move' | 'start' | 'end') 
   });
 }
 
-function startMusic(e: PointerEvent) {
+function startMusic(e: PointerEvent, mode: 'slip' | 'start' | 'end') {
   const m = props.project.music;
   if (!m) return;
   emit('selectMusic');
+  const span = musicSpan(m, total.value);
   begin(e, {
     kind: 'music',
+    mode,
     offset: m.offset,
+    start: span.start,
+    end: span.end,
     startT: timeAt(e.clientX),
     startX: e.clientX,
     moved: false,
+    targets: snapTargets(props.project, { playhead: props.time }),
   });
 }
 
@@ -278,11 +295,23 @@ function onMove(e: PointerEvent) {
     d.moved = true;
     const m = props.project.music;
     const dur = m ? (mediaOf(props.project, m.mediaId)?.duration ?? 0) : 0;
-    const off = Math.max(0, d.offset - (t - d.startT));
-    emit(
-      'musicOffset',
-      Math.round((dur ? Math.min(off, Math.max(0, dur - 0.5)) : off) * 100) / 100,
-    );
+    const r2 = (v: number) => Math.round(v * 100) / 100;
+    const dt = t - d.startT;
+    if (d.mode === 'slip') {
+      // Geser isi lagu: ke kanan = bagian lebih awal dari lagu yang terdengar.
+      const off = Math.max(0, d.offset - dt);
+      emit('updateMusic', { offset: r2(dur ? Math.min(off, Math.max(0, dur - 0.5)) : off) });
+    } else if (d.mode === 'start') {
+      const start = Math.max(0, Math.min(d.end - 0.5, snapTo(d.start + dt, d.targets, e)));
+      // Isi lagu tetap di tempatnya saat awal dipotong.
+      emit('updateMusic', {
+        start: r2(start),
+        offset: r2(Math.max(0, d.offset + start - d.start)),
+      });
+    } else {
+      const end = Math.max(d.start + 0.5, Math.min(total.value, snapTo(d.end + dt, d.targets, e)));
+      emit('updateMusic', { end: end >= total.value - 0.01 ? null : r2(end) });
+    }
   }
 }
 
@@ -331,7 +360,32 @@ const clipLefts = computed(() => {
   return starts.value;
 });
 
+// Media diseret dari galeri: posisi sisip = jumlah klip yang titik tengahnya di kiri kursor.
+const MEDIA_TYPE = 'application/x-toolland-media';
+const galleryDrop = ref<number | null>(null);
+function insertIndexAt(t: number): number {
+  return starts.value.filter((s, i) => s + lengths.value[i] / 2 < t).length;
+}
+function onDragOver(e: DragEvent) {
+  if (!e.dataTransfer?.types.includes(MEDIA_TYPE)) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  galleryDrop.value = insertIndexAt(timeAt(e.clientX));
+}
+function onDrop(e: DragEvent) {
+  const id = e.dataTransfer?.getData(MEDIA_TYPE);
+  const index = galleryDrop.value ?? insertIndexAt(timeAt(e.clientX));
+  galleryDrop.value = null;
+  if (!id) return;
+  e.preventDefault();
+  emit('insertMedia', id, index);
+}
+
 const dropLine = computed(() => {
+  if (galleryDrop.value !== null) {
+    const i = galleryDrop.value;
+    return i < starts.value.length ? starts.value[i] : total.value;
+  }
   const d = drag.value;
   if (d?.kind !== 'clip' || !d.moved || d.target === d.index) return null;
   return previewStarts(lengths.value, d.index, d.target)[d.index];
@@ -382,13 +436,14 @@ const musicWave = computed(() => {
   if (!m) return { d: '', w: 0 };
   const media = mediaOf(props.project, m.mediaId);
   const pk = props.peaks.get(m.mediaId);
-  const w = Math.min(Math.max(1, px(total.value)), 8000);
+  const span = musicSpan(m, total.value);
+  const w = Math.min(Math.max(1, px(span.end - span.start)), 8000);
   if (!pk || !media) return { d: '', w };
   const values = peaksRange(
     pk,
     media.duration,
     m.offset,
-    m.offset + total.value,
+    m.offset + span.end - span.start,
     Math.max(4, Math.floor(w / 3)),
     true,
   );
@@ -475,6 +530,9 @@ onBeforeUnmount(() => {
   window.removeEventListener('pointercancel', onUp);
 });
 
+const musicBar = computed(() =>
+  props.project.music ? musicSpan(props.project.music, total.value) : { start: 0, end: 0 },
+);
 const musicMedia = computed(() =>
   props.project.music ? mediaOf(props.project, props.project.music.mediaId) : undefined,
 );
@@ -520,6 +578,9 @@ const musicMedia = computed(() =>
         :style="{ width: `${innerWidth}px`, paddingLeft: `${PAD}px`, paddingRight: `${PAD}px` }"
         data-tl
         @pointerdown.self="startScrub"
+        @dragover="onDragOver"
+        @dragleave.self="galleryDrop = null"
+        @drop="onDrop"
       >
         <!-- Penggaris -->
         <div class="relative h-6 cursor-col-resize" data-ruler @pointerdown="startScrub">
@@ -680,11 +741,14 @@ const musicMedia = computed(() =>
         <div class="relative mt-1 h-7" data-track="music" @pointerdown.self="startScrub">
           <div
             v-if="project.music"
-            class="absolute inset-y-0 left-0 flex cursor-grab items-center overflow-hidden rounded border border-daun/40 bg-daun/15 text-daun dark:text-[#93c584]"
-            :style="{ width: `${Math.max(8, px(total))}px` }"
+            class="group absolute inset-y-0 flex cursor-grab items-center overflow-hidden rounded border border-daun/40 bg-daun/15 text-daun dark:text-[#93c584]"
+            :style="{
+              left: `${px(musicBar.start)}px`,
+              width: `${Math.max(8, px(musicBar.end - musicBar.start))}px`,
+            }"
             :title="t.musicDrag"
             data-music
-            @pointerdown.stop="startMusic"
+            @pointerdown.stop="startMusic($event, 'slip')"
           >
             <svg
               v-if="musicWave.d"
@@ -703,6 +767,16 @@ const musicMedia = computed(() =>
               ♪ {{ musicMedia?.name }} ·
               {{ fill(t.musicStart, { time: formatTime(project.music.offset) }) }}
             </span>
+            <span
+              class="absolute inset-y-0 left-0 w-2 cursor-ew-resize group-hover:bg-daun/60"
+              data-music-edge="start"
+              @pointerdown.stop="startMusic($event, 'start')"
+            ></span>
+            <span
+              class="absolute inset-y-0 right-0 w-2 cursor-ew-resize group-hover:bg-daun/60"
+              data-music-edge="end"
+              @pointerdown.stop="startMusic($event, 'end')"
+            ></span>
           </div>
         </div>
 

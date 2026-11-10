@@ -13,14 +13,20 @@ import {
   geometryCss,
 } from '../../../../lib/editor/look';
 import { drawText } from '../../../../lib/editor/render';
+import { textAnimAt } from '../../../../lib/editor/textfx';
+import { loadEditorFonts } from './editorFonts';
 import {
   type Project,
   clipAt,
   clipLength,
+  duckGain,
   mediaOf,
+  musicFadeGain,
+  musicSpan,
   outputSize,
   totalDuration,
   transitionAt,
+  voicedSpans,
 } from '../../../../lib/editor/project';
 
 const props = withDefaults(
@@ -32,8 +38,10 @@ const props = withDefaults(
     maxVh?: number;
     /** ID teks yang bisa digeser langsung di pratinjau (kosong = tidak ada). */
     dragText?: string;
+    /** mediaId yang diketahui punya audio (untuk ducking musik). */
+    voiced?: Set<string>;
   }>(),
-  { maxVh: 60, dragText: '' },
+  { maxVh: 60, dragText: '', voiced: undefined },
 );
 const emit = defineEmits<{ moveText: [id: string, x: number, y: number] }>();
 const time = defineModel<number>('time', { required: true });
@@ -195,6 +203,9 @@ function applyVolume() {
   v.muted = h.clip.volume === 0;
 }
 
+const spans = computed(() => voicedSpans(props.project, props.voiced));
+
+/** Musik: hanya terdengar di rentangnya, dengan fade dan ducking seperti hasil ekspor. */
 function syncMusic(play: boolean) {
   const a = music.value;
   const m = props.project.music;
@@ -208,12 +219,20 @@ function syncMusic(play: boolean) {
     a.dataset.src = url;
     a.src = url;
   }
-  a.volume = Math.min(1, m.volume);
+  const span = musicSpan(m, total.value);
+  const t = time.value;
+  const g = musicFadeGain(m, span, t) * (m.duck ? duckGain(spans.value, t) : 1);
+  a.volume = Math.max(0, Math.min(1, m.volume * g));
+  if (t < span.start || t >= span.end) {
+    a.pause();
+    return;
+  }
   const dur = a.duration || 0;
-  const target = dur ? (m.offset + time.value) % dur : m.offset + time.value;
+  const pos = m.offset + (t - span.start);
+  const target = dur ? pos % dur : pos;
   if (Math.abs(a.currentTime - target) > 0.3) a.currentTime = target;
-  if (play) a.play().catch(() => {});
-  else a.pause();
+  if (!play) a.pause();
+  else if (a.paused) a.play().catch(() => {});
 }
 
 function tick(ts: number) {
@@ -237,6 +256,7 @@ function tick(ts: number) {
   time.value = t;
   if (clipAt(props.project, t)?.clip.id !== loadedClip) syncVideo(true);
   applyVolume();
+  syncMusic(true);
   drawBg();
   raf = requestAnimationFrame(tick);
 }
@@ -295,8 +315,16 @@ function draw() {
   const ctx = c.getContext('2d');
   if (!ctx) return;
   ctx.clearRect(0, 0, w, h);
-  for (const t of props.project.texts)
-    if (t.text.trim() && time.value >= t.start && time.value < t.end) drawText(ctx, t, w, h);
+  for (const t of props.project.texts) {
+    if (!t.text.trim() || time.value < t.start || time.value >= t.end) continue;
+    const a = textAnimAt(t, time.value);
+    if (a.alpha <= 0) continue;
+    ctx.save();
+    ctx.globalAlpha = a.alpha;
+    ctx.translate(a.dx * w, a.dy * h);
+    drawText(ctx, t, w, h);
+    ctx.restore();
+  }
 }
 
 let ro: ResizeObserver | undefined;
@@ -308,6 +336,7 @@ onMounted(() => {
   if (stage.value) ro.observe(stage.value);
   syncVideo(false);
   document.fonts?.ready.then(draw);
+  void loadEditorFonts().then(draw);
 });
 onBeforeUnmount(() => {
   cancelAnimationFrame(raf);
