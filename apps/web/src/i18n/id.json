@@ -807,5 +807,11 @@
   "editor.audioTrackHint": "Audio tambahan: rekam narasi atau seret file audio ke sini",
   "editor.error.noMic": "Browser ini tidak mendukung perekaman suara.",
   "editor.error.micDenied": "Izin mikrofon ditolak atau mikrofon tidak ditemukan. Izinkan mikrofon untuk situs ini lalu coba lagi.",
-  "editor.micStarting": "Menyiapkan mikrofon…"
+  "editor.micStarting": "Menyiapkan mikrofon…",
+  "editor.proxying": "Menyiapkan pratinjau ringan untuk {name}…",
+  "editor.proxyPending": "menyiapkan pratinjau…",
+  "editor.proxyBadge": "ringan",
+  "editor.proxyBadgeHint": "Pratinjau memakai salinan ringan 540p. Hasil ekspor tetap memakai video asli.",
+  "editor.makeLight": "Pakai pratinjau ringan (untuk video 4K yang tersendat)",
+  "editor.error.proxy": "Video {name} tidak bisa dibaca, bahkan oleh ffmpeg. Coba konversi dulu ke MP4."
 }

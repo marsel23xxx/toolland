@@ -346,6 +346,45 @@ export const tests = [
     },
   },
   {
+    name: 'edit video: video HEVC (tak bisa diputar browser) memakai salinan pratinjau',
+    path: '/tools/edit-video',
+    async run(h) {
+      const { page } = h;
+      await ready(h);
+      await h.upload('klip-hevc.mp4');
+      // Chrome uji tidak bisa memutar HEVC: salinan ringan dibuat dengan ffmpeg.wasm.
+      await page.waitForSelector('[data-clip]', { timeout: 120000 });
+      await page.waitForSelector('[data-proxy-badge]', { timeout: 30000 });
+      const len = await page.$eval('[data-clip]', (e) => Number(e.dataset.len));
+      expect(Math.abs(len - 2) < 0.2, `durasi ${len}`);
+      // Pratinjau memutar salinannya (videoWidth terbaca).
+      await page.waitForFunction(
+        () => [...document.querySelectorAll('[data-stage] video')].some((v) => v.videoWidth > 0),
+        { timeout: 20000 },
+      );
+      // Ekspor memakai file HEVC asli (didekode ffmpeg.wasm).
+      await page.click('[data-export]');
+      const [c] = await h.results(1, 180000);
+      const mp4 = await h.download('proyek-video.mp4');
+      expect(mp4.subarray(4, 8).toString('latin1') === 'ftyp', 'bukan MP4');
+      // Simpan ringan lalu buka lagi: salinan dibuat ulang setelah file disambungkan.
+      await page.click('[data-save]');
+      await h.downloadVia('proyek-video.ayu', () => page.click('[data-save-light]'));
+      const lightPath = path.join(h.downloads, 'hevc.ayu');
+      fs.renameSync(path.join(h.downloads, 'proyek-video.ayu'), lightPath);
+      await page.goto(page.url(), { waitUntil: 'networkidle0' });
+      await (await page.waitForSelector('[data-open-input]')).uploadFile(lightPath);
+      await (
+        await page.waitForSelector('[data-relink-input]')
+      ).uploadFile(h.fixture('klip-hevc.mp4'));
+      await page.waitForFunction(
+        () => [...document.querySelectorAll('[data-stage] video')].some((v) => v.videoWidth > 0),
+        { timeout: 60000 },
+      );
+      return [c];
+    },
+  },
+  {
     name: 'edit video: panel teks (gaya, font, animasi) dan galeri seret ke timeline',
     path: '/tools/edit-video',
     async run(h) {

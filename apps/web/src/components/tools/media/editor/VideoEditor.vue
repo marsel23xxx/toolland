@@ -49,7 +49,8 @@ import {
 import { COLOR_PRESETS } from '../../../../lib/editor/look';
 import { FONTS, FONT_IDS, TEXT_STYLES, type TextStyleId } from '../../../../lib/editor/textfx';
 import { loadEditorFonts } from './editorFonts';
-import { exportVideo } from '../../../../lib/editor/render';
+import { makeProxy, suggestProxy } from '../../../../lib/editor/proxy';
+import { exportVideo, limitThreads } from '../../../../lib/editor/render';
 import IconMonitor from '~icons/lucide/monitor';
 import Dropzone, { type DropzoneMessages } from '../../../ui/Dropzone.vue';
 import FileResults from '../../../ui/FileResults.vue';
@@ -198,15 +199,84 @@ function setMap<K, V>(r: { value: Map<K, V> }, k: K, v: V) {
 
 /** Pasang File untuk media tertentu: buat object URL dan gambar kecil. */
 async function attach(m: MediaItem, f: File) {
-  const url = URL.createObjectURL(f);
   setMap(sources, m.id, f);
+  // Video yang memakai salinan ringan: pratinjau menunggu salinannya selesai dibuat.
+  if (m.proxy && !proxyFiles.value.has(m.id)) {
+    void ensureProxy(m, f);
+    return;
+  }
+  showPreview(m, m.proxy ? proxyFiles.value.get(m.id)! : f);
+}
+
+/** Pasang file pratinjau (asli atau salinan ringan): object URL, filmstrip, gelombang, gambar kecil. */
+function showPreview(m: MediaItem, f: File) {
+  const old = urls.value.get(m.id);
+  if (old) URL.revokeObjectURL(old);
+  const url = URL.createObjectURL(f);
   setMap(urls, m.id, url);
+  previews.remove(m.id);
   previews.add(m, url, f);
   if (m.kind === 'image') setMap(thumbs, m.id, url);
   else if (m.kind === 'video')
     probe(url, 'video')
       .then((p) => p.thumb && setMap(thumbs, m.id, p.thumb))
       .catch(() => {});
+}
+
+// ---------- Salinan ringan untuk pratinjau ----------
+
+/** Salinan pratinjau per mediaId (tidak disimpan di .ayu; dibuat ulang saat dibuka). */
+const proxyFiles = shallowRef(new Map<string, File>());
+const pendingProxy = ref(new Set<string>());
+let proxyQueue: Promise<unknown> = Promise.resolve();
+
+/** Buat salinan pratinjau satu per satu (ffmpeg hanya satu proses). */
+function buildProxy(f: File, name: string): Promise<File> {
+  const job = proxyQueue.then(async () => {
+    const prev = busy.value;
+    busy.value = fill(props.t.proxying, { name });
+    saveProgress.value = 0;
+    try {
+      const engine = await ff.load();
+      return await makeProxy(
+        engine,
+        f,
+        uid('p'),
+        limitThreads,
+        (p) => (saveProgress.value = p * 100),
+      );
+    } finally {
+      busy.value = prev;
+      saveProgress.value = null;
+    }
+  });
+  proxyQueue = job.catch(() => {});
+  return job;
+}
+
+async function ensureProxy(m: MediaItem, f: File) {
+  if (pendingProxy.value.has(m.id)) return;
+  pendingProxy.value = new Set([...pendingProxy.value, m.id]);
+  try {
+    const pf = await buildProxy(f, m.name);
+    if (sources.value.get(m.id) !== f) return; // media sudah dihapus/diganti
+    setMap(proxyFiles, m.id, pf);
+    showPreview(m, pf);
+  } catch {
+    error.value = fill(props.t['error.proxy'], { name: m.name });
+  } finally {
+    const next = new Set(pendingProxy.value);
+    next.delete(m.id);
+    pendingProxy.value = next;
+  }
+}
+
+/** Pakai pratinjau ringan untuk video berat (4K). Ekspor tetap memakai file asli. */
+function useLightPreview(m: MediaItem) {
+  const f = sources.value.get(m.id);
+  if (!f || m.proxy) return;
+  m.proxy = true;
+  void ensureProxy(m, f);
 }
 
 async function addFiles(list: File[]) {
@@ -229,14 +299,33 @@ async function addFiles(list: File[]) {
       }
       const url = URL.createObjectURL(f);
       let info: Probe;
+      let proxyFile: File | undefined;
       try {
         info = await probe(url, kind);
       } catch {
-        skipped.push(f.name);
-        continue;
-      } finally {
         URL.revokeObjectURL(url);
+        // Video yang tidak bisa diputar browser (misalnya HEVC): buat salinan ringan untuk
+        // pratinjau; ekspor tetap memakai file asli.
+        if (kind !== 'video') {
+          skipped.push(f.name);
+          continue;
+        }
+        try {
+          proxyFile = await buildProxy(f, f.name);
+          const pu = URL.createObjectURL(proxyFile);
+          try {
+            info = await probe(pu, 'video');
+          } finally {
+            URL.revokeObjectURL(pu);
+          }
+        } catch {
+          skipped.push(f.name);
+          continue;
+        } finally {
+          busy.value = props.t.reading;
+        }
       }
+      URL.revokeObjectURL(url);
       const m: MediaItem = {
         id: uid('m'),
         kind,
@@ -246,8 +335,10 @@ async function addFiles(list: File[]) {
         width: info.width,
         height: info.height,
         lastModified: f.lastModified,
+        ...(proxyFile ? { proxy: true } : {}),
       };
       if (info.thumb) URL.revokeObjectURL(info.thumb);
+      if (proxyFile) setMap(proxyFiles, m.id, proxyFile);
       project.value.media.push(m);
       await attach(m, f);
       if (kind === 'audio') {
@@ -306,6 +397,11 @@ function removeMedia(m: MediaItem) {
 
 function forget(id: string) {
   previews.remove(id);
+  if (proxyFiles.value.has(id)) {
+    const next = new Map(proxyFiles.value);
+    next.delete(id);
+    proxyFiles.value = next;
+  }
   const u = urls.value.get(id);
   if (u) URL.revokeObjectURL(u);
   const th = thumbs.value.get(id);
@@ -1506,6 +1602,20 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                     >
                       {{ t.missingShort }}
                     </span>
+                    <span
+                      v-else-if="pendingProxy.has(x.id)"
+                      class="absolute inset-x-0 top-0 bg-ink/80 px-1 text-[10px] text-white"
+                    >
+                      {{ t.proxyPending }}
+                    </span>
+                    <span
+                      v-else-if="x.proxy"
+                      class="absolute top-1 right-1 rounded bg-kunyit px-1 text-[10px] font-semibold text-ink"
+                      :title="t.proxyBadgeHint"
+                      data-proxy-badge
+                    >
+                      ⚡ {{ t.proxyBadge }}
+                    </span>
                   </span>
                   <span class="block truncate px-1.5 pt-1 text-xs font-medium" :title="x.name">
                     {{ x.name }}
@@ -1523,6 +1633,16 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                         @click="x.kind === 'audio' ? useAsMusic(x) : addToTimeline(x)"
                       >
                         {{ x.kind === 'audio' ? '♪' : '+' }}
+                      </button>
+                      <button
+                        v-if="suggestProxy(x) && !x.proxy && !missing.has(x.id)"
+                        type="button"
+                        class="rounded px-1.5 py-0.5 text-xs font-semibold text-brand-700 hover:bg-paper dark:text-brand-300"
+                        :title="t.makeLight"
+                        :aria-label="`${t.makeLight}: ${x.name}`"
+                        @click="useLightPreview(x)"
+                      >
+                        ⚡
                       </button>
                       <button
                         v-if="x.kind === 'audio'"

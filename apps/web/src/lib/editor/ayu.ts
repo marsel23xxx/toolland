@@ -91,6 +91,7 @@ export function sanitizeProject(raw: unknown): Project {
       height: num(m.height, 0, 0, 20000),
       lastModified: num(m.lastModified, 0, 0),
       ...(m.recorded === true ? { recorded: true } : {}),
+      ...(m.proxy === true ? { proxy: true } : {}),
     }));
   const ids = new Set(p.media.map((m) => m.id));
   p.clips = arr(o.clips)

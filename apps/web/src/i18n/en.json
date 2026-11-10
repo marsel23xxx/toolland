@@ -807,5 +807,11 @@
   "editor.audioTrackHint": "Extra audio: record narration or drop audio files here",
   "editor.error.noMic": "This browser does not support audio recording.",
   "editor.error.micDenied": "Microphone permission was denied or no microphone was found. Allow the microphone for this site and try again.",
-  "editor.micStarting": "Getting the microphone ready…"
+  "editor.micStarting": "Getting the microphone ready…",
+  "editor.proxying": "Preparing a light preview for {name}…",
+  "editor.proxyPending": "preparing preview…",
+  "editor.proxyBadge": "light",
+  "editor.proxyBadgeHint": "The preview uses a light 540p copy. Exports still use the original video.",
+  "editor.makeLight": "Use a light preview (for 4K videos that stutter)",
+  "editor.error.proxy": "Video {name} cannot be read, even by ffmpeg. Try converting it to MP4 first."
 }

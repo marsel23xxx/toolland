@@ -51,6 +51,8 @@ export interface MediaItem {
   lastModified: number;
   /** Direkam di editor (narasi): tidak ada file aslinya di perangkat. */
   recorded?: boolean;
+  /** Pratinjau memakai salinan ringan (video tidak bisa diputar browser atau terlalu berat). */
+  proxy?: boolean;
 }
 
 export interface Clip {
