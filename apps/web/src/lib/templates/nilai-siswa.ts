@@ -977,12 +977,10 @@ export function buildGradesWorkbook(opts: GradesOptions): Workbook {
       font: { size: 14, bold: true, color: 'FFFFFF' },
     })
     .height(20, 28);
-  shCard
-    .set('E20', C.pred, st.label)
-    .set('F20', `=${gv('GrLetter')}&""`, {
-      ...st.calcCenter,
-      font: { size: 16, bold: true, color: accent.main },
-    });
+  shCard.set('E20', C.pred, st.label).set('F20', `=${gv('GrLetter')}&""`, {
+    ...st.calcCenter,
+    font: { size: 16, bold: true, color: accent.main },
+  });
   shCard.set('B21', C.status, st.label).set('C21', `=${gv('GrStatus')}&""`, st.calcCenter);
   shCard
     .set('E21', C.rank, st.label)
