@@ -8,6 +8,12 @@ import { renderPdf } from './pdf';
 import { CV_ATS_FORM, buildDoc as ats } from '../templates/cv-ats';
 import { buildDoc as pro } from '../templates/cv-profesional';
 import { LETTER_FORM, buildDoc as letter } from '../templates/surat-lamaran';
+import { KUASA_FORM, buildDoc as kuasa } from '../templates/surat-kuasa';
+import { IZIN_FORM, buildDoc as izin } from '../templates/surat-izin';
+import { KETERANGAN_FORM, buildDoc as keterangan } from '../templates/surat-keterangan-kerja';
+import { KWITANSI_FORM, amountWords, buildDoc as kwitansi, rupiah } from '../templates/kwitansi';
+import { PERNYATAAN_FORM, buildDoc as pernyataan } from '../templates/surat-pernyataan';
+import { dateRange, dayCount, daysText } from '../templates/letter-kit';
 import { RESIGN_FORM, addDays, buildDoc as resign } from '../templates/surat-resign';
 
 /** PNG RGB polos ukuran n x n untuk foto uji. */
@@ -143,4 +149,87 @@ describe('surat resign', () => {
         expect(xml).not.toMatch(/\{[a-z_]+\}/);
         if (DUMP) writeFileSync(`${DUMP}/resign-${style}-${lang}.pdf`, bytes);
       });
+});
+
+describe('surat kuasa', () => {
+  for (const lang of ['id', 'en'] as const)
+    it(`renders (${lang}) on one page with two signature columns`, async () => {
+      const spec = kuasa({ ...KUASA_FORM[lang].sample, date: '2026-11-10' }, {});
+      const { bytes, pages } = await renderPdf(spec);
+      expect(pages).toBe(1);
+      const docx = renderDocx(spec);
+      const xml = strFromU8(unzipSync(docx)['word/document.xml']);
+      expect(xml).toContain('Dimas Pratama');
+      expect(xml).toMatch(/<\/w:tbl><w:p>.*<w:sectPr>/);
+      if (lang === 'id') expect(xml).toContain('w:val="dashed"');
+      if (DUMP) {
+        writeFileSync(`${DUMP}/kuasa-${lang}.pdf`, bytes);
+        writeFileSync(`${DUMP}/kuasa-${lang}.docx`, docx);
+      }
+    });
+});
+
+describe('letter kit', () => {
+  it('formats leave dates and day counts', () => {
+    expect(dateRange('2026-11-11', '2026-11-11', 'id')).toBe('11 November 2026');
+    expect(dateRange('2026-11-11', '2026-11-13', 'id')).toBe('11 sampai 13 November 2026');
+    expect(dateRange('2026-11-30', '2026-12-02', 'id')).toBe('30 November sampai 2 Desember 2026');
+    expect(dateRange('2026-11-11', '2026-11-13', 'en')).toBe('November 11 to 13, 2026');
+    expect(dateRange('2026-12-31', '2027-01-02', 'en')).toBe(
+      'December 31, 2026 to January 2, 2027',
+    );
+    expect(dayCount('2026-11-30', '2026-12-02')).toBe(3);
+    expect(daysText(2, 'id')).toBe('2 (dua) hari');
+    expect(daysText(1, 'en')).toBe('1 day');
+  });
+  it('writes rupiah amounts in figures and words', () => {
+    expect(rupiah(1500000, 'id')).toBe('Rp1.500.000,-');
+    expect(rupiah(1500000, 'en')).toBe('IDR 1,500,000');
+    expect(amountWords(1500000, 'id')).toBe('Satu juta lima ratus ribu rupiah');
+    expect(amountWords(1500000, 'en')).toBe('One million five hundred thousand rupiah');
+  });
+});
+
+describe('surat lainnya', () => {
+  const cases = [
+    ['pernyataan', pernyataan, PERNYATAAN_FORM, 'Bersedia ditempatkan'],
+    ['izin', izin, IZIN_FORM, '1 (satu) hari'],
+    ['keterangan', keterangan, KETERANGAN_FORM, 'PT Sumber Rezeki Distribusi sejak 1 Agustus 2023'],
+    ['kwitansi', kwitansi, KWITANSI_FORM, 'Satu juta lima ratus ribu rupiah'],
+  ] as const;
+  for (const [name, build, form, needle] of cases)
+    for (const lang of ['id', 'en'] as const)
+      it(`renders ${name} (${lang}) on one page`, async () => {
+        const spec = build({ ...form[lang].sample, date: '2026-11-10' }, {});
+        const { bytes, pages } = await renderPdf(spec);
+        expect(pages).toBe(1);
+        const docx = renderDocx(spec);
+        const xml = strFromU8(unzipSync(docx)['word/document.xml']);
+        expect(xml).not.toMatch(/\{[a-z_]+\}/);
+        if (lang === 'id') expect(xml).toContain(needle);
+        if (DUMP) {
+          writeFileSync(`${DUMP}/${name}-${lang}.pdf`, bytes);
+          writeFileSync(`${DUMP}/${name}-${lang}.docx`, docx);
+        }
+      });
+
+  it('shows the duty stamp box on receipts above IDR 5 million only (auto)', () => {
+    const has = (amount: string) =>
+      JSON.stringify(kwitansi({ ...KWITANSI_FORM.id.sample, amount }, {})).includes('Meterai');
+    expect(has('1500000')).toBe(false);
+    expect(has('7500000')).toBe(true);
+  });
+
+  it('school leave uses the student details', () => {
+    const v = {
+      ...IZIN_FORM.id.sample,
+      type: 'sakit-sekolah',
+      from: '2026-11-11',
+      to: '2026-11-12',
+    };
+    const xml = strFromU8(unzipSync(renderDocx(izin(v, {})))['word/document.xml']);
+    expect(xml).toContain('Nayla Pratama');
+    expect(xml).toContain('Orang tua/wali siswa');
+    expect(xml).toContain('Permohonan Izin Tidak Masuk Sekolah');
+  });
 });

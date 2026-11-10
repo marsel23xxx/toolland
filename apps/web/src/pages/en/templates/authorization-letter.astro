@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../../components/templates/TemplatePage.astro';
+import { messages } from '../../../i18n';
+import { KUASA_FORM } from '../../../lib/templates/surat-kuasa';
+---
+
+<TemplatePage slug="authorization-letter">
+  <DocumentBuilder client:load form={KUASA_FORM.en} m={messages('en', 'docForm')} />
+</TemplatePage>

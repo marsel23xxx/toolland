@@ -98,6 +98,7 @@ interface Seg {
   size: number;
   color: string;
   href?: string;
+  u?: boolean;
   w: number;
 }
 /** Satu kata: potongan berurutan tanpa spasi di antaranya (bisa beda gaya, misalnya "kata,"). */
@@ -140,6 +141,7 @@ function toWords(runs: Run[], fonts: Fonts, size: number, color: string): Word[]
           size,
           color: r.color ?? color,
           href: r.href,
+          u: r.u,
           w: measure(font, part, size),
         };
         cur ??= { segs: [], w: 0, space: 0 };
@@ -164,7 +166,13 @@ function splitLong(word: Word, max: number): Word[] {
         cur = { segs: [], w: 0, space: 0 };
       }
       const last = cur.segs.at(-1);
-      if (last && last.font === seg.font && last.color === seg.color && last.href === seg.href) {
+      if (
+        last &&
+        last.font === seg.font &&
+        last.color === seg.color &&
+        last.href === seg.href &&
+        last.u === seg.u
+      ) {
         last.text += ch;
         last.w += w;
       } else cur.segs.push({ ...seg, text: ch, w });
@@ -263,6 +271,13 @@ class Flow {
               font: seg.font,
               color: hexColor(seg.color),
             });
+            if (seg.u)
+              page.drawLine({
+                start: { x: sx, y: baseline - seg.size * 0.14 },
+                end: { x: sx + seg.w, y: baseline - seg.size * 0.14 },
+                thickness: Math.max(0.5, seg.size * 0.06),
+                color: hexColor(seg.color),
+              });
           });
           if (seg.href) {
             const href = seg.href;
@@ -270,6 +285,21 @@ class Flow {
             this.draw((page, { doc }) => addLink(doc, page, rect, href));
           }
           cx += seg.w;
+        }
+        // Garis bawah menyambung melewati spasi bila kata berikutnya juga bergaris bawah.
+        const next = line.words[line.words.indexOf(word) + 1];
+        const lastSeg = word.segs.at(-1);
+        if (lastSeg?.u && next?.segs[0]?.u) {
+          const ux = cx;
+          const gapW = word.space + extra;
+          this.draw((page) =>
+            page.drawLine({
+              start: { x: ux, y: baseline - lastSeg.size * 0.14 },
+              end: { x: ux + gapW, y: baseline - lastSeg.size * 0.14 },
+              thickness: Math.max(0.5, lastSeg.size * 0.06),
+              color: hexColor(lastSeg.color),
+            }),
+          );
         }
         cx += word.space + extra;
       }
@@ -282,7 +312,9 @@ class Flow {
     const f = this.fonts;
     switch (b.t) {
       case 'gap':
-        this.space(b.h);
+        // Jarak yang disengaja tetap dipakai walau di awal kolom (misalnya baris kosong di
+        // kolom tanda tangan); jarak before/after blok lain diabaikan di awal halaman.
+        this.y -= b.h;
         return;
       case 'p': {
         const size = b.size ?? this.base;
@@ -442,6 +474,76 @@ class Flow {
         this.space(b.after);
         return;
       }
+      case 'cols': {
+        const n = b.cols.length;
+        if (!n) return;
+        const gap = b.gap ?? 16;
+        const ratios = b.widths?.length === n ? b.widths : Array(n).fill(1);
+        const total = ratios.reduce((a, r) => a + r, 0);
+        const avail = w - gap * (n - 1);
+        // Kolom ditata di Flow anak tanpa batas bawah. Putaran pertama hanya mengukur tinggi,
+        // agar seluruh baris kolom bisa dipindah ke halaman berikutnya bila tidak muat.
+        const layout = (commit: boolean) => {
+          let cx = x;
+          let low = this.y;
+          b.cols.forEach((blocks, i) => {
+            const cw = (avail * ratios[i]) / total;
+            const child = new Flow(
+              { x: cx, w: cw, top: this.y, bottom: -1e9, color },
+              this.fonts,
+              this.images,
+              this.base,
+            );
+            for (const blk of blocks) child.block(blk);
+            low = Math.min(low, child.y);
+            if (commit) for (const o of child.ops) this.ops.push({ page: this.page, op: o.op });
+            cx += cw + gap;
+          });
+          return this.y - low;
+        };
+        this.space(b.before);
+        const h = layout(false);
+        this.need(h);
+        const top = this.y;
+        layout(true);
+        this.y = top - h;
+        this.space(b.after);
+        return;
+      }
+      case 'box': {
+        const size = b.size ?? this.base;
+        const pad = b.pad ?? 6;
+        const bw = Math.min(w, b.w ?? w);
+        const bx = b.place === 'right' ? x + w - bw : b.place === 'center' ? x + (w - bw) / 2 : x;
+        const lines = wrapWords(toWords(b.runs, f, size, b.color ?? color), bw - pad * 2);
+        const textH = b.runs.some((r) => r.text.trim()) ? lines.length * size * DEFAULT_LEAD : 0;
+        const bh = Math.max(b.h ?? 0, textH + pad * 2);
+        this.space(b.before);
+        this.need(bh);
+        const top = this.y;
+        const border = b.border;
+        const fill = b.fill;
+        const dash = b.dash;
+        this.draw((page) =>
+          page.drawRectangle({
+            x: bx,
+            y: top - bh,
+            width: bw,
+            height: bh,
+            color: fill ? hexColor(fill) : undefined,
+            borderColor: border ? hexColor(border) : undefined,
+            borderWidth: border ? 0.8 : 0,
+            borderDashArray: dash ? [3, 2] : undefined,
+          }),
+        );
+        if (textH) {
+          this.y = top - (bh - textH) / 2;
+          this.lines(lines, bx + pad, bw - pad * 2, size, DEFAULT_LEAD, b.align ?? 'left');
+        }
+        this.y = top - bh;
+        this.space(b.after);
+        return;
+      }
       case 'img': {
         const img = this.images.get(b.data);
         if (!img) return;
@@ -473,7 +575,15 @@ function addLink(doc: PDFDocument, page: PDFPage, rect: number[], href: string) 
 }
 
 function allBlocks(spec: DocSpec): Block[] {
-  return [...spec.main, ...(spec.side?.blocks ?? [])];
+  const out: Block[] = [];
+  const walk = (list: Block[]) => {
+    for (const b of list) {
+      out.push(b);
+      if (b.t === 'cols') b.cols.forEach(walk);
+    }
+  };
+  walk([...spec.main, ...(spec.side?.blocks ?? [])]);
+  return out;
 }
 
 /** Buat PDF dari DocSpec. Mengembalikan byte PDF dan jumlah halaman. */
@@ -495,7 +605,8 @@ export async function renderPdf(spec: DocSpec): Promise<{ bytes: Uint8Array; pag
       );
 
   const m = spec.margin;
-  const top = A4.h - m;
+  const P = spec.page ?? A4;
+  const top = P.h - m;
   const bottom = m;
   const flows: Flow[] = [];
   if (spec.side) {
@@ -512,7 +623,7 @@ export async function renderPdf(spec: DocSpec): Promise<{ bytes: Uint8Array; pag
       new Flow(
         {
           x: spec.side.width + pad,
-          w: A4.w - spec.side.width - pad - m,
+          w: P.w - spec.side.width - pad - m,
           top,
           bottom,
           color: spec.color,
@@ -526,17 +637,17 @@ export async function renderPdf(spec: DocSpec): Promise<{ bytes: Uint8Array; pag
     for (const blk of spec.main) flows[1].block(blk);
   } else {
     flows.push(
-      new Flow({ x: m, w: A4.w - m * 2, top, bottom, color: spec.color }, fonts, images, spec.size),
+      new Flow({ x: m, w: P.w - m * 2, top, bottom, color: spec.color }, fonts, images, spec.size),
     );
     for (const blk of spec.main) flows[0].block(blk);
   }
 
   const count = Math.max(...flows.map((f) => f.page)) + 1;
-  const pages = Array.from({ length: count }, () => doc.addPage([A4.w, A4.h]));
+  const pages = Array.from({ length: count }, () => doc.addPage([P.w, P.h]));
   if (spec.side) {
     const bg = hexColor(spec.side.bg);
     for (const p of pages)
-      p.drawRectangle({ x: 0, y: 0, width: spec.side.width, height: A4.h, color: bg });
+      p.drawRectangle({ x: 0, y: 0, width: spec.side.width, height: P.h, color: bg });
   }
   for (const f of flows) for (const { page, op } of f.ops) op(pages[page], { doc });
 

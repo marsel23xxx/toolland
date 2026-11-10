@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { KWITANSI_FORM } from '../../lib/templates/kwitansi';
+---
+
+<TemplatePage slug="kwitansi">
+  <DocumentBuilder client:load form={KWITANSI_FORM.id} m={messages('id', 'docForm')} />
+</TemplatePage>

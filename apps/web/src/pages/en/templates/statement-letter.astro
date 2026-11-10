@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../../components/templates/TemplatePage.astro';
+import { messages } from '../../../i18n';
+import { PERNYATAAN_FORM } from '../../../lib/templates/surat-pernyataan';
+---
+
+<TemplatePage slug="statement-letter">
+  <DocumentBuilder client:load form={PERNYATAAN_FORM.en} m={messages('en', 'docForm')} />
+</TemplatePage>

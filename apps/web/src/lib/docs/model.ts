@@ -12,6 +12,8 @@ export interface Run {
   /** Warna hex tanpa "#", misalnya "1f3a5f". */
   color?: string;
   href?: string;
+  /** Garis bawah. */
+  u?: boolean;
 }
 
 interface Spacing {
@@ -53,6 +55,31 @@ export type Block =
   | ({ t: 'rule'; color?: string; weight?: number } & Spacing)
   | { t: 'gap'; h: number }
   | ({
+      t: 'cols';
+      /** Isi tiap kolom. Kolom tidak dipecah antarhalaman. */
+      cols: Block[][];
+      /** Perbandingan lebar kolom; bawaan sama rata. */
+      widths?: number[];
+      gap?: number;
+    } & Spacing)
+  | ({
+      t: 'box';
+      runs: Run[];
+      size?: number;
+      align?: 'left' | 'center' | 'right';
+      /** Warna garis tepi; tanpa garis bila kosong. */
+      border?: string;
+      dash?: boolean;
+      fill?: string;
+      pad?: number;
+      /** Lebar kotak dalam pt; bawaan selebar kolom. Kotak sempit diletakkan sesuai `place`. */
+      w?: number;
+      /** Tinggi minimal dalam pt. */
+      h?: number;
+      place?: 'left' | 'center' | 'right';
+      color?: string;
+    } & Spacing)
+  | ({
       t: 'img';
       data: Uint8Array;
       type: 'png' | 'jpeg';
@@ -71,6 +98,8 @@ export interface DocSpec {
   size: number;
   /** Warna teks dasar (hex tanpa "#"). */
   color: string;
+  /** Ukuran halaman dalam pt; bawaan A4 tegak. */
+  page?: { w: number; h: number };
   /** Margin halaman dalam pt. */
   margin: number;
   main: Block[];
@@ -79,6 +108,8 @@ export interface DocSpec {
 }
 
 export const A4 = { w: 595.28, h: 841.89 } as const;
+/** A5 mendatar (untuk kwitansi). */
+export const A5_LANDSCAPE = { w: 595.28, h: 419.53 } as const;
 export const DEFAULT_LEAD = 1.35;
 
 export const run = (text: string, extra: Omit<Run, 'text'> = {}): Run => ({ text, ...extra });

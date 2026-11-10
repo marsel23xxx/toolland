@@ -22,7 +22,7 @@ export interface DocField {
   span?: 1 | 2;
   max?: number;
   /** image: "photo" dipotong persegi (JPEG), "signature" tetap transparan (PNG). */
-  image?: 'photo' | 'signature';
+  image?: 'photo' | 'signature' | 'logo';
   /** Tautan bantuan di bawah field. */
   link?: { href: string; label: string };
 }
@@ -61,6 +61,11 @@ export interface DocForm {
    * contoh bahasa lama diganti dengan contoh bahasa baru.
    */
   langText?: Record<'id' | 'en', Record<string, string>>;
+  /**
+   * Field pilihan "jenis" yang mengisi ulang field lain, misalnya jenis surat izin. Field yang
+   * sudah diubah pengguna (bukan teks preset mana pun) tidak ditimpa.
+   */
+  presets?: { key: string; fill: Record<string, Record<string, string>> };
 }
 
 /** Gambar yang sudah diproses komponen: foto persegi (JPEG), versi bulat (PNG), tanda tangan. */

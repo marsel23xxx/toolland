@@ -75,7 +75,14 @@ export const tests = [
       // Hanya format PPT yang masih "Segera"; template dokumen dan Excel sudah tersedia.
       const soonItems = items.filter((x) => x.includes('Segera'));
       expect(soonItems.length === 1 && soonItems[0].startsWith('PPT'), soonItems.join(' | '));
-      for (const doc of ['Surat Lamaran Kerja', 'CV ATS', 'CV Profesional', 'Surat Resign'])
+      for (const doc of [
+        'Surat Lamaran Kerja',
+        'CV ATS',
+        'CV Profesional',
+        'Surat Resign',
+        'Surat Kuasa',
+        'Kwitansi',
+      ])
         expect(
           items.some((x) => x.startsWith(doc)),
           `${doc} tidak ada di navbar`,
@@ -478,7 +485,7 @@ export const tests = [
       expect(all.includes('dokumen') && all.includes('excel'), all.join(','));
       await h.page.click('[data-fmt-tab=dokumen]');
       const docs = await visible();
-      expect(docs.length === 4 && docs.every((x) => x === 'dokumen'), docs.join(','));
+      expect(docs.length === 9 && docs.every((x) => x === 'dokumen'), docs.join(','));
       expect(h.page.url().endsWith('/template?format=dokumen'), h.page.url());
       expect(await h.bodyHas('PDF + Word'), 'label format dokumen tidak tampil');
       await h.page.click('[data-fmt-tab=excel]');
@@ -486,7 +493,7 @@ export const tests = [
       expect(xl.length === 11 && xl.every((x) => x === 'excel'), xl.join(','));
       // Tab dibuka langsung dari URL.
       await h.page.goto(h.page.url().replace('format=excel', 'format=dokumen'));
-      expect((await visible()).length === 4, 'filter dari URL tidak diterapkan');
+      expect((await visible()).length === 9, 'filter dari URL tidak diterapkan');
     },
   },
   {
@@ -592,6 +599,47 @@ export const tests = [
       );
       expect(xml.includes('December 10, 2026'), 'hari terakhir otomatis tidak ada');
       expect(xml.includes('Sincerely,'), 'salam penutup tidak ada');
+    },
+  },
+  {
+    name: 'surat kuasa: preset keperluan mengisi ulang teks yang belum diubah',
+    path: '/template/surat-kuasa',
+    async run(h) {
+      await docPages(h);
+      await h.page.select('#df-type', 'ijazah');
+      await h.page.waitForFunction(() =>
+        document.querySelector('#df-purpose').value.startsWith('Untuk mengambil ijazah'),
+      );
+      // Teks yang sudah diubah sendiri tidak ditimpa preset.
+      await h.type('#df-purpose', 'Untuk mengambil rapor adik saya.');
+      await h.page.select('#df-type', 'paket');
+      await h.sleep(300);
+      expect(
+        (await h.value('#df-purpose')) === 'Untuk mengambil rapor adik saya.',
+        'teks sendiri tertimpa preset',
+      );
+      await docPages(h);
+      const xml = docxText(
+        await h.downloadVia('Surat-Kuasa-Rina-Pratama.docx', () => h.page.click('[data-doc-docx]')),
+      );
+      for (const t of ['SURAT KUASA', 'Dimas Pratama', 'rapor adik saya', 'w:val="dashed"'])
+        expect(xml.includes(t), `"${t}" tidak ada di Word`);
+    },
+  },
+  {
+    name: 'kwitansi: terbilang otomatis dan meterai di atas Rp5 juta',
+    path: '/template/kwitansi',
+    async run(h) {
+      await docPages(h);
+      await h.type('#df-amount', '7.250.000');
+      await docPages(h);
+      const xml = docxText(
+        await h.downloadVia('Kwitansi-Rina-Pratama.docx', () => h.page.click('[data-doc-docx]')),
+      );
+      for (const t of ['Tujuh juta dua ratus lima puluh ribu rupiah', 'Rp7.250.000,-', 'Meterai'])
+        expect(xml.includes(t), `"${t}" tidak ada di Word`);
+      // A5 mendatar: lebar halaman 11906 twip, tinggi 8391.
+      expect(xml.includes('w:h="8391"'), 'ukuran halaman bukan A5 mendatar');
     },
   },
 ];

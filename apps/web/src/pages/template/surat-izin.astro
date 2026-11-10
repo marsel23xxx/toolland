@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { IZIN_FORM } from '../../lib/templates/surat-izin';
+---
+
+<TemplatePage slug="surat-izin">
+  <DocumentBuilder client:load form={IZIN_FORM.id} m={messages('id', 'docForm')} />
+</TemplatePage>

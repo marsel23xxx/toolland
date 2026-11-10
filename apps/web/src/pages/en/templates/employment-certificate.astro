@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../../components/templates/TemplatePage.astro';
+import { messages } from '../../../i18n';
+import { KETERANGAN_FORM } from '../../../lib/templates/surat-keterangan-kerja';
+---
+
+<TemplatePage slug="employment-certificate">
+  <DocumentBuilder client:load form={KETERANGAN_FORM.en} m={messages('en', 'docForm')} />
+</TemplatePage>

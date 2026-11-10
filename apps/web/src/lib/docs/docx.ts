@@ -16,6 +16,15 @@ const tw = (pt: number) => Math.round(pt * 20);
 const emu = (pt: number) => Math.round(pt * 12700);
 const half = (pt: number) => Math.round(pt * 2);
 
+/** Paragraf kosong setinggi `pt` (atau sekecil mungkin), untuk jarak di sekitar tabel. */
+const spacer = (pt = 1) =>
+  `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="${Math.max(20, tw(pt))}" w:lineRule="exact"/><w:rPr><w:sz w:val="2"/></w:rPr></w:pPr></w:p>`;
+/** Word mewajibkan sel tabel dan badan dokumen diakhiri paragraf, bukan tabel. */
+const closeTable = (xml: string) => (xml.endsWith('</w:tbl>') ? xml + spacer() : xml);
+const NO_BORDERS = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']
+  .map((k) => `<w:${k} w:val="nil"/>`)
+  .join('');
+
 export function xmlEscape(s: string): string {
   // Karakter kontrol tidak boleh ada di XML.
   // eslint-disable-next-line no-control-regex
@@ -47,6 +56,7 @@ class Writer {
     const props = [
       r.b ? '<w:b/><w:bCs/>' : '',
       r.i ? '<w:i/><w:iCs/>' : '',
+      r.u ? '<w:u w:val="single"/>' : '',
       `<w:color w:val="${(r.color ?? color).toUpperCase()}"/>`,
       `<w:sz w:val="${half(size)}"/><w:szCs w:val="${half(size)}"/>`,
       extra,
@@ -224,6 +234,71 @@ class Writer {
           );
           break;
         }
+        case 'cols': {
+          const n = b.cols.length;
+          if (!n) {
+            pending = before;
+            continue;
+          }
+          const gap = b.gap ?? 16;
+          const ratios = b.widths?.length === n ? b.widths : Array(n).fill(1);
+          const total = ratios.reduce((a: number, r: number) => a + r, 0);
+          const avail = width - gap * (n - 1);
+          const ws = ratios.map((r: number) => (avail * r) / total);
+          if (before) out.push(spacer(before));
+          const cells = b.cols
+            .map((blocks, i) => {
+              const cw = ws[i] + (i < n - 1 ? gap : 0);
+              const inner = closeTable(this.blocks(blocks, ws[i], color)) || '<w:p/>';
+              return (
+                `<w:tc><w:tcPr><w:tcW w:w="${tw(cw)}" w:type="dxa"/>` +
+                `<w:tcMar><w:left w:w="0" w:type="dxa"/><w:right w:w="${i < n - 1 ? tw(gap) : 0}" w:type="dxa"/></w:tcMar>` +
+                `</w:tcPr>${inner}</w:tc>`
+              );
+            })
+            .join('');
+          out.push(
+            `<w:tbl><w:tblPr><w:tblW w:w="${tw(width)}" w:type="dxa"/><w:tblLayout w:type="fixed"/>` +
+              `<w:tblBorders>${NO_BORDERS}</w:tblBorders>` +
+              `<w:tblCellMar><w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar></w:tblPr>` +
+              `<w:tblGrid>${ws.map((cw: number, i: number) => `<w:gridCol w:w="${tw(cw + (i < n - 1 ? gap : 0))}"/>`).join('')}</w:tblGrid>` +
+              `<w:tr><w:trPr><w:cantSplit/></w:trPr>${cells}</w:tr></w:tbl>`,
+          );
+          pending = after;
+          continue;
+        }
+        case 'box': {
+          // Kotak = tabel satu sel: lebar, tinggi minimal, garis putus-putus, dan latar.
+          const size = b.size ?? base;
+          const pad = b.pad ?? 6;
+          const bw = Math.min(width, b.w ?? width);
+          const line = b.border
+            ? `w:val="${b.dash ? 'dashed' : 'single'}" w:sz="6" w:space="0" w:color="${b.border.toUpperCase()}"`
+            : 'w:val="nil"';
+          const borders = ['top', 'left', 'bottom', 'right']
+            .map((k) => `<w:${k} ${line}/>`)
+            .join('');
+          const jc = b.place === 'right' || b.place === 'center' ? b.place : 'left';
+          if (before) out.push(spacer(before));
+          const content = this.para(this.runs(b.runs, size, b.color ?? color), {
+            align: b.align,
+          });
+          out.push(
+            `<w:tbl><w:tblPr><w:tblW w:w="${tw(bw)}" w:type="dxa"/><w:jc w:val="${jc}"/><w:tblLayout w:type="fixed"/>` +
+              `<w:tblBorders>${borders}<w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders>` +
+              `<w:tblCellMar><w:top w:w="${tw(pad)}" w:type="dxa"/><w:left w:w="${tw(pad)}" w:type="dxa"/>` +
+              `<w:bottom w:w="${tw(pad)}" w:type="dxa"/><w:right w:w="${tw(pad)}" w:type="dxa"/></w:tblCellMar></w:tblPr>` +
+              `<w:tblGrid><w:gridCol w:w="${tw(bw)}"/></w:tblGrid>` +
+              `<w:tr>${b.h ? `<w:trPr><w:trHeight w:val="${tw(b.h)}" w:hRule="atLeast"/></w:trPr>` : ''}` +
+              `<w:tc><w:tcPr><w:tcW w:w="${tw(bw)}" w:type="dxa"/>` +
+              (b.fill
+                ? `<w:shd w:val="clear" w:color="auto" w:fill="${b.fill.toUpperCase()}"/>`
+                : '') +
+              `<w:vAlign w:val="center"/></w:tcPr>${content}</w:tc></w:tr></w:tbl>`,
+          );
+          pending = after;
+          continue;
+        }
         case 'img': {
           this.imgId++;
           const name = `image${this.imgId}.${b.type === 'png' ? 'png' : 'jpeg'}`;
@@ -255,10 +330,11 @@ class Writer {
   body(): string {
     const s = this.spec;
     const m = s.margin;
-    const pageW = tw(A4.w);
-    const pageH = tw(A4.h);
+    const P = s.page ?? A4;
+    const pageW = tw(P.w);
+    const pageH = tw(P.h);
     if (!s.side) {
-      const content = this.blocks(s.main, A4.w - m * 2, s.color) || '<w:p/>';
+      const content = closeTable(this.blocks(s.main, P.w - m * 2, s.color)) || '<w:p/>';
       return (
         content +
         `<w:sectPr><w:pgSz w:w="${pageW}" w:h="${pageH}"/>` +
@@ -269,7 +345,7 @@ class Writer {
     // halaman agar warna latar memenuhi halaman pertama.
     const pad = Math.min(m, 28);
     const sideW = s.side.width;
-    const mainW = A4.w - sideW;
+    const mainW = P.w - sideW;
     const none = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']
       .map((k) => `<w:${k} w:val="nil"/>`)
       .join('');

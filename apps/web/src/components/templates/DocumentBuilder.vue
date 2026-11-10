@@ -33,10 +33,35 @@ const LOADERS: Record<string, () => Promise<DocModule>> = {
   resign: () => import('../../lib/templates/surat-resign'),
   'cv-ats': () => import('../../lib/templates/cv-ats'),
   'cv-pro': () => import('../../lib/templates/cv-profesional'),
+  kuasa: () => import('../../lib/templates/surat-kuasa'),
+  pernyataan: () => import('../../lib/templates/surat-pernyataan'),
+  izin: () => import('../../lib/templates/surat-izin'),
+  keterangan: () => import('../../lib/templates/surat-keterangan-kerja'),
+  kwitansi: () => import('../../lib/templates/kwitansi'),
 };
-const LETTERS = new Set(['lamaran', 'resign']);
+/** Template yang sebaiknya muat satu halaman (peringatan bila lebih). */
+const LETTERS = new Set([
+  'lamaran',
+  'resign',
+  'kuasa',
+  'pernyataan',
+  'izin',
+  'keterangan',
+  'kwitansi',
+]);
 /** Field pengaturan yang tidak ikut dikosongkan. */
-const SETTINGS = new Set(['style', 'lang', 'font', 'align', 'accent', 'atsAccent', 'photoShape']);
+const SETTINGS = new Set([
+  'style',
+  'lang',
+  'font',
+  'align',
+  'accent',
+  'atsAccent',
+  'photoShape',
+  'type',
+  'paper',
+  'meterai',
+]);
 const STORE_KEY = `toolland-doc:${f.storage}`;
 
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -84,6 +109,21 @@ watch(
   },
 );
 
+// --- Preset jenis: isi ulang field yang belum diubah pengguna -------------------------------------
+if (f.presets) {
+  const { key, fill: presetFill } = f.presets;
+  const known = (k: string) =>
+    new Set(['', ...Object.values(presetFill).map((x) => x[k] ?? '')].map((x) => x.trim()));
+  watch(
+    () => values[key],
+    (now) => {
+      if (!ready.value) return;
+      for (const [k, txt] of Object.entries(presetFill[now as string] ?? {}))
+        if (known(k).has(str(k).trim())) values[k] = txt;
+    },
+  );
+}
+
 // --- Item berulang --------------------------------------------------------------------------
 function addItem(r: DocRepeat) {
   const arr = list(r.key).slice();
@@ -117,6 +157,7 @@ async function pickImage(x: DocField, e: Event) {
   imageError.value = '';
   try {
     const { processPhoto, processSignature } = await import('../../lib/docs/images');
+    // Logo dan tanda tangan sama-sama dipertahankan transparan (PNG).
     values[x.key] = x.image === 'photo' ? await processPhoto(file) : await processSignature(file);
   } catch {
     imageError.value = x.key;
@@ -456,8 +497,8 @@ const span = (x: DocField) => (x.span === 2 ? 'sm:col-span-2' : '');
                         class="sr-only"
                       />
                       <span
-                        class="size-4 rounded-full ring-1 ring-black/10"
                         v-bg="o.value"
+                        class="size-4 rounded-full ring-1 ring-black/10"
                         aria-hidden="true"
                       />
                       {{ o.label }}

@@ -29,6 +29,7 @@ export const UPCOMING_FORMATS: TemplateFormat[] = ['ppt'];
 
 export const TEMPLATE_CATEGORY_IDS = [
   'karier',
+  'surat',
   'keuangan',
   'operasional',
   'proyek',
@@ -40,6 +41,7 @@ export type TemplateCategoryId = (typeof TEMPLATE_CATEGORY_IDS)[number];
 
 export const TEMPLATE_CATEGORY_NAMES: Record<TemplateCategoryId, Record<Locale, string>> = {
   karier: { id: 'Lamaran & karier', en: 'Jobs & career' },
+  surat: { id: 'Surat umum', en: 'Everyday letters' },
   keuangan: { id: 'Keuangan usaha', en: 'Business finance' },
   operasional: { id: 'Operasional & penjualan', en: 'Operations & sales' },
   proyek: { id: 'Proyek & konstruksi', en: 'Projects & construction' },
@@ -50,9 +52,10 @@ export const TEMPLATE_CATEGORY_NAMES: Record<TemplateCategoryId, Record<Locale, 
 
 export const TEMPLATE_CATEGORY_NOTES: Record<TemplateCategoryId, Record<Locale, string>> = {
   karier: {
-    id: 'Surat lamaran, CV ATS, surat resign',
-    en: 'Cover letters, ATS resumes, resignation',
+    id: 'Lamaran, CV, pernyataan, paklaring',
+    en: 'Cover letters, resumes, statements, references',
   },
+  surat: { id: 'Surat kuasa, surat izin', en: 'Authorization and leave letters' },
   keuangan: { id: 'Kas, laba rugi, invoice, piutang', en: 'Cash, P&L, invoices, receivables' },
   operasional: { id: 'Stok barang, kasir, penjualan', en: 'Stock, point of sale, sales' },
   proyek: { id: 'RAB, jadwal, Gantt chart', en: 'Cost estimates, schedules, Gantt' },
