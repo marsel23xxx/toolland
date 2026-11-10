@@ -21,7 +21,8 @@ import {
 } from './project';
 
 export const AYU_FORMAT = 'toolland-ayu';
-export const AYU_VERSION = 1;
+/** Versi 2: kecepatan, fade audio, putar/balik, zoom, warna, Ken Burns, latar, fps. */
+export const AYU_VERSION = 2;
 export const AYU_MIME = 'application/x-toolland-ayu';
 /** Arsip ZIP tanpa ZIP64: total di bawah 4 GB. */
 export const MAX_BUNDLE_BYTES = 4 * 1024 ** 3 - 64 * 1024 ** 2;
@@ -50,7 +51,7 @@ export function projectJson(p: Project, bundled: boolean): string {
 const num = (v: unknown, d = 0, min = -Infinity, max = Infinity) =>
   typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : d;
 const str = (v: unknown, d = '', max = 300) => (typeof v === 'string' ? v.slice(0, max) : d);
-const pick = <T extends string>(v: unknown, allowed: readonly T[], d: T): T =>
+const pick = <T extends string | number>(v: unknown, allowed: readonly T[], d: T): T =>
   allowed.includes(v as T) ? (v as T) : d;
 const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 
@@ -63,6 +64,8 @@ export function sanitizeProject(raw: unknown): Project {
     aspect: pick<Aspect>(s.aspect, ['16:9', '9:16', '1:1', '4:5'], '16:9'),
     quality: pick<Quality>(s.quality, ['480', '720', '1080'], '720'),
     fade: s.fade === true,
+    bg: /^#[0-9a-f]{6}$/i.test(str(s.bg)) ? (s.bg as string) : '#000000',
+    fps: pick(s.fps, [24, 30, 60] as const, 30),
   };
   p.media = arr(o.media)
     .map((m) => m as Record<string, unknown>)
@@ -91,9 +94,27 @@ export function sanitizeProject(raw: unknown): Project {
         in: inn,
         out: num(c.out, inn + 1, inn + 0.05, 86400),
         volume: num(c.volume, 1, 0, 2),
-        fit: pick(c.fit, ['fit', 'fill'] as const, 'fit'),
+        fit: pick(c.fit, ['fit', 'fill', 'blur'] as const, 'fit'),
         trans: pick(c.trans, ['none', 'black', 'white'] as const, 'none'),
         transDur: num(c.transDur, 0.8, 0.2, 3),
+        speed: num(c.speed, 1, 0.25, 4),
+        fadeIn: num(c.fadeIn, 0, 0, 5),
+        fadeOut: num(c.fadeOut, 0, 0, 5),
+        rotate: pick(c.rotate, [0, 90, 180, 270] as const, 0),
+        flipH: c.flipH === true,
+        flipV: c.flipV === true,
+        zoom: num(c.zoom, 1, 1, 3),
+        panX: num(c.panX, 0, -1, 1),
+        panY: num(c.panY, 0, -1, 1),
+        brightness: num(c.brightness, 1, 0.5, 1.5),
+        contrast: num(c.contrast, 1, 0.5, 1.5),
+        saturation: num(c.saturation, 1, 0, 2),
+        preset: pick(
+          c.preset,
+          ['none', 'warm', 'cool', 'bw', 'vintage', 'vivid', 'fade'] as const,
+          'none',
+        ),
+        kenBurns: pick(c.kenBurns, ['none', 'in', 'out', 'left', 'right'] as const, 'none'),
       };
     });
   p.texts = arr(o.texts)

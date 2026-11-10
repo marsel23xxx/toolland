@@ -4,7 +4,14 @@
  * menggambar teks dengan fungsi yang sama dengan ekspor, dan memutar musik latar selaras.
  * Waktu timeline dikendalikan lewat v-model:time dan v-model:playing.
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
+import {
+  colorSvg,
+  colorTransform,
+  fadeGain,
+  geometryAt,
+  geometryCss,
+} from '../../../../lib/editor/look';
 import { drawText } from '../../../../lib/editor/render';
 import {
   type Project,
@@ -36,6 +43,10 @@ const video = ref<HTMLVideoElement>();
 const music = ref<HTMLAudioElement>();
 const canvas = ref<HTMLCanvasElement>();
 const stage = ref<HTMLDivElement>();
+const bgCanvas = ref<HTMLCanvasElement>();
+const img = ref<HTMLImageElement>();
+const stageW = ref(640);
+const filterId = `ed-col-${useId()}`;
 
 const size = computed(() => outputSize(props.project.settings.aspect, '720'));
 const total = computed(() => totalDuration(props.project));
@@ -46,6 +57,59 @@ const media = computed(() =>
 const imageUrl = computed(() =>
   media.value?.kind === 'image' ? props.urls.get(media.value.id) : undefined,
 );
+
+// ---------- Tampilan klip (sama rumusnya dengan ekspor, lihat lib/editor/look.ts) ----------
+const clip = computed(() => hit.value?.clip);
+const color = computed(() => {
+  const c = clip.value;
+  if (!c || colorTransform(c).identity) return null;
+  return colorSvg(c);
+});
+const geoTransform = computed(() => {
+  const h = hit.value;
+  if (!h) return '';
+  const len = clipLength(h.clip);
+  return geometryCss(geometryAt(h.clip, len ? (time.value - h.start) / len : 0));
+});
+/** Kotak media: untuk putaran 90/270 lebar dan tinggi ditukar lalu diputar di tengah. */
+const mediaBox = computed(() => {
+  const c = clip.value;
+  const rot = c?.rotate ?? 0;
+  const flip = `scale(${c?.flipH ? -1 : 1}, ${c?.flipV ? -1 : 1})`;
+  if (rot === 90 || rot === 270)
+    return {
+      width: `${(size.value.h / size.value.w) * 100}%`,
+      height: `${(size.value.w / size.value.h) * 100}%`,
+      left: '50%',
+      top: '50%',
+      transform: `translate(-50%, -50%) rotate(${rot}deg) ${flip}`,
+    };
+  return {
+    width: '100%',
+    height: '100%',
+    left: '0',
+    top: '0',
+    transform: `rotate(${rot}deg) ${flip}`,
+  };
+});
+const fitClass = computed(() => (clip.value?.fit === 'fill' ? 'object-cover' : 'object-contain'));
+/** Blur latar setara boxblur ekspor (jari-jari = sisi pendek / 36), diskalakan ke ukuran tampilan. */
+const blurPx = computed(
+  () => (Math.min(stageW.value, (stageW.value * size.value.h) / size.value.w) / 36) * 0.9,
+);
+
+/** Latar blur: bingkai sekarang digambar kecil ke canvas, lalu diperbesar dan diburamkan CSS. */
+function drawBg() {
+  const c = bgCanvas.value;
+  if (!c || clip.value?.fit !== 'blur') return;
+  const el = media.value?.kind === 'image' ? img.value : video.value;
+  const w = el instanceof HTMLVideoElement ? el.videoWidth : (el?.naturalWidth ?? 0);
+  const h = el instanceof HTMLVideoElement ? el.videoHeight : (el?.naturalHeight ?? 0);
+  if (!el || !w || !h) return;
+  c.width = 64;
+  c.height = Math.max(1, Math.round((64 * h) / w));
+  c.getContext('2d')?.drawImage(el, 0, 0, c.width, c.height);
+}
 
 /** Lapisan pudar: transisi antarklip dan fade awal/akhir video (sama dengan hasil ekspor). */
 const veil = computed(() => {
@@ -114,10 +178,21 @@ function syncVideo(play: boolean) {
   }
   if (loadedClip !== h.clip.id || Math.abs(v.currentTime - h.local) > 0.3) v.currentTime = h.local;
   loadedClip = h.clip.id;
-  v.volume = Math.min(1, h.clip.volume);
-  v.muted = h.clip.volume === 0;
+  v.playbackRate = h.clip.speed || 1;
+  applyVolume();
   if (play) v.play().catch(() => (playing.value = false));
   else v.pause();
+}
+
+/** Volume klip termasuk fade in/out audio pada posisi sekarang. */
+function applyVolume() {
+  const h = hit.value;
+  const v = video.value;
+  if (!h || !v) return;
+  const len = clipLength(h.clip);
+  const g = fadeGain(h.clip, time.value - h.start, len);
+  v.volume = Math.max(0, Math.min(1, h.clip.volume * g));
+  v.muted = h.clip.volume === 0;
 }
 
 function syncMusic(play: boolean) {
@@ -150,8 +225,9 @@ function tick(ts: number) {
   if (h && media.value?.kind === 'video' && video.value) {
     const v = video.value;
     const len = clipLength(h.clip);
-    t = h.start + Math.min(len, Math.max(0, v.currentTime - h.clip.in));
-    if (v.currentTime >= h.clip.out - 0.04 || v.ended) t = h.start + len + 0.001;
+    const sp = h.clip.speed || 1;
+    t = h.start + Math.min(len, Math.max(0, (v.currentTime - h.clip.in) / sp));
+    if (v.currentTime >= h.clip.out - 0.04 * sp || v.ended) t = h.start + len + 0.001;
   } else t += dt;
   if (t >= total.value) {
     time.value = total.value;
@@ -160,6 +236,8 @@ function tick(ts: number) {
   }
   time.value = t;
   if (clipAt(props.project, t)?.clip.id !== loadedClip) syncVideo(true);
+  applyVolume();
+  drawBg();
   raf = requestAnimationFrame(tick);
 }
 
@@ -184,7 +262,13 @@ watch(time, () => {
     syncMusic(false);
   }
   draw();
+  drawBg();
 });
+// Saat pindah ke mode latar blur, canvas baru muncul dan perlu digambar.
+watch(
+  () => [clip.value?.fit, clip.value?.id],
+  () => void nextTick(drawBg),
+);
 watch(
   () => [props.project.clips, props.project.music, props.urls] as const,
   () => {
@@ -217,7 +301,10 @@ function draw() {
 
 let ro: ResizeObserver | undefined;
 onMounted(() => {
-  ro = new ResizeObserver(draw);
+  ro = new ResizeObserver(() => {
+    stageW.value = stage.value?.clientWidth ?? 640;
+    draw();
+  });
   if (stage.value) ro.observe(stage.value);
   syncVideo(false);
   document.fonts?.ready.then(draw);
@@ -244,23 +331,54 @@ onBeforeUnmount(() => {
     @pointerup="onUp"
     @pointercancel="onUp"
   >
-    <video
-      v-show="media?.kind === 'video'"
-      ref="video"
-      class="absolute inset-0 h-full w-full"
-      :class="hit?.clip.fit === 'fill' ? 'object-cover' : 'object-contain'"
-      playsinline
-      preload="auto"
-      @loadeddata="!playing && syncVideo(false)"
-    ></video>
-    <img
-      v-if="imageUrl"
-      :src="imageUrl"
-      alt=""
-      draggable="false"
-      class="absolute inset-0 h-full w-full"
-      :class="hit?.clip.fit === 'fill' ? 'object-cover' : 'object-contain'"
-    />
+    <!-- Warna diterapkan ke seluruh bingkai (termasuk latar), seperti di ekspor. -->
+    <div
+      class="absolute inset-0"
+      :style="{
+        backgroundColor: project.settings.bg,
+        filter: color ? `url(#${filterId})` : undefined,
+      }"
+    >
+      <div class="absolute inset-0" :style="{ transform: geoTransform || undefined }">
+        <div class="absolute" :style="mediaBox">
+          <canvas
+            v-if="clip?.fit === 'blur'"
+            ref="bgCanvas"
+            class="absolute inset-0 h-full w-full object-cover"
+            :style="{ filter: `blur(${blurPx}px)` }"
+          ></canvas>
+          <video
+            ref="video"
+            class="absolute inset-0 h-full w-full"
+            :class="[fitClass, media?.kind === 'video' ? '' : 'invisible']"
+            playsinline
+            preload="auto"
+            @loadeddata="(!playing && syncVideo(false), drawBg())"
+            @seeked="drawBg"
+          ></video>
+          <img
+            v-if="imageUrl"
+            ref="img"
+            :src="imageUrl"
+            alt=""
+            draggable="false"
+            class="absolute inset-0 h-full w-full"
+            :class="fitClass"
+            @load="drawBg"
+          />
+        </div>
+      </div>
+    </div>
+    <svg class="absolute size-0" aria-hidden="true">
+      <filter v-if="color" :id="filterId" color-interpolation-filters="sRGB">
+        <feColorMatrix type="matrix" :values="color.matrix" />
+        <feComponentTransfer>
+          <feFuncR type="linear" :slope="color.slope" :intercept="color.intercept" />
+          <feFuncG type="linear" :slope="color.slope" :intercept="color.intercept" />
+          <feFuncB type="linear" :slope="color.slope" :intercept="color.intercept" />
+        </feComponentTransfer>
+      </filter>
+    </svg>
     <div
       v-if="veil.alpha > 0"
       class="pointer-events-none absolute inset-0"

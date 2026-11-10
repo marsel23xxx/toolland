@@ -14,10 +14,12 @@ import { matchFiles, openAyu, saveAyu } from '../../../../lib/editor/ayu';
 import {
   type Aspect,
   type Clip,
+  type KenBurns,
   type MediaItem,
   type MediaKind,
   type Project,
   type Quality,
+  type Rotate,
   type TextLayer,
   FPS,
   MAX_CLIPS,
@@ -34,11 +36,13 @@ import {
   totalDuration,
   uid,
 } from '../../../../lib/editor/project';
+import { COLOR_PRESETS } from '../../../../lib/editor/look';
 import { exportVideo } from '../../../../lib/editor/render';
 import IconMonitor from '~icons/lucide/monitor';
 import Dropzone, { type DropzoneMessages } from '../../../ui/Dropzone.vue';
 import FileResults from '../../../ui/FileResults.vue';
 import ProgressBar from '../../../ui/ProgressBar.vue';
+import EditorSection from './EditorSection.vue';
 import EditorStage from './EditorStage.vue';
 import EditorTimeline, { type TimelineAction } from './EditorTimeline.vue';
 import { useMediaPreviews } from './useMediaPreviews';
@@ -607,7 +611,17 @@ function onBeforeUnload(e: BeforeUnloadEvent) {
 
 /** Klip yang disalin (Ctrl+C) dan pengaturan yang disalin dari menu klik kanan. */
 const clipboard = ref<Clip | null>(null);
-const styleClip = ref<Pick<Clip, 'volume' | 'fit' | 'trans' | 'transDur'> | null>(null);
+/** Semua pengaturan klip selain sumber dan potongan (untuk Salin/Tempel pengaturan). */
+type ClipStyle = Omit<Clip, 'id' | 'mediaId' | 'in' | 'out'>;
+const styleClip = ref<ClipStyle | null>(null);
+function styleOf(c: Clip): ClipStyle {
+  const rest: Partial<Clip> = { ...c };
+  delete rest.id;
+  delete rest.mediaId;
+  delete rest.in;
+  delete rest.out;
+  return rest as ClipStyle;
+}
 
 function pasteClip() {
   const c = clipboard.value;
@@ -654,7 +668,7 @@ function onAction(kind: TimelineAction, id: string) {
   else if (kind === 'duplicate') duplicate();
   else if (kind === 'remove') removeClip();
   else if (kind === 'copyStyle') {
-    styleClip.value = { volume: c.volume, fit: c.fit, trans: c.trans, transDur: c.transDur };
+    styleClip.value = styleOf(c);
     notice.value = props.t.styleCopied;
   } else if (kind === 'pasteStyle' && styleClip.value) {
     const i = p.clips.indexOf(c);
@@ -785,6 +799,41 @@ onBeforeUnmount(() => {
   clearTimeout(histTimer);
   forgetAll();
 });
+
+const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
+const kenBurnsList: KenBurns[] = ['none', 'in', 'out', 'left', 'right'];
+const fits = computed(() => [
+  { id: 'fit' as const, label: props.t.fitFit },
+  { id: 'fill' as const, label: props.t.fitFill },
+  { id: 'blur' as const, label: props.t.fitBlur },
+]);
+const colorKeys = computed(() => [
+  { id: 'brightness' as const, label: props.t.brightness, min: 0.5, max: 1.5 },
+  { id: 'contrast' as const, label: props.t.contrast, min: 0.5, max: 1.5 },
+  { id: 'saturation' as const, label: props.t.saturation, min: 0, max: 2 },
+]);
+
+function rotate(d: number) {
+  const c = clip.value;
+  if (c) c.rotate = ((((c.rotate + d) % 360) + 360) % 360) as Rotate;
+}
+function resetFrame() {
+  const c = clip.value;
+  if (!c) return;
+  Object.assign(c, {
+    rotate: 0,
+    flipH: false,
+    flipV: false,
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    kenBurns: 'none',
+  });
+}
+function resetColor() {
+  const c = clip.value;
+  if (c) Object.assign(c, { brightness: 1, contrast: 1, saturation: 1, preset: 'none' });
+}
 
 const aspects: Aspect[] = ['16:9', '9:16', '1:1', '4:5'];
 const qualities: Quality[] = ['480', '720', '1080'];
@@ -1121,6 +1170,22 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                     <option v-for="q in qualities" :key="q" :value="q">{{ q }}p</option>
                   </select>
                 </div>
+                <div>
+                  <label for="ed-bg" class="label">{{ t.bg }}</label>
+                  <input
+                    id="ed-bg"
+                    v-model="project.settings.bg"
+                    type="color"
+                    class="h-9 w-full"
+                    data-bg
+                  />
+                </div>
+                <div>
+                  <label for="ed-fps" class="label">{{ t.fps }}</label>
+                  <select id="ed-fps" v-model.number="project.settings.fps" class="field">
+                    <option v-for="f in [24, 30, 60]" :key="f" :value="f">{{ f }} fps</option>
+                  </select>
+                </div>
                 <label class="col-span-2 flex items-center gap-2">
                   <input v-model="project.settings.fade" type="checkbox" class="accent-brand-600" />
                   {{ t.fade }}
@@ -1135,58 +1200,108 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                 <p class="truncate font-medium" :title="clipMedia?.name">
                   {{ clipMedia?.name }} · {{ formatTime(clipLength(clip)) }}
                 </p>
-                <template v-if="clipMedia?.kind === 'video'">
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label for="ed-in" class="label">{{ t.in }}</label>
-                      <input
-                        id="ed-in"
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        class="field"
-                        :value="r1(clip.in)"
-                        data-clip-in
-                        @change="updateClip({ in: num($event) })"
-                      />
+
+                <EditorSection :title="t['section.time']">
+                  <template v-if="clipMedia?.kind === 'video'">
+                    <div class="grid grid-cols-2 gap-2">
+                      <div>
+                        <label for="ed-in" class="label">{{ t.in }}</label>
+                        <input
+                          id="ed-in"
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          class="field"
+                          :value="r1(clip.in)"
+                          data-clip-in
+                          @change="updateClip({ in: num($event) })"
+                        />
+                      </div>
+                      <div>
+                        <label for="ed-out" class="label">{{ t.out }}</label>
+                        <input
+                          id="ed-out"
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          class="field"
+                          :value="r1(clip.out)"
+                          data-clip-out
+                          @change="updateClip({ out: num($event) })"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-secondary text-xs"
+                        :disabled="playheadLocal === null"
+                        @click="updateClip({ in: playheadLocal ?? clip.in })"
+                      >
+                        {{ t.inHere }}
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-secondary text-xs"
+                        :disabled="playheadLocal === null"
+                        @click="updateClip({ out: playheadLocal ?? clip.out })"
+                      >
+                        {{ t.outHere }}
+                      </button>
                     </div>
+                    <p class="text-xs text-ink-3">
+                      {{ fill(t.sourceLength, { time: formatTime(clipMedia.duration) }) }}
+                    </p>
                     <div>
-                      <label for="ed-out" class="label">{{ t.out }}</label>
-                      <input
-                        id="ed-out"
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        class="field"
-                        :value="r1(clip.out)"
-                        data-clip-out
-                        @change="updateClip({ out: num($event) })"
-                      />
+                      <span class="label">{{ t.speed }}</span>
+                      <div class="flex flex-wrap gap-1" role="group" :aria-label="t.speed">
+                        <button
+                          v-for="sp in speeds"
+                          :key="sp"
+                          type="button"
+                          class="rounded border px-2 py-1 text-xs tabular-nums"
+                          :class="
+                            clip.speed === sp
+                              ? 'border-brand-600 bg-brand-600 text-white'
+                              : 'border-rule hover:border-ink-3'
+                          "
+                          :aria-pressed="clip.speed === sp"
+                          :data-speed="sp"
+                          @click="clip.speed = sp"
+                        >
+                          {{ sp }}×
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      class="btn btn-secondary text-xs"
-                      :disabled="playheadLocal === null"
-                      @click="updateClip({ in: playheadLocal ?? clip.in })"
-                    >
-                      {{ t.inHere }}
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-secondary text-xs"
-                      :disabled="playheadLocal === null"
-                      @click="updateClip({ out: playheadLocal ?? clip.out })"
-                    >
-                      {{ t.outHere }}
-                    </button>
+                  </template>
+                  <div v-else>
+                    <label for="ed-dur" class="label">{{ t.imageDuration }}</label>
+                    <input
+                      id="ed-dur"
+                      type="number"
+                      min="0.2"
+                      max="3600"
+                      step="0.5"
+                      class="field"
+                      :value="r1(clipLength(clip))"
+                      @change="updateClip({ in: 0, out: num($event) })"
+                    />
                   </div>
-                  <p class="text-xs text-ink-3">
-                    {{ fill(t.sourceLength, { time: formatTime(clipMedia.duration) }) }}
-                  </p>
+                </EditorSection>
+
+                <EditorSection v-if="clipMedia?.kind === 'video'" :title="t['section.audio']">
                   <div>
-                    <label for="ed-vol" class="label">
-                      {{ t.volume }} · {{ Math.round(clip.volume * 100) }}%
-                    </label>
+                    <div class="flex items-center justify-between">
+                      <label for="ed-vol" class="label">
+                        {{ t.volume }} · {{ Math.round(clip.volume * 100) }}%
+                      </label>
+                      <button
+                        type="button"
+                        class="text-xs text-brand-700 hover:underline dark:text-brand-300"
+                        data-mute
+                        @click="clip.volume = clip.volume > 0 ? 0 : 1"
+                      >
+                        {{ clip.volume > 0 ? t.mute : t.unmute }}
+                      </button>
+                    </div>
                     <input
                       id="ed-vol"
                       v-model.number="clip.volume"
@@ -1197,71 +1312,233 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                       class="w-full accent-brand-600"
                     />
                   </div>
-                </template>
-                <div v-else>
-                  <label for="ed-dur" class="label">{{ t.imageDuration }}</label>
-                  <input
-                    id="ed-dur"
-                    type="number"
-                    min="0.2"
-                    max="3600"
-                    step="0.5"
-                    class="field"
-                    :value="r1(clipLength(clip))"
-                    @change="updateClip({ in: 0, out: num($event) })"
-                  />
-                </div>
-                <fieldset>
-                  <legend class="label">{{ t.fit }}</legend>
-                  <div class="flex gap-3">
-                    <label class="flex items-center gap-1.5">
-                      <input v-model="clip.fit" type="radio" value="fit" class="accent-brand-600" />
-                      {{ t.fitFit }}
-                    </label>
-                    <label class="flex items-center gap-1.5">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label for="ed-fi" class="label"
+                        >{{ t.fadeIn }} · {{ clip.fadeIn.toFixed(1) }} s</label
+                      >
                       <input
-                        v-model="clip.fit"
-                        type="radio"
-                        value="fill"
-                        class="accent-brand-600"
+                        id="ed-fi"
+                        v-model.number="clip.fadeIn"
+                        type="range"
+                        min="0"
+                        max="3"
+                        step="0.1"
+                        class="w-full accent-brand-600"
                       />
-                      {{ t.fitFill }}
-                    </label>
+                    </div>
+                    <div>
+                      <label for="ed-fo" class="label"
+                        >{{ t.fadeOut }} · {{ clip.fadeOut.toFixed(1) }} s</label
+                      >
+                      <input
+                        id="ed-fo"
+                        v-model.number="clip.fadeOut"
+                        type="range"
+                        min="0"
+                        max="3"
+                        step="0.1"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
                   </div>
-                </fieldset>
-                <div v-if="clipIndex < project.clips.length - 1" class="space-y-2">
+                </EditorSection>
+
+                <EditorSection :title="t['section.frame']">
+                  <div class="grid grid-cols-3 gap-1" role="group" :aria-label="t.fit">
+                    <button
+                      v-for="f in fits"
+                      :key="f.id"
+                      type="button"
+                      class="rounded border px-1 py-1.5 text-xs"
+                      :class="
+                        clip.fit === f.id
+                          ? 'border-brand-600 bg-brand-600 text-white'
+                          : 'border-rule hover:border-ink-3'
+                      "
+                      :aria-pressed="clip.fit === f.id"
+                      :data-fit="f.id"
+                      @click="clip.fit = f.id"
+                    >
+                      {{ f.label }}
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-4 gap-1">
+                    <button
+                      type="button"
+                      class="btn btn-secondary px-1 text-xs"
+                      :title="t.rotateLeft"
+                      :aria-label="t.rotateLeft"
+                      @click="rotate(-90)"
+                    >
+                      ⟲
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-secondary px-1 text-xs"
+                      :title="t.rotateRight"
+                      :aria-label="t.rotateRight"
+                      data-rotate
+                      @click="rotate(90)"
+                    >
+                      ⟳
+                    </button>
+                    <button
+                      type="button"
+                      class="btn px-1 text-xs"
+                      :class="clip.flipH ? 'btn-active' : 'btn-secondary'"
+                      :aria-pressed="clip.flipH"
+                      :title="t.flipH"
+                      @click="clip.flipH = !clip.flipH"
+                    >
+                      ⇋
+                    </button>
+                    <button
+                      type="button"
+                      class="btn px-1 text-xs"
+                      :class="clip.flipV ? 'btn-active' : 'btn-secondary'"
+                      :aria-pressed="clip.flipV"
+                      :title="t.flipV"
+                      @click="clip.flipV = !clip.flipV"
+                    >
+                      ⇵
+                    </button>
+                  </div>
                   <div>
-                    <label for="ed-tr" class="label">{{ t.transition }}</label>
-                    <select id="ed-tr" v-model="clip.trans" class="field" data-transition>
-                      <option value="none">{{ t['transition.none'] }}</option>
-                      <option value="black">{{ t['transition.black'] }}</option>
-                      <option value="white">{{ t['transition.white'] }}</option>
+                    <label for="ed-zoom" class="label"
+                      >{{ t.zoomClip }} · {{ Math.round(clip.zoom * 100) }}%</label
+                    >
+                    <input
+                      id="ed-zoom"
+                      v-model.number="clip.zoom"
+                      type="range"
+                      min="1"
+                      max="3"
+                      step="0.05"
+                      class="w-full accent-brand-600"
+                      data-zoom-clip
+                    />
+                  </div>
+                  <div v-if="clip.zoom > 1" class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label for="ed-px" class="label">{{ t.panX }}</label>
+                      <input
+                        id="ed-px"
+                        v-model.number="clip.panX"
+                        type="range"
+                        min="-1"
+                        max="1"
+                        step="0.05"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                    <div>
+                      <label for="ed-py" class="label">{{ t.panY }}</label>
+                      <input
+                        id="ed-py"
+                        v-model.number="clip.panY"
+                        type="range"
+                        min="-1"
+                        max="1"
+                        step="0.05"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                  </div>
+                  <div v-if="clipMedia?.kind === 'image'">
+                    <label for="ed-kb" class="label">{{ t.kenBurns }}</label>
+                    <select id="ed-kb" v-model="clip.kenBurns" class="field" data-ken-burns>
+                      <option v-for="k in kenBurnsList" :key="k" :value="k">
+                        {{ t[`kenBurns.${k}`] }}
+                      </option>
                     </select>
                   </div>
-                  <div v-if="clip.trans !== 'none'">
-                    <label for="ed-trd" class="label">
-                      {{ t.transitionDur }} · {{ clip.transDur.toFixed(1) }} s
-                    </label>
+                  <button
+                    type="button"
+                    class="text-xs text-ink-3 hover:text-ink"
+                    @click="resetFrame"
+                  >
+                    {{ t.resetFrame }}
+                  </button>
+                </EditorSection>
+
+                <EditorSection :title="t['section.color']">
+                  <div class="grid grid-cols-4 gap-1" role="group" :aria-label="t['section.color']">
+                    <button
+                      v-for="pr in COLOR_PRESETS"
+                      :key="pr"
+                      type="button"
+                      class="rounded border px-1 py-1.5 text-[11px]"
+                      :class="
+                        clip.preset === pr
+                          ? 'border-brand-600 bg-brand-600 text-white'
+                          : 'border-rule hover:border-ink-3'
+                      "
+                      :aria-pressed="clip.preset === pr"
+                      :data-preset="pr"
+                      @click="clip.preset = pr"
+                    >
+                      {{ t[`preset.${pr}`] }}
+                    </button>
+                  </div>
+                  <div v-for="k in colorKeys" :key="k.id">
+                    <label :for="`ed-${k.id}`" class="label"
+                      >{{ k.label }} · {{ Math.round(clip[k.id] * 100) }}%</label
+                    >
                     <input
-                      id="ed-trd"
-                      v-model.number="clip.transDur"
+                      :id="`ed-${k.id}`"
+                      v-model.number="clip[k.id]"
                       type="range"
-                      min="0.2"
-                      max="3"
-                      step="0.1"
+                      :min="k.min"
+                      :max="k.max"
+                      step="0.05"
                       class="w-full accent-brand-600"
                     />
                   </div>
                   <button
-                    v-if="project.clips.length > 2"
                     type="button"
-                    class="btn btn-secondary w-full text-xs"
-                    @click="transitionAll"
+                    class="text-xs text-ink-3 hover:text-ink"
+                    @click="resetColor"
                   >
-                    {{ t.transitionAll }}
+                    {{ t.resetColor }}
                   </button>
-                </div>
-                <p v-else class="text-xs text-ink-3">{{ t.transitionLast }}</p>
+                </EditorSection>
+
+                <EditorSection :title="t['section.transition']">
+                  <div v-if="clipIndex < project.clips.length - 1" class="space-y-2">
+                    <div>
+                      <label for="ed-tr" class="label">{{ t.transition }}</label>
+                      <select id="ed-tr" v-model="clip.trans" class="field" data-transition>
+                        <option value="none">{{ t['transition.none'] }}</option>
+                        <option value="black">{{ t['transition.black'] }}</option>
+                        <option value="white">{{ t['transition.white'] }}</option>
+                      </select>
+                    </div>
+                    <div v-if="clip.trans !== 'none'">
+                      <label for="ed-trd" class="label">
+                        {{ t.transitionDur }} · {{ clip.transDur.toFixed(1) }} s
+                      </label>
+                      <input
+                        id="ed-trd"
+                        v-model.number="clip.transDur"
+                        type="range"
+                        min="0.2"
+                        max="3"
+                        step="0.1"
+                        class="w-full accent-brand-600"
+                      />
+                    </div>
+                    <button
+                      v-if="project.clips.length > 2"
+                      type="button"
+                      class="btn btn-secondary w-full text-xs"
+                      @click="transitionAll"
+                    >
+                      {{ t.transitionAll }}
+                    </button>
+                  </div>
+                  <p v-else class="text-xs text-ink-3">{{ t.transitionLast }}</p>
+                </EditorSection>
                 <div class="grid grid-cols-2 gap-2 border-t border-rule pt-3">
                   <button type="button" class="btn btn-secondary text-xs" @click="shift(-1)">
                     ← {{ t.moveLeft }}

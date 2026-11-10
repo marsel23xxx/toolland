@@ -74,9 +74,10 @@ export function trimClip(
     const len = clipLength(c) + (edge === 'in' ? -delta : delta);
     return { ...c, in: 0, out: round(Math.max(MIN_CLIP, Math.min(3600, len))) };
   }
-  if (edge === 'in')
-    return { ...c, in: round(Math.max(0, Math.min(c.out - MIN_CLIP, c.in + delta))) };
-  return { ...c, out: round(Math.max(c.in + MIN_CLIP, Math.min(m.duration, c.out + delta))) };
+  // delta dalam detik timeline; di media sumber dikali kecepatan.
+  const d = delta * (c.speed || 1);
+  if (edge === 'in') return { ...c, in: round(Math.max(0, Math.min(c.out - MIN_CLIP, c.in + d))) };
+  return { ...c, out: round(Math.max(c.in + MIN_CLIP, Math.min(m.duration, c.out + d))) };
 }
 
 /**

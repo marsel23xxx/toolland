@@ -8,7 +8,13 @@
 export type MediaKind = 'video' | 'image' | 'audio';
 export type Aspect = '16:9' | '9:16' | '1:1' | '4:5';
 export type Quality = '480' | '720' | '1080';
-export type Fit = 'fit' | 'fill';
+/** fit = utuh dengan latar warna, fill = memenuhi bingkai (terpotong), blur = utuh di atas versi blur. */
+export type Fit = 'fit' | 'fill' | 'blur';
+export type Rotate = 0 | 90 | 180 | 270;
+export type ColorPreset = 'none' | 'warm' | 'cool' | 'bw' | 'vintage' | 'vivid' | 'fade';
+/** Gerak pelan untuk foto: zoom masuk/keluar atau geser ke kiri/kanan. */
+export type KenBurns = 'none' | 'in' | 'out' | 'left' | 'right';
+export type Fps = 24 | 30 | 60;
 export type TextPosition = 'top' | 'center' | 'bottom' | 'custom';
 /** Transisi ke klip berikutnya: memudar ke hitam atau putih lalu muncul lagi. */
 export type Transition = 'none' | 'black' | 'white';
@@ -40,7 +46,47 @@ export interface Clip {
   trans: Transition;
   /** Lama transisi (detik), dibagi dua: separuh di akhir klip ini, separuh di awal berikutnya. */
   transDur: number;
+  /** Kecepatan putar 0,25-4 (video saja). Panjang di timeline = (out - in) / speed. */
+  speed: number;
+  /** Fade audio di awal dan akhir klip (detik timeline). */
+  fadeIn: number;
+  fadeOut: number;
+  rotate: Rotate;
+  flipH: boolean;
+  flipV: boolean;
+  /** Zoom manual 1-3 dan titik geser -1..1 (0 = tengah). */
+  zoom: number;
+  panX: number;
+  panY: number;
+  /** Penyesuaian warna: kecerahan dan kontras 0,5-1,5, saturasi 0-2 (1 = asli). */
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  preset: ColorPreset;
+  kenBurns: KenBurns;
 }
+
+/** Nilai bawaan semua pengaturan klip selain sumber dan potongan. */
+export const CLIP_DEFAULTS = {
+  volume: 1,
+  fit: 'fit',
+  trans: 'none',
+  transDur: 0.8,
+  speed: 1,
+  fadeIn: 0,
+  fadeOut: 0,
+  rotate: 0,
+  flipH: false,
+  flipV: false,
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  brightness: 1,
+  contrast: 1,
+  saturation: 1,
+  preset: 'none',
+  kenBurns: 'none',
+} as const satisfies Omit<Clip, 'id' | 'mediaId' | 'in' | 'out'>;
 
 export interface TextLayer {
   id: string;
@@ -70,6 +116,9 @@ export interface Settings {
   quality: Quality;
   /** Fade dari dan ke hitam di awal dan akhir video. */
   fade: boolean;
+  /** Warna latar untuk klip "Pas" (bingkai di sisi video). */
+  bg: string;
+  fps: Fps;
 }
 
 export interface Project {
@@ -90,7 +139,7 @@ export const FPS = 30;
 export function newProject(name = ''): Project {
   return {
     name,
-    settings: { aspect: '16:9', quality: '720', fade: false },
+    settings: { aspect: '16:9', quality: '720', fade: false, bg: '#000000', fps: 30 },
     media: [],
     clips: [],
     texts: [],
@@ -121,7 +170,9 @@ export function outputSize(aspect: Aspect, quality: Quality): { w: number; h: nu
   }
 }
 
-export const clipLength = (c: Clip) => Math.max(0, c.out - c.in);
+/** Panjang klip di timeline (memperhitungkan kecepatan). */
+export const clipLength = (c: Pick<Clip, 'in' | 'out'> & { speed?: number }) =>
+  Math.max(0, (c.out - c.in) / (c.speed || 1));
 
 export function totalDuration(p: Pick<Project, 'clips'>): number {
   return p.clips.reduce((s, c) => s + clipLength(c), 0);
@@ -148,8 +199,8 @@ export function clipAt(
     const c = p.clips[i];
     const len = clipLength(c);
     if (t < starts[i] + len || i === p.clips.length - 1) {
-      const local = Math.min(len, Math.max(0, t - starts[i]));
-      return { index: i, clip: c, local: c.in + local, start: starts[i] };
+      const off = Math.min(len, Math.max(0, t - starts[i]));
+      return { index: i, clip: c, local: c.in + off * (c.speed || 1), start: starts[i] };
     }
   }
   return null;
@@ -166,10 +217,7 @@ export function clipFor(m: MediaItem): Clip {
     mediaId: m.id,
     in: 0,
     out: m.kind === 'image' ? IMAGE_SECONDS : m.duration,
-    volume: 1,
-    fit: 'fit',
-    trans: 'none',
-    transDur: 0.8,
+    ...CLIP_DEFAULTS,
   };
 }
 

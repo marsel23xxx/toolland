@@ -218,7 +218,7 @@ describe('perintah ffmpeg', () => {
   it('fill memotong, fade awal-akhir, klip bisu tidak memakai audionya', () => {
     const p = sample();
     p.clips[0] = { ...p.clips[0], fit: 'fill', volume: 0 };
-    p.settings = { aspect: '9:16', quality: '720', fade: true };
+    p.settings = { ...p.settings, aspect: '9:16', quality: '720', fade: true };
     p.music = null;
     const graph = buildExportArgs(p, input).join(' ');
     expect(graph).toContain('force_original_aspect_ratio=increase,crop=720:1280');

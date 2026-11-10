@@ -20,6 +20,7 @@ import {
   totalDuration,
   wrapText,
 } from './project';
+import { atempoChain, colorFilter, geometryFilter, orientFilter } from './look';
 
 export interface ExportInput {
   /** Path file media di sistem file ffmpeg, per mediaId. */
@@ -42,38 +43,69 @@ export function buildExportArgs(p: Project, input: ExportInput): string[] {
   const filters: string[] = [];
   let idx = 0;
   const concatIn: string[] = [];
+  const fps = p.settings.fps || FPS;
+  const bg = /^#[0-9a-f]{6}$/i.test(p.settings.bg) ? `0x${p.settings.bg.slice(1)}` : 'black';
   p.clips.forEach((c, k) => {
     const m = mediaOf(p, c.mediaId);
     const path = input.paths.get(c.mediaId);
     if (!m || !path) throw new Error('missing-media');
     const len = clipLength(c);
+    const speed = m.kind === 'video' ? c.speed || 1 : 1;
     if (m.kind === 'image')
-      args.push('-loop', '1', '-framerate', String(FPS), '-t', n(len), '-i', path);
-    else args.push('-ss', n(c.in), '-t', n(len), '-i', path);
-    const scale =
-      c.fit === 'fill'
-        ? `scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}`
-        : `scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:black`;
+      args.push('-loop', '1', '-framerate', String(fps), '-t', n(len), '-i', path);
+    else args.push('-ss', n(c.in), '-t', n(len * speed), '-i', path);
+
+    // Gambar: putar/balik, lalu masuk bingkai (pas + latar warna, penuhi, atau di atas latar blur).
+    const orient = orientFilter(c);
+    const pre = orient ? `${orient},` : '';
+    let head: string;
+    if (c.fit === 'blur') {
+      const r = Math.max(4, Math.round(Math.min(w, h) / 36));
+      filters.push(`[${idx}:v]${pre}split[ka${k}][kb${k}]`);
+      filters.push(
+        `[ka${k}]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},boxblur=${r}:2[kg${k}]`,
+      );
+      filters.push(`[kb${k}]scale=${w}:${h}:force_original_aspect_ratio=decrease[kf${k}]`);
+      filters.push(`[kg${k}][kf${k}]overlay=(W-w)/2:(H-h)/2[g${k}]`);
+      head = `[g${k}]`;
+    } else if (c.fit === 'fill')
+      head = `[${idx}:v]${pre}scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},`;
+    else
+      head = `[${idx}:v]${pre}scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=${bg},`;
+
+    const parts = ['setsar=1'];
+    if (speed !== 1) parts.push(`setpts=(PTS-STARTPTS)/${n(speed)}`);
+    parts.push(`fps=${fps}`);
+    const geo = geometryFilter(c, w, h, fps, Math.round(len * fps));
+    if (geo) parts.push(geo);
+    const color = colorFilter(c);
+    if (color) parts.push(color);
+    parts.push('format=yuv420p', `trim=duration=${n(len)}`, 'setpts=PTS-STARTPTS');
+
     // Transisi: pudar ke/dari hitam atau putih di batas klip, audio ikut memudar.
     const f = clipFades(p, k);
-    let vfade = '';
-    let afade = '';
-    if (f.in) {
-      vfade += `,fade=t=in:st=0:d=${n(f.in)}:color=${f.inColor}`;
-      afade += `,afade=t=in:st=0:d=${n(f.in)}`;
-    }
-    if (f.out) {
-      vfade += `,fade=t=out:st=${n(len - f.out)}:d=${n(f.out)}:color=${f.outColor}`;
-      afade += `,afade=t=out:st=${n(len - f.out)}:d=${n(f.out)}`;
-    }
-    filters.push(
-      `[${idx}:v]${scale},setsar=1,fps=${FPS},format=yuv420p,trim=duration=${n(len)},setpts=PTS-STARTPTS${vfade}[v${k}]`,
-    );
-    if (m.kind === 'video' && input.withAudio.has(c.mediaId) && c.volume > 0)
-      filters.push(
-        `[${idx}:a]atrim=duration=${n(len)},asetpts=PTS-STARTPTS,${AFMT},volume=${n(c.volume)}${afade}[a${k}]`,
-      );
-    else filters.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${n(len)},${AFMT}[a${k}]`);
+    if (f.in) parts.push(`fade=t=in:st=0:d=${n(f.in)}:color=${f.inColor}`);
+    if (f.out) parts.push(`fade=t=out:st=${n(len - f.out)}:d=${n(f.out)}:color=${f.outColor}`);
+    filters.push(`${head}${parts.join(',')}[v${k}]`);
+
+    if (m.kind === 'video' && input.withAudio.has(c.mediaId) && c.volume > 0) {
+      const a = [
+        `atrim=duration=${n(len * speed)}`,
+        'asetpts=PTS-STARTPTS',
+        AFMT,
+        atempoChain(speed),
+        'apad',
+        `atrim=duration=${n(len)}`,
+        `volume=${n(c.volume)}`,
+      ];
+      const fi = Math.min(c.fadeIn, len);
+      const fo = Math.min(c.fadeOut, len);
+      if (fi > 0) a.push(`afade=t=in:st=0:d=${n(fi)}`);
+      if (fo > 0) a.push(`afade=t=out:st=${n(len - fo)}:d=${n(fo)}`);
+      if (f.in) a.push(`afade=t=in:st=0:d=${n(f.in)}`);
+      if (f.out) a.push(`afade=t=out:st=${n(len - f.out)}:d=${n(f.out)}`);
+      filters.push(`[${idx}:a]${a.filter(Boolean).join(',')}[a${k}]`);
+    } else filters.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${n(len)},${AFMT}[a${k}]`);
     concatIn.push(`[v${k}][a${k}]`);
     idx++;
   });
@@ -126,7 +158,7 @@ export function buildExportArgs(p: Project, input: ExportInput): string[] {
     '-pix_fmt',
     'yuv420p',
     '-r',
-    String(FPS),
+    String(fps),
     '-c:a',
     'aac',
     '-b:a',

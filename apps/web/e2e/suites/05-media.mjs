@@ -162,6 +162,56 @@ export const tests = [
     },
   },
   {
+    name: 'edit video: panel klip (kecepatan, warna, bingkai, latar) sampai ekspor',
+    path: '/tools/edit-video',
+    async run(h) {
+      const { page } = h;
+      await ready(h);
+      await h.upload('klip.mp4', 'foto.jpg');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 2, {
+        timeout: 30000,
+      });
+      const lenOf = () => page.$eval('[data-clip]', (e) => Number(e.dataset.len));
+      const before = await lenOf();
+      // Klip video: kecepatan 2× membuat klip setengah panjang.
+      await page.click('[data-clip]');
+      await page.click('[data-speed="2"]');
+      await page.waitForFunction(
+        (b) => Math.abs(Number(document.querySelector('[data-clip]').dataset.len) - b / 2) < 0.01,
+        {},
+        before,
+      );
+      await page.click('[data-preset="bw"]');
+      await page.click('[data-fit="blur"]');
+      await page.click('[data-rotate]');
+      await page.click('[data-mute]');
+      // Pratinjau memakai filter warna SVG dan latar blur.
+      await page.waitForSelector('[data-stage] filter feColorMatrix');
+      await page.waitForSelector('[data-stage] canvas.object-cover');
+      // Foto: Ken Burns dan warna latar proyek.
+      await (await page.$$('[data-clip]'))[1].click();
+      await page.select('[data-ken-burns]', 'in');
+      await page.click('[data-tab="media"]');
+      await h.type('[data-bg]', '#224488');
+      await page.click('[data-export]');
+      const [c] = await h.results(1, 180000);
+      const mp4 = await h.download('proyek-video.mp4');
+      expect(mp4.subarray(4, 8).toString('latin1') === 'ftyp', 'bukan MP4');
+      // Simpan ringan: pengaturan baru ikut tersimpan (versi 2).
+      await page.click('[data-save]');
+      const light = await h.downloadVia('proyek-video.ayu', () => page.click('[data-save-light]'));
+      const doc = JSON.parse(light.toString('utf8'));
+      const [v, img] = doc.project.clips;
+      expect(doc.version === 2, `versi ${doc.version}`);
+      expect(
+        v.speed === 2 && v.preset === 'bw' && v.fit === 'blur' && v.rotate === 90 && v.volume === 0,
+        JSON.stringify(v),
+      );
+      expect(img.kenBurns === 'in' && doc.project.settings.bg === '#224488', JSON.stringify(img));
+      return [c];
+    },
+  },
+  {
     name: 'edit video: potong, teks, ekspor MP4, simpan dan buka .ayu',
     path: '/tools/edit-video',
     async run(h) {

@@ -356,7 +356,7 @@ const visuals = computed(() => {
     const still = m?.kind === 'image' ? props.thumbs.get(c.mediaId) : undefined;
     const tiles: Tile[] = [];
     for (let k = 0; k < n; k++) {
-      const src = c.in + ((k + 0.5) * tileW) / pps.value;
+      const src = c.in + (((k + 0.5) * tileW) / pps.value) * (c.speed || 1);
       tiles.push({ key: k, left: k * tileW, url: still ?? nearestFrame(fr, src)?.url });
     }
     const pk = props.peaks.get(c.mediaId);
