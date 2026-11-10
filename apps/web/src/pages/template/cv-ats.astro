@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { CV_ATS_FORM } from '../../lib/templates/cv-ats';
+---
+
+<TemplatePage slug="cv-ats">
+  <DocumentBuilder client:load form={CV_ATS_FORM.id} m={messages('id', 'docForm')} />
+</TemplatePage>

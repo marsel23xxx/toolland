@@ -47,6 +47,11 @@ import IconStore from '~icons/lucide/store';
 import IconHandCoins from '~icons/lucide/hand-coins';
 import IconGraduation from '~icons/lucide/graduation-cap';
 import IconHeart from '~icons/lucide/heart';
+import IconBriefcase from '~icons/lucide/briefcase';
+import IconMailOpen from '~icons/lucide/mail-open';
+import IconScanText from '~icons/lucide/scan-text';
+import IconIdCard from '~icons/lucide/id-card';
+import IconDoorOpen from '~icons/lucide/door-open';
 
 interface Props {
   name: string;
@@ -105,6 +110,14 @@ const ICONS: Record<string, typeof IconImage> = {
   'cat:developer': IconBraces,
   'cat:media': IconFilm,
   // Template per kategori (cadangan) dan per template (slug Indonesia)
+  'tpl:karier': IconBriefcase,
+  'tpl:dokumen': IconFileText,
+  'tpl:excel': IconFileSpreadsheet,
+  'tpl:ppt': IconPresentation,
+  'tpl:surat-lamaran-kerja': IconMailOpen,
+  'tpl:cv-ats': IconScanText,
+  'tpl:cv-profesional': IconIdCard,
+  'tpl:surat-resign': IconDoorOpen,
   'tpl:keuangan': IconChart,
   'tpl:operasional': IconPackage,
   'tpl:proyek': IconHardHat,

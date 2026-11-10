@@ -2,7 +2,7 @@ import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { CATEGORY_IDS } from './lib/categories';
-import { TEMPLATE_CATEGORY_IDS } from './lib/templates/catalog';
+import { TEMPLATE_CATEGORY_IDS, TEMPLATE_FORMATS } from './lib/templates/catalog';
 
 /**
  * Konten SEO per tool, satu file Markdown per tool per bahasa:
@@ -42,8 +42,9 @@ const tools = defineCollection({
 });
 
 /**
- * Konten per template Excel: src/content/templates/<bahasa>/<slug>.md
- * Isi file Excel-nya dibuat di browser oleh src/lib/templates/<template>.ts.
+ * Konten per template: src/content/templates/<bahasa>/<slug>.md
+ * File-nya (Excel, atau PDF dan Word untuk dokumen) dibuat di browser oleh
+ * src/lib/templates/<template>.ts.
  */
 const templates = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/templates' }),
@@ -53,8 +54,9 @@ const templates = defineCollection({
     description: z.string().max(170),
     summary: z.string(),
     category: z.enum(TEMPLATE_CATEGORY_IDS),
+    format: z.enum(TEMPLATE_FORMATS).default('excel'),
     keywords: z.array(z.string()).default([]),
-    /** Sheet di dalam file, berurutan seperti tab di Excel. */
+    /** Excel: sheet di dalam file, berurutan seperti tab. Dokumen: bagian-bagian dokumen. */
     sheets: z.array(z.object({ name: z.string(), desc: z.string() })).min(2),
     /** Fitur unggulan untuk daftar centang di halaman template. */
     features: z.array(z.string()).min(3).max(8),

@@ -1,10 +1,34 @@
 /**
- * Katalog template Excel: kategori, URL, dan template yang belum tersedia ("segera hadir").
- * Template yang sudah tersedia punya konten di src/content/templates/<bahasa>/<slug>.md.
+ * Katalog template (dokumen, Excel, dan nanti PPT): format, kategori, URL, dan template yang belum
+ * tersedia ("segera hadir"). Template yang sudah tersedia punya konten di
+ * src/content/templates/<bahasa>/<slug>.md.
  */
 import type { Locale } from '../format';
 
+/** Format file template. Urutan ini juga urutan tab di katalog. */
+export const TEMPLATE_FORMATS = ['dokumen', 'excel', 'ppt'] as const;
+export type TemplateFormat = (typeof TEMPLATE_FORMATS)[number];
+
+export const TEMPLATE_FORMAT_NAMES: Record<TemplateFormat, Record<Locale, string>> = {
+  dokumen: { id: 'Dokumen', en: 'Documents' },
+  excel: { id: 'Excel', en: 'Excel' },
+  ppt: { id: 'PPT', en: 'PowerPoint' },
+};
+
+export const TEMPLATE_FORMAT_NOTES: Record<TemplateFormat, Record<Locale, string>> = {
+  dokumen: { id: 'Surat dan CV, unduh PDF atau Word', en: 'Letters and CVs, as PDF or Word' },
+  excel: {
+    id: 'Spreadsheet dengan rumus dan dashboard',
+    en: 'Spreadsheets with formulas and dashboards',
+  },
+  ppt: { id: 'Slide presentasi', en: 'Presentation slides' },
+};
+
+/** Format yang belum punya template: tab-nya tampil sebagai "segera hadir". */
+export const UPCOMING_FORMATS: TemplateFormat[] = ['ppt'];
+
 export const TEMPLATE_CATEGORY_IDS = [
+  'karier',
   'keuangan',
   'operasional',
   'proyek',
@@ -15,6 +39,7 @@ export const TEMPLATE_CATEGORY_IDS = [
 export type TemplateCategoryId = (typeof TEMPLATE_CATEGORY_IDS)[number];
 
 export const TEMPLATE_CATEGORY_NAMES: Record<TemplateCategoryId, Record<Locale, string>> = {
+  karier: { id: 'Lamaran & karier', en: 'Jobs & career' },
   keuangan: { id: 'Keuangan usaha', en: 'Business finance' },
   operasional: { id: 'Operasional & penjualan', en: 'Operations & sales' },
   proyek: { id: 'Proyek & konstruksi', en: 'Projects & construction' },
@@ -24,6 +49,10 @@ export const TEMPLATE_CATEGORY_NAMES: Record<TemplateCategoryId, Record<Locale, 
 };
 
 export const TEMPLATE_CATEGORY_NOTES: Record<TemplateCategoryId, Record<Locale, string>> = {
+  karier: {
+    id: 'Surat lamaran, CV ATS, surat resign',
+    en: 'Cover letters, ATS resumes, resignation',
+  },
   keuangan: { id: 'Kas, laba rugi, invoice, piutang', en: 'Cash, P&L, invoices, receivables' },
   operasional: { id: 'Stok barang, kasir, penjualan', en: 'Stock, point of sale, sales' },
   proyek: { id: 'RAB, jadwal, Gantt chart', en: 'Cost estimates, schedules, Gantt' },

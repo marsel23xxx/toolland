@@ -111,7 +111,12 @@
   --c-dark: var(--secang-dark);
   --c-light: var(--secang-light);
 }
-/* Kategori template Excel. */
+/* Kategori template. */
+[data-cat='karier'] {
+  --c: var(--secang);
+  --c-dark: var(--secang-dark);
+  --c-light: var(--secang-light);
+}
 [data-cat='keuangan'] {
   --c: var(--daun);
   --c-dark: var(--daun-dark);

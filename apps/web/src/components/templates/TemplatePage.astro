@@ -1,7 +1,8 @@
 ---
 /**
- * Halaman satu template Excel dari src/content/templates/<bahasa>/<slug>.md: judul, form
- * pengaturan (slot), pratinjau, isi file, fitur, cara pakai, isi Markdown, FAQ, dan template lain.
+ * Halaman satu template dari src/content/templates/<bahasa>/<slug>.md: judul, form (slot),
+ * pratinjau, isi file, fitur, cara pakai, isi Markdown (panduan), FAQ, dan template lain.
+ * Template dokumen memakai halaman lebar karena form-nya berdampingan dengan pratinjau langsung.
  */
 import type { ImageMetadata } from 'astro';
 import { Image } from 'astro:assets';
@@ -24,6 +25,7 @@ const entry = await getEntry('templates', `${locale}/${slug}`);
 if (!entry)
   throw new Error(`Konten template tidak ditemukan: src/content/templates/${locale}/${slug}.md`);
 const { data } = entry;
+const isDoc = data.format === 'dokumen';
 const { Content } = await render(entry);
 
 const idSlug = data.idSlug ?? slug;
@@ -59,7 +61,7 @@ const jsonLd = [
     description: data.description,
     url,
     applicationCategory: 'BusinessApplication',
-    operatingSystem: 'Microsoft Excel, Google Sheets, LibreOffice',
+    operatingSystem: isDoc ? 'Web browser' : 'Microsoft Excel, Google Sheets, LibreOffice',
     isAccessibleForFree: true,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'IDR' },
   },
@@ -88,6 +90,7 @@ const home = templatesHome(locale);
   description={data.description}
   alternates={alternates}
   cat={data.category}
+  wide={isDoc}
 >
   <script slot="head" type="application/ld+json" is:inline set:html={jsonLdText} />
   <header class="mb-8">
@@ -110,13 +113,13 @@ const home = templatesHome(locale);
     <p class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium text-ink-2">
       <span class="inline-flex items-center gap-2">
         <IconCpu class="text-brand-600 dark:text-brand-400" aria-hidden="true" />
-        {t('template.badge')}
+        {t(isDoc ? 'template.badgeDoc' : 'template.badge')}
       </span>
-      <span class="text-ink-3">{t('template.compat')}</span>
+      <span class="text-ink-3">{t(isDoc ? 'template.compatDoc' : 'template.compat')}</span>
     </p>
   </header>
 
-  {previews[0] && (
+  {previews[0] && !isDoc && (
     // Di HP disembunyikan supaya form langsung terlihat; gambarnya tetap ada di bagian Pratinjau.
     <figure class="mb-8 hidden overflow-hidden rounded-md border border-ink bg-white md:block">
       <Image
@@ -136,7 +139,7 @@ const home = templatesHome(locale);
 
   <section class="mt-16 grid gap-10 lg:grid-cols-[1.3fr_1fr]">
     <div>
-      <h2 class="font-display text-3xl">{t('template.inside')}</h2>
+      <h2 class="font-display text-3xl">{t(isDoc ? 'template.insideDoc' : 'template.inside')}</h2>
       <ol class="mt-6 border-t border-ink">
         {data.sheets.map((s, i) => (
           <li class="flex gap-4 border-b border-rule py-3">
@@ -172,7 +175,7 @@ const home = templatesHome(locale);
       <h2 class="font-display text-3xl">{t('template.preview')}</h2>
       <div class="mt-6 grid gap-6 md:grid-cols-2">
         {previews.map((p, i) => (
-          <figure class={i === 0 ? 'md:hidden' : undefined}>
+          <figure class={i === 0 && !isDoc ? 'md:hidden' : undefined}>
             <div class="overflow-hidden rounded-md border border-rule bg-white">
               <Image
                 src={p.img}

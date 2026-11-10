@@ -15,6 +15,21 @@ function readXlsx(buf) {
   };
 }
 
+/** Tunggu pratinjau dokumen selesai dirender dan kembalikan jumlah halamannya. */
+async function docPages(h) {
+  await h.page.waitForFunction(
+    () => document.querySelectorAll('[data-doc-preview] canvas').length > 0,
+    { timeout: 30000 },
+  );
+  await h.sleep(800);
+  await h.page.waitForFunction(() => !document.body.innerText.includes('Memperbarui'), {
+    timeout: 30000,
+  });
+  return h.page.$$eval('[data-doc-preview] canvas', (c) => c.length);
+}
+
+const docxText = (buf) => strFromU8(unzipSync(new Uint8Array(buf))['word/document.xml']);
+
 export const tests = [
   {
     name: 'navbar: dropdown per kategori dan Template',
@@ -57,7 +72,14 @@ export const tests = [
       );
       // Semua template di navbar sudah tersedia (tidak ada label "Segera").
       expect(items.length >= 5 && items.some((x) => x.startsWith('Invoice')), items.join(' | '));
-      expect(!items.some((x) => x.includes('Segera')), items.join(' | '));
+      // Hanya format PPT yang masih "Segera"; template dokumen dan Excel sudah tersedia.
+      const soonItems = items.filter((x) => x.includes('Segera'));
+      expect(soonItems.length === 1 && soonItems[0].startsWith('PPT'), soonItems.join(' | '));
+      for (const doc of ['Surat Lamaran Kerja', 'CV ATS', 'CV Profesional', 'Surat Resign'])
+        expect(
+          items.some((x) => x.startsWith(doc)),
+          `${doc} tidak ada di navbar`,
+        );
       await h.page.keyboard.press('Escape');
       expect(
         (await h.page.$$('header [data-nav-dd][data-open]')).length === 0,
@@ -442,6 +464,134 @@ export const tests = [
       for (const s of ['Dimas', 'Anisa', 'Keluarga Budi', 'Booking gedung / venue'])
         expect(x.strings.includes(s), `teks "${s}" tidak ada di file`);
       expect(x.charts === 3, `grafik: ${x.charts}`);
+    },
+  },
+  {
+    name: 'katalog template: tab format Dokumen dan Excel',
+    path: '/template',
+    async run(h) {
+      const visible = () =>
+        h.page.$$eval('li[data-fmt]', (els) =>
+          els.filter((e) => !e.hidden).map((e) => e.dataset.fmt),
+        );
+      const all = await visible();
+      expect(all.includes('dokumen') && all.includes('excel'), all.join(','));
+      await h.page.click('[data-fmt-tab=dokumen]');
+      const docs = await visible();
+      expect(docs.length === 4 && docs.every((x) => x === 'dokumen'), docs.join(','));
+      expect(h.page.url().endsWith('/template?format=dokumen'), h.page.url());
+      expect(await h.bodyHas('PDF + Word'), 'label format dokumen tidak tampil');
+      await h.page.click('[data-fmt-tab=excel]');
+      const xl = await visible();
+      expect(xl.length === 11 && xl.every((x) => x === 'excel'), xl.join(','));
+      // Tab dibuka langsung dari URL.
+      await h.page.goto(h.page.url().replace('format=excel', 'format=dokumen'));
+      expect((await visible()).length === 4, 'filter dari URL tidak diterapkan');
+    },
+  },
+  {
+    name: 'surat lamaran: pratinjau, simpan isian, unduh PDF dan Word',
+    path: '/template/surat-lamaran-kerja',
+    async run(h) {
+      expect((await docPages(h)) === 1, 'pratinjau contoh bukan 1 halaman');
+      await h.type('#df-name', 'Budi Santoso');
+      await h.type('#df-position', 'Desainer Grafis');
+      await h.type('#df-company', 'CV Kreasi Mandiri');
+      await docPages(h);
+      const pdf = await h.downloadVia('Surat-Lamaran-Budi-Santoso.pdf', () =>
+        h.page.click('[data-doc-pdf]'),
+      );
+      expect(pdf.subarray(0, 5).toString() === '%PDF-', 'bukan file PDF');
+      const xml = docxText(
+        await h.downloadVia('Surat-Lamaran-Budi-Santoso.docx', () =>
+          h.page.click('[data-doc-docx]'),
+        ),
+      );
+      for (const t of ['Budi Santoso', 'Desainer Grafis di CV Kreasi Mandiri', 'Dengan hormat,'])
+        expect(xml.includes(t), `teks "${t}" tidak ada di Word`);
+      // Ganti bahasa: paragraf contoh ikut berganti, isian sendiri tetap.
+      await h.page.select('#df-lang', 'en');
+      await h.page.waitForFunction(() =>
+        document.querySelector('#df-opening').value.startsWith('I am writing'),
+      );
+      expect((await h.value('#df-name')) === 'Budi Santoso', 'nama hilang saat ganti bahasa');
+      // Surat terlalu panjang memunculkan peringatan.
+      await h.type('#df-body', 'Kalimat panjang untuk menguji. '.repeat(160));
+      await h.page.waitForSelector('[data-doc-long]', { timeout: 30000 });
+      // Isian tersimpan di browser setelah halaman dimuat ulang.
+      await h.sleep(700);
+      await h.page.reload({ waitUntil: 'networkidle0' });
+      await h.page.waitForFunction(
+        () => document.querySelector('#df-name')?.value === 'Budi Santoso',
+        {
+          timeout: 15000,
+        },
+      );
+      // Isi contoh mengembalikan teks awal.
+      await h.page.click('[data-doc-sample]');
+      await h.page.waitForFunction(
+        () => document.querySelector('#df-name').value === 'Rina Pratama',
+      );
+    },
+  },
+  {
+    name: 'CV ATS dan CV profesional: data dipakai bersama, foto masuk ke file',
+    path: '/template/cv-ats',
+    async run(h) {
+      await docPages(h);
+      await h.type('#df-name', 'Sari Wulandari');
+      await h.page.click('[data-doc-section=experience] summary');
+      await h.page.click('[data-doc-add=experience]');
+      await h.type('#df-experience-2-role', 'Kasir');
+      await h.type('#df-experience-2-company', 'Toko Sinar');
+      await docPages(h);
+      const xml = docxText(
+        await h.downloadVia('CV-ATS-Sari-Wulandari.docx', () => h.page.click('[data-doc-docx]')),
+      );
+      expect(xml.includes('Sari Wulandari'), 'nama tidak ada');
+      expect(
+        xml.includes('Pengalaman Kerja') && xml.includes('Toko Sinar'),
+        'pengalaman baru tidak ada',
+      );
+      expect(!xml.includes('w:drawing'), 'CV ATS tidak boleh berisi gambar');
+      await h.sleep(700);
+      await h.page.goto(h.page.url().replace('/cv-ats', '/cv-profesional'), {
+        waitUntil: 'networkidle0',
+      });
+      await h.page.waitForFunction(
+        () => document.querySelector('#df-name')?.value === 'Sari Wulandari',
+        { timeout: 15000 },
+      );
+      const input = await h.page.$('[data-doc-image=photo]');
+      await input.uploadFile(h.fixture('foto.jpg'));
+      await h.page.waitForSelector('[data-doc-section=me] img', { timeout: 15000 });
+      await docPages(h);
+      const files = unzipSync(
+        new Uint8Array(
+          await h.downloadVia('CV-Sari-Wulandari.docx', () => h.page.click('[data-doc-docx]')),
+        ),
+      );
+      expect(!!files['word/media/image1.png'], Object.keys(files).join(','));
+      const pdf = await h.downloadVia('CV-Sari-Wulandari.pdf', () =>
+        h.page.click('[data-doc-pdf]'),
+      );
+      expect(pdf.includes('/Image'), 'foto tidak ada di PDF');
+    },
+  },
+  {
+    name: 'resignation letter (EN): hari terakhir otomatis',
+    path: '/en/templates/resignation-letter',
+    async run(h) {
+      await docPages(h);
+      await h.type('#df-date', '2026-11-10');
+      await docPages(h);
+      const xml = docxText(
+        await h.downloadVia('Resignation-Letter-Rina-Pratama.docx', () =>
+          h.page.click('[data-doc-docx]'),
+        ),
+      );
+      expect(xml.includes('December 10, 2026'), 'hari terakhir otomatis tidak ada');
+      expect(xml.includes('Sincerely,'), 'salam penutup tidak ada');
     },
   },
 ];

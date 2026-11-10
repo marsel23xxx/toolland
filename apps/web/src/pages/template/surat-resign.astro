@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../components/templates/TemplatePage.astro';
+import { messages } from '../../i18n';
+import { RESIGN_FORM } from '../../lib/templates/surat-resign';
+---
+
+<TemplatePage slug="surat-resign">
+  <DocumentBuilder client:load form={RESIGN_FORM.id} m={messages('id', 'docForm')} />
+</TemplatePage>

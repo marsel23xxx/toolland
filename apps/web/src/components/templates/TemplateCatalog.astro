@@ -1,5 +1,8 @@
 ---
-/** Katalog template Excel per kategori: template yang tersedia dan yang segera hadir. */
+/**
+ * Katalog template per kategori, dengan tab format (Semua, Dokumen, Excel, PPT). Tab memfilter di
+ * browser dan menulis ?format=... ke URL; tanpa JavaScript semua template tetap tampil.
+ */
 import type { ImageMetadata } from 'astro';
 import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
@@ -9,6 +12,9 @@ import {
   TEMPLATE_CATEGORY_IDS,
   TEMPLATE_CATEGORY_NAMES,
   TEMPLATE_CATEGORY_NOTES,
+  TEMPLATE_FORMATS,
+  TEMPLATE_FORMAT_NAMES,
+  UPCOMING_FORMATS,
   UPCOMING_TEMPLATES,
   templatePath,
 } from '../../lib/templates/catalog';
@@ -30,6 +36,13 @@ const cover = (tpl: (typeof templates)[number]) => {
   return file ? IMAGES[`../../assets/templates/${idSlug}/${locale}-${file}.webp`] : undefined;
 };
 const pad = (n: number) => String(n).padStart(2, '0');
+const formatCount = (f: string) => templates.filter((x) => x.data.format === f).length;
+const tabs = TEMPLATE_FORMATS.map((f) => ({
+  id: f,
+  name: TEMPLATE_FORMAT_NAMES[f][locale],
+  count: formatCount(f),
+  soon: UPCOMING_FORMATS.includes(f) && !formatCount(f),
+}));
 // Kategori tanpa template (tersedia maupun segera hadir) tidak ditampilkan.
 const cats = TEMPLATE_CATEGORY_IDS.filter(
   (cat) =>
@@ -67,6 +80,34 @@ const cats = TEMPLATE_CATEGORY_IDS.filter(
     </ul>
   </section>
 
+  <div
+    class="flex flex-wrap items-center gap-2 border-b border-ink py-5"
+    role="toolbar"
+    aria-label={t('templates.formatLabel')}
+    data-fmt-tabs
+  >
+    <button type="button" class="btn btn-active" data-fmt-tab="all" aria-pressed="true">
+      {t('templates.all')}
+      <span class="eyebrow">{templates.length}</span>
+    </button>
+    {tabs.map((tab) =>
+      tab.soon ? (
+        <span
+          class="btn btn-secondary cursor-default border-dashed text-ink-3"
+          aria-disabled="true"
+        >
+          {tab.name}
+          <span class="eyebrow">{t('templates.soon')}</span>
+        </span>
+      ) : (
+        <button type="button" class="btn btn-secondary" data-fmt-tab={tab.id} aria-pressed="false">
+          {tab.name}
+          <span class="eyebrow">{tab.count}</span>
+        </button>
+      ),
+    )}
+  </div>
+
   {cats.map((cat, i) => {
     const ready = templates.filter((x) => x.data.category === cat);
     const soon = UPCOMING_TEMPLATES.filter((x) => x.category === cat);
@@ -74,6 +115,7 @@ const cats = TEMPLATE_CATEGORY_IDS.filter(
       <section
         id={cat}
         data-cat={cat}
+        data-fmt-section
         class="grid scroll-mt-24 gap-6 border-b border-ink py-10 lg:grid-cols-[15rem_1fr]"
       >
         <header>
@@ -87,7 +129,7 @@ const cats = TEMPLATE_CATEGORY_IDS.filter(
           {ready.map((tpl) => {
             const img = cover(tpl);
             return (
-              <li>
+              <li data-fmt={tpl.data.format}>
                 <a href={templatePath(locale, tpl.id.split('/')[1])} class="group block">
                   {img && (
                     <div class="overflow-hidden rounded-md border border-rule bg-white">
@@ -105,7 +147,9 @@ const cats = TEMPLATE_CATEGORY_IDS.filter(
                       {tpl.data.name}
                     </span>
                     <span class="eyebrow shrink-0">
-                      {t('templates.sheets', { n: tpl.data.sheets.length })}
+                      {tpl.data.format === 'excel'
+                        ? t('templates.sheets', { n: tpl.data.sheets.length })
+                        : t('templates.docFormats')}
                     </span>
                   </span>
                   <span class="mt-1 block text-ink-2">{tpl.data.summary}</span>
@@ -120,7 +164,10 @@ const cats = TEMPLATE_CATEGORY_IDS.filter(
             );
           })}
           {soon.map((s) => (
-            <li class="flex min-h-40 flex-col justify-end rounded-md border border-dashed border-rule p-5">
+            <li
+              data-fmt="excel"
+              class="flex min-h-40 flex-col justify-end rounded-md border border-dashed border-rule p-5"
+            >
               <span class="eyebrow">{t('templates.soon')}</span>
               <span class="mt-1 font-display text-2xl leading-tight text-ink-2">
                 {s.name[locale]}
@@ -131,4 +178,32 @@ const cats = TEMPLATE_CATEGORY_IDS.filter(
       </section>
     );
   })}
+
+  <script>
+    // Filter format: tampilkan kartu dengan data-fmt yang cocok, sembunyikan kategori yang kosong.
+    const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-fmt-tab]')];
+    function apply(fmt: string) {
+      if (!tabs.some((b) => b.dataset.fmtTab === fmt)) fmt = 'all';
+      for (const b of tabs) {
+        const on = b.dataset.fmtTab === fmt;
+        b.setAttribute('aria-pressed', String(on));
+        b.classList.toggle('btn-active', on);
+        b.classList.toggle('btn-secondary', !on);
+      }
+      for (const li of document.querySelectorAll<HTMLElement>('[data-fmt]'))
+        li.hidden = fmt !== 'all' && li.dataset.fmt !== fmt;
+      for (const sec of document.querySelectorAll<HTMLElement>('[data-fmt-section]'))
+        sec.hidden = ![...sec.querySelectorAll<HTMLElement>('[data-fmt]')].some((li) => !li.hidden);
+    }
+    for (const b of tabs)
+      b.addEventListener('click', () => {
+        const fmt = b.dataset.fmtTab!;
+        const url = new URL(location.href);
+        if (fmt === 'all') url.searchParams.delete('format');
+        else url.searchParams.set('format', fmt);
+        history.replaceState(null, '', url);
+        apply(fmt);
+      });
+    apply(new URL(location.href).searchParams.get('format') ?? 'all');
+  </script>
 </BaseLayout>

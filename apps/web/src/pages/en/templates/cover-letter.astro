@@ -1,0 +1,10 @@
+---
+import DocumentBuilder from '../../../components/templates/DocumentBuilder.vue';
+import TemplatePage from '../../../components/templates/TemplatePage.astro';
+import { messages } from '../../../i18n';
+import { LETTER_FORM } from '../../../lib/templates/surat-lamaran';
+---
+
+<TemplatePage slug="cover-letter">
+  <DocumentBuilder client:load form={LETTER_FORM.en} m={messages('en', 'docForm')} />
+</TemplatePage>
