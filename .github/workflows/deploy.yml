@@ -88,6 +88,10 @@ jobs:
       - name: Salin konfigurasi infra
         run: rsync -az --delete --exclude 'nginx/host/' infra/ "$TARGET:$REMOTE/infra/"
 
+      # Konfigurasi nginx yang salah menghentikan deploy sebelum rilis baru diaktifkan.
+      - name: Uji konfigurasi nginx web
+        run: ssh "$TARGET" "sh $REMOTE/infra/scripts/reload-web.sh check"
+
       # File yang isinya sama dengan rilis aktif (misalnya model AI) di-hardlink, tidak dikirim ulang.
       # Waktu file sengaja tidak disalin (-rlpD, bukan -a): rsync hanya membuat hardlink bila waktu sama.
       - name: Upload rilis frontend ke folder baru
@@ -100,6 +104,11 @@ jobs:
         run: |
           IMAGES="API_IMAGE=$API_IMAGE:$SHA CONVERTER_IMAGE=$CONVERTER_IMAGE:$SHA"
           ssh "$TARGET" "cd $REMOTE/infra && $IMAGES docker compose --env-file ../.env pull api converter gotenberg && $IMAGES docker compose --env-file ../.env up -d --remove-orphans"
+
+      # File konfigurasi di-mount sebagai file tunggal: container web perlu dibuat ulang agar
+      # perubahan web.conf / security-headers.conf aktif. Hanya terjadi bila isinya berubah.
+      - name: Terapkan konfigurasi nginx web
+        run: ssh "$TARGET" "sh $REMOTE/infra/scripts/reload-web.sh apply"
 
       - name: Cek health
         run: |

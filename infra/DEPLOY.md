@@ -5,7 +5,12 @@ Setelah setup sekali di bawah ini, setiap push ke `main` yang lolos CI otomatis:
 1. membangun image API dan mengirimnya ke GitHub Container Registry (`ghcr.io/marsel23xxx/toolland-api`),
 2. mengirim hasil build frontend ke `/srv/toolland/web/releases/<commit>/`,
 3. memindah symlink `current` ke rilis baru (atomik, tanpa downtime),
-4. menjalankan ulang container API, lalu memeriksa health check.
+4. menjalankan ulang container API,
+5. bila `infra/nginx/web.conf` atau `security-headers.conf` berubah, menguji konfigurasinya lalu
+   membuat ulang container web (`infra/scripts/reload-web.sh`), kemudian memeriksa health check.
+
+Konfigurasi nginx web di-mount sebagai file tunggal, jadi perubahan baru aktif setelah container web
+dibuat ulang. Untuk menerapkannya manual di VPS: `sh /srv/toolland/infra/scripts/reload-web.sh apply`.
 
 ## 1. Siapkan VPS (sekali)
 
