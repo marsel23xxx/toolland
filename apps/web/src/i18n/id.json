@@ -764,5 +764,10 @@
   "editor.musicRangeHint": "Bisa juga dengan menarik ujung bar musik di timeline, atau menggeser bar untuk memilih bagian lagu.",
   "editor.galleryHint": "Seret media ke timeline untuk menyisipkan di posisi tertentu.",
   "editor.used": "Dipakai di timeline",
-  "editor.useAsMusic": "Pakai sebagai musik"
+  "editor.useAsMusic": "Pakai sebagai musik",
+  "editor.transition.cross": "Crossfade (saling memudar)",
+  "editor.transition.wipe": "Sapu dari kanan",
+  "editor.transition.slide": "Geser ke kiri",
+  "editor.transition.circle": "Lingkaran membuka",
+  "editor.transitionOverlapHint": "Kedua klip bertumpuk selama transisi, jadi durasi total video berkurang sebesar lama transisi."
 }

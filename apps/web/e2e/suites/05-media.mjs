@@ -202,13 +202,53 @@ export const tests = [
       const light = await h.downloadVia('proyek-video.ayu', () => page.click('[data-save-light]'));
       const doc = JSON.parse(light.toString('utf8'));
       const [v, img] = doc.project.clips;
-      expect(doc.version === 3, `versi ${doc.version}`);
+      expect(doc.version >= 4, `versi ${doc.version}`);
       expect(
         v.speed === 2 && v.preset === 'bw' && v.fit === 'blur' && v.rotate === 90 && v.volume === 0,
         JSON.stringify(v),
       );
       expect(img.kenBurns === 'in' && doc.project.settings.bg === '#224488', JSON.stringify(img));
       return [c];
+    },
+  },
+  {
+    name: 'edit video: crossfade bertumpuk (pratinjau dua lapisan dan ekspor xfade)',
+    path: '/tools/edit-video',
+    async run(h) {
+      const { page } = h;
+      await ready(h);
+      await h.upload('klip.mp4', 'foto.jpg');
+      await page.waitForFunction(() => document.querySelectorAll('[data-clip]').length === 2, {
+        timeout: 30000,
+      });
+      const totalText = () => h.text('[data-time]').then((s) => s.split('/')[1].trim());
+      const before = await totalText();
+      await page.click('[data-clip]');
+      await page.select('[data-transition]', 'cross');
+      // Durasi total berkurang (klip bertumpuk).
+      await page.waitForFunction(
+        (b) => document.querySelector('[data-time]').innerText.split('/')[1].trim() !== b,
+        {},
+        before,
+      );
+      // Di tengah transisi kedua lapisan terlihat.
+      const second = await page.$$eval('[data-clip]', (els) =>
+        Math.min(...els.map((e) => e.getBoundingClientRect().x).filter((x, i) => i === 1)),
+      );
+      const rulerBox = await (await page.$('[data-ruler]')).boundingBox();
+      await page.mouse.click(second + 6, rulerBox.y + 10);
+      await page.waitForFunction(
+        () =>
+          [...document.querySelectorAll('[data-layer]')].filter(
+            (l) => getComputedStyle(l).visibility === 'visible',
+          ).length === 2,
+        { timeout: 5000 },
+      );
+      await page.click('[data-export]');
+      const [c] = await h.results(1, 180000);
+      const mp4 = await h.download('proyek-video.mp4');
+      expect(mp4.subarray(4, 8).toString('latin1') === 'ftyp', 'bukan MP4');
+      return [c, `${before} -> ${await totalText()}`];
     },
   },
   {
@@ -260,7 +300,7 @@ export const tests = [
       const light = await h.downloadVia('proyek-video.ayu', () => page.click('[data-save-light]'));
       const doc = JSON.parse(light.toString('utf8'));
       const t = doc.project.texts[0];
-      expect(doc.version === 3, `versi ${doc.version}`);
+      expect(doc.version >= 4, `versi ${doc.version}`);
       expect(
         t.font === 'pacifico' && t.animIn === 'fade' && t.box === true && t.size === 'l',
         JSON.stringify(t),

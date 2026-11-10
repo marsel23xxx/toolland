@@ -14,7 +14,11 @@ import {
   type TextLayer,
   DUCK_LEVEL,
   DUCK_RAMP,
+  XFADE,
   clipFades,
+  clipStarts,
+  isOverlap,
+  transitionOverlap,
   clipLength,
   musicSpan,
   voicedSpans,
@@ -114,7 +118,38 @@ export function buildExportArgs(p: Project, input: ExportInput): string[] {
     concatIn.push(`[v${k}][a${k}]`);
     idx++;
   });
-  filters.push(`${concatIn.join('')}concat=n=${p.clips.length}:v=1:a=1[vc][ac]`);
+  // Klip disambung per kelompok (concat); di batas transisi bertumpuk kelompok digabung dengan
+  // xfade (video) dan acrossfade (audio), sehingga durasi berkurang sebesar tumpukan.
+  const starts = clipStarts(p);
+  const groups: number[][] = [[0]];
+  for (let k = 1; k < p.clips.length; k++) {
+    if (transitionOverlap(p, k - 1) > 0) groups.push([k]);
+    else groups[groups.length - 1].push(k);
+  }
+  groups.forEach((g, j) => {
+    const ins = g.map((k) => concatIn[k]).join('');
+    filters.push(`${ins}concat=n=${g.length}:v=1:a=1[gv${j}][ga${j}]`);
+  });
+  if (groups.length === 1) {
+    filters[filters.length - 1] = filters[filters.length - 1].replace('[gv0][ga0]', '[vc][ac]');
+  } else {
+    let accV = 'gv0';
+    let accA = 'ga0';
+    for (let j = 1; j < groups.length; j++) {
+      const k = groups[j][0];
+      const d = transitionOverlap(p, k - 1);
+      const kind = p.clips[k - 1].trans;
+      const xf = isOverlap(kind) ? XFADE[kind] : 'fade';
+      const outV = j === groups.length - 1 ? 'vc' : `xv${j}`;
+      const outA = j === groups.length - 1 ? 'ac' : `xa${j}`;
+      filters.push(
+        `[${accV}]settb=AVTB[xva${j}];[gv${j}]settb=AVTB[xvb${j}];[xva${j}][xvb${j}]xfade=transition=${xf}:duration=${n(d)}:offset=${n(starts[k])}[${outV}]`,
+      );
+      filters.push(`[${accA}][ga${j}]acrossfade=d=${n(d)}:c1=tri:c2=tri[${outA}]`);
+      accV = outV;
+      accA = outA;
+    }
+  }
   let v = 'vc';
   let a = 'ac';
   if (p.settings.fade && total > 1.5) {

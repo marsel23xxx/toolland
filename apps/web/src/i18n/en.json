@@ -764,5 +764,10 @@
   "editor.musicRangeHint": "You can also drag the edges of the music bar on the timeline, or drag the bar to choose the song part.",
   "editor.galleryHint": "Drag media onto the timeline to insert it at a specific spot.",
   "editor.used": "Used on the timeline",
-  "editor.useAsMusic": "Use as music"
+  "editor.useAsMusic": "Use as music",
+  "editor.transition.cross": "Crossfade",
+  "editor.transition.wipe": "Wipe from right",
+  "editor.transition.slide": "Slide left",
+  "editor.transition.circle": "Circle open",
+  "editor.transitionOverlapHint": "Both clips overlap during the transition, so the total video length shrinks by the transition length."
 }

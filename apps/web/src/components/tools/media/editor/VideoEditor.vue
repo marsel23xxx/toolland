@@ -32,6 +32,7 @@ import {
   clipAt,
   clipFor,
   clipLength,
+  isOverlap,
   mediaOf,
   moveClip,
   newProject,
@@ -1601,6 +1602,10 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                         <option value="none">{{ t['transition.none'] }}</option>
                         <option value="black">{{ t['transition.black'] }}</option>
                         <option value="white">{{ t['transition.white'] }}</option>
+                        <option value="cross">{{ t['transition.cross'] }}</option>
+                        <option value="wipe">{{ t['transition.wipe'] }}</option>
+                        <option value="slide">{{ t['transition.slide'] }}</option>
+                        <option value="circle">{{ t['transition.circle'] }}</option>
                       </select>
                     </div>
                     <div v-if="clip.trans !== 'none'">
@@ -1626,6 +1631,12 @@ const kindLabel = (k: MediaKind) => props.t[`kind.${k}`];
                       {{ t.transitionAll }}
                     </button>
                   </div>
+                  <p
+                    v-if="clipIndex < project.clips.length - 1 && isOverlap(clip.trans)"
+                    class="text-xs text-ink-3"
+                  >
+                    {{ t.transitionOverlapHint }}
+                  </p>
                   <p v-else class="text-xs text-ink-3">{{ t.transitionLast }}</p>
                 </EditorSection>
                 <div class="grid grid-cols-2 gap-2 border-t border-rule pt-3">

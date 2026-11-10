@@ -16,8 +16,22 @@ export type ColorPreset = 'none' | 'warm' | 'cool' | 'bw' | 'vintage' | 'vivid' 
 export type KenBurns = 'none' | 'in' | 'out' | 'left' | 'right';
 export type Fps = 24 | 30 | 60;
 export type TextPosition = 'top' | 'center' | 'bottom' | 'custom';
-/** Transisi ke klip berikutnya: memudar ke hitam atau putih lalu muncul lagi. */
-export type Transition = 'none' | 'black' | 'white';
+/**
+ * Transisi ke klip berikutnya.
+ * black/white: pudar lewat warna (durasi total tetap).
+ * cross/wipe/slide/circle: kedua klip bertumpuk selama transisi (durasi total berkurang).
+ */
+export type Transition = 'none' | 'black' | 'white' | 'cross' | 'wipe' | 'slide' | 'circle';
+export const OVERLAP_TRANSITIONS = ['cross', 'wipe', 'slide', 'circle'] as const;
+/** Nama transisi xfade ffmpeg untuk transisi bertumpuk. */
+export const XFADE: Record<(typeof OVERLAP_TRANSITIONS)[number], string> = {
+  cross: 'fade',
+  wipe: 'wipeleft',
+  slide: 'slideleft',
+  circle: 'circleopen',
+};
+export const isOverlap = (t: Transition): t is (typeof OVERLAP_TRANSITIONS)[number] =>
+  (OVERLAP_TRANSITIONS as readonly string[]).includes(t);
 export type TextSize = 's' | 'm' | 'l';
 export type TextAlign = 'left' | 'center' | 'right';
 export type FontId = 'jakarta' | 'bebas' | 'montserrat' | 'playfair' | 'caveat' | 'pacifico';
@@ -185,17 +199,17 @@ export function voicedSpans(
   withAudio?: Set<string>,
 ): [number, number][] {
   const out: [number, number][] = [];
-  let t = 0;
-  for (const c of p.clips) {
+  const starts = clipStarts(p);
+  p.clips.forEach((c, i) => {
     const len = clipLength(c);
+    const t = starts[i];
     const m = p.media.find((x) => x.id === c.mediaId);
     if (m?.kind === 'video' && c.volume > 0 && (!withAudio || withAudio.has(m.id))) {
       const last = out.at(-1);
-      if (last && Math.abs(last[1] - t) < 1e-6) last[1] = t + len;
+      if (last && last[1] >= t - 1e-6) last[1] = Math.max(last[1], t + len);
       else out.push([t, t + len]);
     }
-    t += len;
-  }
+  });
   return out;
 }
 
@@ -284,33 +298,79 @@ export function outputSize(aspect: Aspect, quality: Quality): { w: number; h: nu
 export const clipLength = (c: Pick<Clip, 'in' | 'out'> & { speed?: number }) =>
   Math.max(0, (c.out - c.in) / (c.speed || 1));
 
-export function totalDuration(p: Pick<Project, 'clips'>): number {
-  return p.clips.reduce((s, c) => s + clipLength(c), 0);
+/**
+ * Lama tumpukan di batas klip i dan i+1 untuk transisi bertumpuk (0 untuk transisi lain).
+ * Dibatasi separuh panjang klip yang lebih pendek agar tidak ada tiga klip bertumpuk.
+ */
+export function transitionOverlap(p: Pick<Project, 'clips'>, i: number): number {
+  const a = p.clips[i];
+  const b = p.clips[i + 1];
+  if (!a || !b || !isOverlap(a.trans)) return 0;
+  return round(Math.max(0, Math.min(a.transDur, clipLength(a) / 2, clipLength(b) / 2)));
 }
 
-/** Waktu mulai setiap klip di timeline. */
+/** Waktu mulai setiap klip di timeline (klip berikutnya maju sebesar tumpukan transisi). */
 export function clipStarts(p: Pick<Project, 'clips'>): number[] {
   const out: number[] = [];
   let t = 0;
-  for (const c of p.clips) {
-    out.push(t);
-    t += clipLength(c);
-  }
+  p.clips.forEach((c, i) => {
+    out.push(round(t));
+    t += clipLength(c) - transitionOverlap(p, i);
+  });
   return out;
 }
 
-/** Klip yang aktif di waktu timeline t, beserta posisi di dalam media sumbernya. */
+export function totalDuration(p: Pick<Project, 'clips'>): number {
+  const n = p.clips.length;
+  if (!n) return 0;
+  return round(clipStarts(p)[n - 1] + clipLength(p.clips[n - 1]));
+}
+
+/**
+ * Klip yang aktif di waktu timeline t, beserta posisi di dalam media sumbernya. Selama transisi
+ * bertumpuk, yang dikembalikan adalah klip yang baru masuk.
+ */
 export function clipAt(
   p: Pick<Project, 'clips'>,
   t: number,
 ): { index: number; clip: Clip; local: number; start: number } | null {
+  if (!p.clips.length) return null;
   const starts = clipStarts(p);
-  for (let i = 0; i < p.clips.length; i++) {
-    const c = p.clips[i];
-    const len = clipLength(c);
-    if (t < starts[i] + len || i === p.clips.length - 1) {
-      const off = Math.min(len, Math.max(0, t - starts[i]));
-      return { index: i, clip: c, local: c.in + off * (c.speed || 1), start: starts[i] };
+  let i = p.clips.length - 1;
+  while (i > 0 && t < starts[i]) i--;
+  const c = p.clips[i];
+  const off = Math.min(clipLength(c), Math.max(0, t - starts[i]));
+  return { index: i, clip: c, local: c.in + off * (c.speed || 1), start: starts[i] };
+}
+
+/** Posisi sumber klip i pada waktu timeline t (dibatasi di dalam klip). */
+export function localAt(
+  p: Pick<Project, 'clips'>,
+  i: number,
+  t: number,
+  starts = clipStarts(p),
+): number {
+  const c = p.clips[i];
+  const off = Math.min(clipLength(c), Math.max(0, t - starts[i]));
+  return c.in + off * (c.speed || 1);
+}
+
+/** Transisi bertumpuk yang sedang berlangsung pada waktu t: klip keluar, klip masuk, kemajuan 0-1. */
+export function overlapAt(
+  p: Pick<Project, 'clips'>,
+  t: number,
+): {
+  out: number;
+  in: number;
+  progress: number;
+  kind: (typeof OVERLAP_TRANSITIONS)[number];
+} | null {
+  const starts = clipStarts(p);
+  for (let i = 0; i < p.clips.length - 1; i++) {
+    const d = transitionOverlap(p, i);
+    if (d > 0 && t >= starts[i + 1] && t < starts[i + 1] + d) {
+      const kind = p.clips[i].trans as (typeof OVERLAP_TRANSITIONS)[number];
+      return { out: i, in: i + 1, progress: (t - starts[i + 1]) / d, kind };
     }
   }
   return null;
@@ -443,7 +503,7 @@ export function wrapText(text: string, maxWidth: number, measure: (s: string) =>
 export function transitionHalf(p: Pick<Project, 'clips'>, i: number): number {
   const a = p.clips[i];
   const b = p.clips[i + 1];
-  if (!a || !b || a.trans === 'none') return 0;
+  if (!a || !b || (a.trans !== 'black' && a.trans !== 'white')) return 0;
   return round(Math.max(0, Math.min(a.transDur / 2, clipLength(a) / 2, clipLength(b) / 2)));
 }
 
@@ -452,7 +512,7 @@ export function clipFades(p: Pick<Project, 'clips'>, k: number) {
   const prev = p.clips[k - 1];
   return {
     in: transitionHalf(p, k - 1),
-    inColor: prev && prev.trans !== 'none' ? prev.trans : 'black',
+    inColor: prev?.trans === 'white' ? 'white' : 'black',
     out: transitionHalf(p, k),
     outColor: p.clips[k]?.trans === 'white' ? 'white' : 'black',
   } as const;

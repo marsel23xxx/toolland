@@ -610,7 +610,7 @@ const musicMedia = computed(() =>
             class="group absolute top-0 overflow-hidden rounded border-2 bg-ink/80 text-[10px] text-white"
             :class="[
               c.id === selectedClip
-                ? 'z-10 border-brand-500 ring-2 ring-brand-500/40'
+                ? 'border-brand-500 ring-2 ring-brand-500/40'
                 : 'border-paper-2',
               drag?.kind === 'clip' && drag.moved && drag.index === i
                 ? 'z-20 cursor-grabbing opacity-90 shadow-xl'

@@ -25,8 +25,9 @@ export const AYU_FORMAT = 'toolland-ayu';
 /**
  * Versi 2: kecepatan, fade audio, putar/balik, zoom, warna, Ken Burns, latar, fps.
  * Versi 3: font, rata, garis tepi, bayangan, kotak, animasi teks; rentang, fade, ducking musik.
+ * Versi 4: transisi bertumpuk (crossfade, sapu, geser, lingkaran).
  */
-export const AYU_VERSION = 3;
+export const AYU_VERSION = 4;
 export const AYU_MIME = 'application/x-toolland-ayu';
 /** Arsip ZIP tanpa ZIP64: total di bawah 4 GB. */
 export const MAX_BUNDLE_BYTES = 4 * 1024 ** 3 - 64 * 1024 ** 2;
@@ -100,7 +101,11 @@ export function sanitizeProject(raw: unknown): Project {
         out: num(c.out, inn + 1, inn + 0.05, 86400),
         volume: num(c.volume, 1, 0, 2),
         fit: pick(c.fit, ['fit', 'fill', 'blur'] as const, 'fit'),
-        trans: pick(c.trans, ['none', 'black', 'white'] as const, 'none'),
+        trans: pick(
+          c.trans,
+          ['none', 'black', 'white', 'cross', 'wipe', 'slide', 'circle'] as const,
+          'none',
+        ),
         transDur: num(c.transDur, 0.8, 0.2, 3),
         speed: num(c.speed, 1, 0.25, 4),
         fadeIn: num(c.fadeIn, 0, 0, 5),
