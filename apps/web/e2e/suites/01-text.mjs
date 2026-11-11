@@ -35,6 +35,41 @@ export const tests = [
     },
   },
   {
+    name: 'tes mengetik: mode kata, hasil, dan rekor',
+    path: '/tools/tes-kecepatan-mengetik',
+    async run(h) {
+      await h.page.click('[data-ty-mode="words"]');
+      await h.page.click('[data-ty-count="25"]');
+      await h.page.click('[data-ty-lang="id"]');
+      await h.page.click('[data-ty-area]');
+      const words = await h.page.$$eval('[data-word]', (els) =>
+        els.map((e) => e.getAttribute('data-word')),
+      );
+      expect(words.length === 25, `jumlah kata ${words.length}`);
+      for (const w of words) await h.page.keyboard.type(`${w} `);
+      await h.page.waitForSelector('[data-ty-result]', { timeout: 5000 });
+      expect((await h.text('[data-ty-acc]')) === '100%', await h.text('[data-ty-acc]'));
+      const wpm = parseInt(await h.text('[data-ty-wpm]'), 10);
+      expect(wpm > 0, `KPM ${wpm}`);
+      expect(['S', 'A', 'B', 'C', 'D'].includes(await h.text('[data-ty-grade]')), 'nilai huruf');
+      // Akurasi 100% dengan tempo e2e seharusnya memecahkan rekor pertama.
+      expect(!!(await h.page.$('[data-ty-best]')), 'lencana rekor baru tidak tampil');
+      expect(!!(await h.page.$('[data-ty-result] svg path')), 'grafik tidak tampil');
+      // Ulangi: kembali ke arena dengan kata baru.
+      await h.page.click('[data-ty-again]');
+      await h.page.waitForSelector('[data-ty-area]');
+      expect((await h.page.$$('[data-word]')).length === 25, 'kata tidak dibuat ulang');
+      // Salah ketik menurunkan akurasi dan tercatat di hasil.
+      await h.page.keyboard.type('zzz ');
+      const w2 = await h.page.$$eval('[data-word]', (els) =>
+        els.map((e) => e.getAttribute('data-word')),
+      );
+      for (const w of w2) await h.page.keyboard.type(`${w} `);
+      await h.page.waitForSelector('[data-ty-result]');
+      expect((await h.text('[data-ty-acc]')) !== '100%', 'salah ketik tidak tercatat');
+    },
+  },
+  {
     name: 'JSON formatter (CodeMirror di Shadow DOM)',
     path: '/tools/json-formatter',
     async run(h) {
