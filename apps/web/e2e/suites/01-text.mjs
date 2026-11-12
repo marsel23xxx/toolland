@@ -341,6 +341,64 @@ export const tests = [
     },
   },
   {
+    name: 'teleprompter: hitung mundur, bergulir, jeda, ulang, cermin, file, tersimpan',
+    path: '/tools/teleprompter',
+    async run(h) {
+      const { page } = h;
+      const progress = async () => parseInt(await h.text('[data-tp-progress]'), 10);
+      // Naskah contoh terisi saat pertama dibuka.
+      expect(
+        (await page.$eval('[data-tp-script]', (e) => e.value)).length > 50,
+        'naskah contoh kosong',
+      );
+      // Kecepatan maksimal lewat keyboard (fokus di halaman, bukan di kolom teks).
+      await page.click('h1');
+      for (let i = 0; i < 20; i++) await page.keyboard.press('ArrowUp');
+      expect((await h.text('[data-tp-speed]')) === '20', 'kecepatan tidak naik');
+      await page.click('[data-tp-play]');
+      await page.waitForSelector('[data-tp-countdown]');
+      await page.waitForFunction(() => !document.querySelector('[data-tp-countdown]'), {
+        timeout: 5000,
+      });
+      await h.sleep(1200);
+      const p1 = await progress();
+      expect(p1 > 0, `tidak bergulir (${p1}%)`);
+      // Spasi menjeda: posisi tidak berubah lagi.
+      await page.keyboard.press('Space');
+      const p2 = await progress();
+      await h.sleep(600);
+      expect((await progress()) === p2, 'masih bergulir setelah jeda');
+      // R kembali ke awal.
+      await page.keyboard.press('r');
+      expect((await progress()) === 0, 'tidak kembali ke awal');
+      // Mode cermin membalik teks.
+      await page.click('[data-tp-mirror]');
+      expect(
+        await page.$eval('[data-tp-content]', (e) =>
+          e.parentElement.classList.contains('-scale-x-100'),
+        ),
+        'mode cermin tidak aktif',
+      );
+      // Buka naskah dari file .txt.
+      const file = h.fixture('naskah.txt');
+      (await import('node:fs')).writeFileSync(file, 'Halo semuanya, ini naskah dari file.');
+      await (await page.$('[data-tp-file]')).uploadFile(file);
+      await page.waitForFunction(() =>
+        document.querySelector('[data-tp-content]').textContent.includes('naskah dari file'),
+      );
+      // Pengaturan dan naskah tersimpan setelah dimuat ulang.
+      await h.sleep(600);
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.waitForFunction(
+        () => document.querySelector('[data-tp-speed]')?.textContent.trim() === '20',
+      );
+      expect(
+        (await page.$eval('[data-tp-script]', (e) => e.value)).includes('naskah dari file'),
+        'naskah tidak tersimpan',
+      );
+    },
+  },
+  {
     name: 'JSON ke CSV dan sebaliknya',
     path: '/tools/json-ke-csv',
     async run(h) {
