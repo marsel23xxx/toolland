@@ -45,7 +45,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@tesseract.js-data/eng": "1.0.0",
     "@tesseract.js-data/ind": "1.0.0",
-    "astro": "^7.4.4",
+    "astro": "^7.4.7",
     "comlink": "^4.4.2",
     "diff": "^9.0.0",
     "fflate": "^0.8.3",
