@@ -1,8 +1,8 @@
 ---
 name: 'IQ Test'
-title: 'Free Online IQ Test: 30 Random Questions with Explanations'
-description: 'Online IQ test with 30 questions in 20 minutes: figure matrices, number series, and odd one out. Questions are always random, with an IQ estimate and explanations. Free.'
-summary: '30 random logic questions with an IQ estimate and explanations.'
+title: 'Free Online IQ Test: 30 Random Questions with an IQ Estimate'
+description: 'Online IQ test with 30 questions in 20 minutes: figure matrices, number series, and odd one out. Questions are always random, with an IQ estimate and charts. Free.'
+summary: '30 random logic questions with an estimated IQ score.'
 category: 'teks'
 idSlug: 'tes-iq'
 keywords:
@@ -18,7 +18,7 @@ keywords:
 howTo:
   - 'Click Start the test. You have 20 minutes for 30 questions that get harder as you go.'
   - 'Choose answers by clicking or pressing 1-6. You may skip a question and return to it using the question numbers.'
-  - 'Click Finish to see your IQ estimate, where you sit on the distribution, scores by question type, and an explanation for every question.'
+  - 'Click Finish to see your IQ estimate, where you sit on the distribution, scores by question type, and scores by difficulty level.'
 faq:
   - q: 'Is this the same as an official IQ test?'
     a: 'No. The result is an estimate for practice and fun. Official IQ tests are given by psychologists using instruments normed on thousands of people. Use this score to track your logic practice, not for any formal purpose.'
@@ -31,7 +31,7 @@ faq:
   - q: 'Are my answers sent to a server?'
     a: 'No. Questions are generated and scored in your browser. Score history is kept only in this browser’s localStorage and disappears if you clear site data.'
   - q: 'How can I improve my score?'
-    a: 'Practise pattern spotting regularly and read the explanations after each test. Most puzzles follow a handful of rules: changes along rows or columns, combining lines, and patterns in the differences of a series. Take the test when you are fresh and unhurried.'
+    a: 'Practise pattern spotting regularly and focus on the question type where you scored lowest. Most puzzles follow a handful of rules: changes along rows or columns, combining lines, and patterns in the differences of a series. Take the test when you are fresh and unhurried.'
 related: ['typing-test', 'word-counter', 'diff-checker']
 ---
 
@@ -48,7 +48,6 @@ test any time and still get fresh questions.
   and 115.
 - **Percentile**: the estimated share of people who score below you.
 - **Scores by type and level**: show which kind of puzzle needs the most practice.
-- **Explanations**: the key and rule for every question, so you learn the patterns.
 
 ## Tips
 

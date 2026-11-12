@@ -191,7 +191,7 @@ const COUNT_SCALE: Record<number, number> = { 1: 1, 2: 0.72, 3: 0.62, 4: 0.6, 5:
 // --- Soal ---------------------------------------------------------------------------------------
 export type Kind = 'matrix' | 'series' | 'odd';
 
-/** Penjelasan jawaban sebagai kunci i18n (iq.ex.*) beserta parameternya. */
+/** Label aturan soal (dipakai tes unit untuk memeriksa jawaban; tidak ditampilkan ke pengguna). */
 export interface Explain {
   key: string;
   params?: Record<string, string | number>;

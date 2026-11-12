@@ -116,7 +116,7 @@ export const tests = [
     },
   },
   {
-    name: 'tes IQ: 30 soal acak, konfirmasi selesai, hasil, pembahasan, simpan',
+    name: 'tes IQ: 30 soal acak, konfirmasi selesai, hasil tanpa kunci jawaban, simpan',
     path: '/tools/tes-iq',
     async run(h) {
       const { page } = h;
@@ -148,9 +148,7 @@ export const tests = [
         (await h.text('[data-iq-correct]')).endsWith('/30'),
         await h.text('[data-iq-correct]'),
       );
-      await page.click('[data-iq-review] summary');
-      const items = await page.$$eval('[data-iq-review] li', (els) => els.length);
-      expect(items === 30, `pembahasan ${items}`);
+      expect(!(await page.$('[data-iq-review]')), 'pembahasan/kunci jawaban masih tampil');
       const png = await h.downloadVia(/^hasil-tes-iq-\d{8}-\d{4}\.png$/, () =>
         page.click('[data-save="png"]'),
       );

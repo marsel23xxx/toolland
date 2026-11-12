@@ -3,7 +3,7 @@
  * Tes IQ: 30 soal acak (matriks gambar, deret angka, pilih yang berbeda) dalam 20 menit.
  * Soal dibangkitkan dari seed acak setiap kali tes dimulai, jadi tidak bisa dihafal, dan tidak
  * ada umpan balik benar/salah sampai tes selesai. Hasil: perkiraan IQ, persentil, skor per jenis
- * dan tingkat, pembahasan, serta kartu PNG/PDF.
+ * dan tingkat, serta kartu PNG/PDF. Kunci jawaban sengaja tidak ditampilkan agar tidak disebarkan.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import type { ToolMessages } from '../../i18n';
@@ -17,7 +17,6 @@ import {
   matrixQuestion,
   oddQuestion,
   scoreTest,
-  type Explain,
   type IqResult,
   type Kind,
   type Question,
@@ -195,16 +194,6 @@ const PROMPT = computed<Record<Kind, string>>(() => ({
   odd: m.promptOdd,
 }));
 const BAND = computed(() => (result.value ? m[`band_${result.value.band}` as 'band_avg'] : ''));
-
-const msg = (key: string) => (m as Record<string, string>)[key.replace(/^iq\./, '')] ?? key;
-function explainText(e: Explain): string {
-  const params: Record<string, string | number> = {};
-  for (const [k, v] of Object.entries(e.params ?? {}))
-    params[k] = k === 'attr' ? msg(`iq.attr.${v}`) : v;
-  const t = fill(msg(e.key), params);
-  return t.charAt(0).toUpperCase() + t.slice(1);
-}
-const explainAll = (qq: Question) => qq.explain.map(explainText).join('. ');
 
 const percentileText = computed(() =>
   result.value
@@ -657,53 +646,6 @@ function buildReport(): IqReportData {
           :m="m"
         />
       </div>
-
-      <!-- Pembahasan -->
-      <details class="rounded-md border border-rule" data-iq-review>
-        <summary class="cursor-pointer px-4 py-3 font-semibold">{{ m.review }}</summary>
-        <ol class="divide-y divide-rule">
-          <li v-for="(qq, i) in questions" :key="i" class="flex gap-3 px-4 py-3 text-sm">
-            <span
-              class="grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold text-white"
-              :class="answers[i] === qq.answer ? 'bg-daun' : 'bg-secang'"
-              :aria-label="answers[i] === qq.answer ? m.right : m.wrong"
-            >
-              {{ answers[i] === qq.answer ? '✓' : '✕' }}
-            </span>
-            <div class="min-w-0 flex-1 space-y-1">
-              <p class="font-semibold">
-                {{ i + 1 }}. {{ KIND_LABEL[qq.kind] }}
-                <span class="font-normal text-ink-3">· {{ fill(m.levelN, { n: qq.level }) }}</span>
-              </p>
-              <p v-if="qq.kind === 'series'" class="font-mono tabular-nums">
-                {{ qq.terms.join(', ') }}, ?
-              </p>
-              <p class="text-ink-2">
-                {{ m.yourAnswer }}:
-                <b>{{ answers[i] === null ? m.noAnswer : LETTERS[answers[i]!] }}</b>
-                · {{ m.rightAnswer }}: <b>{{ LETTERS[qq.answer] }}</b>
-                <template v-if="qq.kind === 'series'"> ({{ qq.options[qq.answer] }})</template>
-              </p>
-              <p class="text-ink-3">{{ explainAll(qq) }}</p>
-            </div>
-            <div v-if="qq.kind !== 'series'" class="flex shrink-0 gap-1.5">
-              <div
-                v-if="answers[i] !== null && answers[i] !== qq.answer"
-                class="size-12 rounded border-2 border-secang bg-paper p-0.5 text-ink"
-                :title="m.yourAnswer"
-              >
-                <IqFigure :fig="qq.options[answers[i]!]" />
-              </div>
-              <div
-                class="size-12 rounded border-2 border-daun bg-paper p-0.5 text-ink"
-                :title="m.rightAnswer"
-              >
-                <IqFigure :fig="qq.options[qq.answer]" />
-              </div>
-            </div>
-          </li>
-        </ol>
-      </details>
     </section>
   </div>
 </template>
