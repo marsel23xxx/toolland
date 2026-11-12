@@ -1090,5 +1090,19 @@
   "prompter.fullscreen": "Layar penuh",
   "prompter.exitFullscreen": "Keluar",
   "prompter.keys": "Pintasan: Spasi main/jeda · ↑ ↓ kecepatan · ← → mundur/maju · R ulang · F layar penuh. Saat jeda, gulir dengan roda mouse atau geser layar.",
-  "prompter.sample": "Selamat datang di Teleprompter Toolland.\n\nTempel naskahmu di kolom di atas, atur kecepatan dan ukuran huruf, lalu tekan Mulai atau tombol Spasi.\n\nBaca teks yang melewati garis kuning. Tatap kamera, tarik napas, dan bicaralah dengan santai.\n\nGunakan mode cermin bila layar dipantulkan ke kaca teleprompter.\n\nTekan F untuk layar penuh. Selamat merekam!"
+  "prompter.sample": "Selamat datang di Teleprompter Toolland.\n\nTempel naskahmu di kolom di atas, atur kecepatan dan ukuran huruf, lalu tekan Mulai atau tombol Spasi.\n\nBaca teks yang melewati garis kuning. Tatap kamera, tarik napas, dan bicaralah dengan santai.\n\nGunakan mode cermin bila layar dipantulkan ke kaca teleprompter.\n\nTekan F untuk layar penuh. Selamat merekam!",
+  "prompter.videoTitle": "Unduh sebagai video",
+  "prompter.videoDesc": "Jadikan teks bergulir ini file video MP4, misalnya untuk diputar di layar teleprompter terpisah atau ditempel di video lain. Memakai pengaturan di atas (kecepatan, ukuran, tema, cermin, garis baca).",
+  "prompter.videoShape": "Ukuran",
+  "prompter.shape_landscape": "Mendatar 16:9",
+  "prompter.shape_portrait": "Tegak 9:16",
+  "prompter.shape_square": "Persegi 1:1",
+  "prompter.videoInfo": "{w}×{h} piksel · 30 fps · durasi ± {t}",
+  "prompter.videoMake": "Buat video",
+  "prompter.videoBusy": "Membuat video…",
+  "prompter.cancel": "Batal",
+  "prompter.videoDownload": "Unduh MP4 ({size} MB)",
+  "prompter.videoTooLong": "Video terlalu panjang (maksimal 20 menit). Naikkan kecepatan atau pendekkan naskah.",
+  "prompter.videoUnsupported": "Browsermu belum mendukung pembuatan video. Coba Chrome, Edge, atau Safari versi terbaru.",
+  "prompter.videoFailed": "Gagal membuat video. Coba ukuran lain atau muat ulang halaman."
 }

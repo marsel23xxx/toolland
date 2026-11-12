@@ -8,7 +8,11 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import type { Messages } from '../../i18n';
 import { fill } from '../../lib/format';
+import { downloadBlob } from '../../lib/download';
+import { formatTime } from '../../lib/media/ffmpeg';
+import type { PrompterVideoOptions } from '../../lib/prompter-video';
 import { TEXT_ACCEPT } from '../../lib/text-extract';
+import ProgressBar from '../ui/ProgressBar.vue';
 
 const props = defineProps<{ m: Messages<'prompter'> & Messages<'common'> }>();
 const m = props.m;
@@ -49,6 +53,9 @@ watch(
   () => {
     if (!loaded.value) return;
     clearTimeout(saveTimer);
+    clearTimeout(estimateTimer);
+    abort?.abort();
+    if (video.value) URL.revokeObjectURL(video.value.url);
     saveTimer = setTimeout(() => {
       try {
         localStorage.setItem(STORE, JSON.stringify({ settings, script: script.value }));
@@ -247,6 +254,94 @@ const remaining = computed(() => {
   const s = Math.max(0, Math.round((maxY.value - y.value) / pxPerSec.value));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 });
+
+// --- Unduh sebagai video ----------------------------------------------------------------------
+type Shape = 'landscape' | 'portrait' | 'square';
+const SHAPES: Record<Shape, [number, number]> = {
+  landscape: [1920, 1080],
+  portrait: [1080, 1920],
+  square: [1080, 1080],
+};
+const shape = ref<Shape>('landscape');
+const exporting = ref(false);
+const exportProgress = ref(0);
+const exportErr = ref('');
+const video = ref<{ url: string; blob: Blob; name: string } | null>(null);
+let abort: AbortController | undefined;
+
+function videoOptions(): PrompterVideoOptions {
+  const [width, height] = SHAPES[shape.value];
+  // Huruf diskalakan dari tampilan 720p ke ukuran video; tempo gulir per baris tetap sama.
+  const fontPx = Math.round((settings.size * Math.min(width, height)) / 720);
+  return {
+    text: script.value,
+    width,
+    height,
+    fps: 30,
+    fontPx,
+    textWidthPct: settings.width,
+    align: settings.align,
+    theme: settings.theme,
+    mirror: settings.mirror,
+    flip: settings.flip,
+    guide: settings.guide,
+    pxPerSec: settings.speed * fontPx * 0.11,
+    holdStart: 1.5,
+    holdEnd: 1.5,
+  };
+}
+
+const estimate = ref(0);
+let estimateTimer: ReturnType<typeof setTimeout> | undefined;
+watch(
+  [settings, script, shape],
+  () => {
+    clearTimeout(estimateTimer);
+    estimateTimer = setTimeout(async () => {
+      const { estimateDuration } = await import('../../lib/prompter-video');
+      estimate.value = estimateDuration(videoOptions());
+    }, 300);
+  },
+  // Tidak immediate: hanya di browser (saat naskah/pengaturan dimuat di onMounted), bukan saat SSR.
+  { deep: true },
+);
+/** Batas durasi agar proses dan file tetap wajar. */
+const MAX_VIDEO_SEC = 20 * 60;
+
+async function exportVideo() {
+  if (exporting.value || !script.value.trim()) return;
+  exportErr.value = '';
+  if (estimate.value > MAX_VIDEO_SEC) {
+    exportErr.value = m.videoTooLong;
+    return;
+  }
+  pause();
+  exporting.value = true;
+  exportProgress.value = 0;
+  abort = new AbortController();
+  try {
+    const { renderPrompterVideo } = await import('../../lib/prompter-video');
+    const blob = await renderPrompterVideo(
+      videoOptions(),
+      (p) => (exportProgress.value = p),
+      abort.signal,
+    );
+    if (video.value) URL.revokeObjectURL(video.value.url);
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const name = `teleprompter-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.mp4`;
+    video.value = { url: URL.createObjectURL(blob), blob, name };
+  } catch (e) {
+    const err = e as Error;
+    if (err.name !== 'AbortError')
+      exportErr.value = err.message === 'unsupported' ? m.videoUnsupported : m.videoFailed;
+  } finally {
+    exporting.value = false;
+  }
+}
+function cancelExport() {
+  abort?.abort();
+}
 
 let ro: ResizeObserver | undefined;
 onMounted(() => {
@@ -530,5 +625,67 @@ watch(
       </div>
     </div>
     <p class="text-xs text-ink-3">{{ m.keys }}</p>
+
+    <!-- Unduh sebagai video -->
+    <section class="space-y-3 rounded-md border border-rule bg-paper-2 p-4" data-tp-video>
+      <div>
+        <h2 class="font-display text-lg">🎬 {{ m.videoTitle }}</h2>
+        <p class="text-sm text-ink-2">{{ m.videoDesc }}</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm font-medium">{{ m.videoShape }}</span>
+        <button
+          v-for="sh in ['landscape', 'portrait', 'square'] as const"
+          :key="sh"
+          type="button"
+          class="btn btn-secondary"
+          :class="{ 'btn-active': shape === sh }"
+          :aria-pressed="shape === sh"
+          :disabled="exporting"
+          :data-tp-shape="sh"
+          @click="shape = sh"
+        >
+          {{ m[`shape_${sh}`] }}
+        </button>
+      </div>
+      <p class="text-xs text-ink-3 tabular-nums" data-tp-estimate>
+        {{
+          fill(m.videoInfo, { w: SHAPES[shape][0], h: SHAPES[shape][1], t: formatTime(estimate) })
+        }}
+      </p>
+      <div v-if="exporting" class="space-y-2">
+        <ProgressBar :label="m.videoBusy" :value="exportProgress * 100" />
+        <button type="button" class="btn btn-secondary" @click="cancelExport">
+          {{ m.cancel }}
+        </button>
+      </div>
+      <button
+        v-else
+        type="button"
+        class="btn btn-primary"
+        :disabled="!script.trim()"
+        data-tp-export
+        @click="exportVideo"
+      >
+        {{ m.videoMake }}
+      </button>
+      <p v-if="exportErr" class="error-text" role="alert">{{ exportErr }}</p>
+      <div v-if="video && !exporting" class="space-y-2" data-tp-result>
+        <video
+          :src="video.url"
+          controls
+          playsinline
+          class="max-h-96 w-auto max-w-full rounded border border-rule bg-black"
+        />
+        <button
+          type="button"
+          class="btn btn-primary"
+          data-tp-download
+          @click="downloadBlob(video.blob, video.name)"
+        >
+          ⬇ {{ fill(m.videoDownload, { size: (video.blob.size / 1048576).toFixed(1) }) }}
+        </button>
+      </div>
+    </section>
   </div>
 </template>

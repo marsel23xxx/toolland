@@ -1090,5 +1090,19 @@
   "prompter.fullscreen": "Full screen",
   "prompter.exitFullscreen": "Exit",
   "prompter.keys": "Shortcuts: Space play/pause · ↑ ↓ speed · ← → back/forward · R restart · F full screen. While paused, scroll with the mouse wheel or swipe.",
-  "prompter.sample": "Welcome to the Toolland Teleprompter.\n\nPaste your script in the box above, set the speed and font size, then press Start or the Space bar.\n\nRead the text as it passes the yellow line. Look at the camera, breathe, and speak naturally.\n\nUse mirror mode when the screen is reflected onto teleprompter glass.\n\nPress F for full screen. Happy recording!"
+  "prompter.sample": "Welcome to the Toolland Teleprompter.\n\nPaste your script in the box above, set the speed and font size, then press Start or the Space bar.\n\nRead the text as it passes the yellow line. Look at the camera, breathe, and speak naturally.\n\nUse mirror mode when the screen is reflected onto teleprompter glass.\n\nPress F for full screen. Happy recording!",
+  "prompter.videoTitle": "Download as video",
+  "prompter.videoDesc": "Turn this scrolling text into an MP4 video, for example to play on a separate teleprompter screen or to overlay in another video. It uses the settings above (speed, size, theme, mirror, reading line).",
+  "prompter.videoShape": "Size",
+  "prompter.shape_landscape": "Landscape 16:9",
+  "prompter.shape_portrait": "Portrait 9:16",
+  "prompter.shape_square": "Square 1:1",
+  "prompter.videoInfo": "{w}×{h} pixels · 30 fps · about {t} long",
+  "prompter.videoMake": "Create video",
+  "prompter.videoBusy": "Creating video…",
+  "prompter.cancel": "Cancel",
+  "prompter.videoDownload": "Download MP4 ({size} MB)",
+  "prompter.videoTooLong": "The video is too long (20 minutes max). Increase the speed or shorten the script.",
+  "prompter.videoUnsupported": "Your browser can't create videos yet. Try the latest Chrome, Edge, or Safari.",
+  "prompter.videoFailed": "Couldn't create the video. Try another size or reload the page."
 }

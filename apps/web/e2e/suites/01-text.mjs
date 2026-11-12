@@ -399,6 +399,39 @@ export const tests = [
     },
   },
   {
+    name: 'teleprompter: unduh teks bergulir sebagai video MP4',
+    path: '/tools/teleprompter',
+    async run(h) {
+      const { page } = h;
+      await page.click('h1');
+      for (let i = 0; i < 20; i++) await page.keyboard.press('ArrowUp');
+      await page.click('[data-tp-shape="square"]');
+      await h.sleep(500);
+      const est = await h.text('[data-tp-estimate]');
+      await page.click('[data-tp-export]');
+      await page.waitForSelector('[data-tp-download]', { timeout: 120_000 });
+      // Durasi video yang jadi sesuai perkiraan.
+      const dur = await page.$eval('[data-tp-result] video', (v) =>
+        v.readyState >= 1
+          ? v.duration
+          : new Promise((r) => v.addEventListener('loadedmetadata', () => r(v.duration))),
+      );
+      const [mm, ss] = est
+        .match(/(\d+):(\d\d)/)
+        .slice(1)
+        .map(Number);
+      expect(Math.abs(dur - (mm * 60 + ss)) <= 1.5, `durasi ${dur} vs perkiraan ${est}`);
+      const mp4 = await h.downloadVia(/^teleprompter-\d{8}-\d{4}\.mp4$/, () =>
+        page.click('[data-tp-download]'),
+      );
+      expect(
+        mp4.subarray(4, 8).toString() === 'ftyp' && mp4.length > 10_000,
+        `MP4 ${mp4.length} B`,
+      );
+      return [`video ${dur.toFixed(1)} dtk, ${(mp4.length / 1024).toFixed(0)} KB`];
+    },
+  },
+  {
     name: 'JSON ke CSV dan sebaliknya',
     path: '/tools/json-ke-csv',
     async run(h) {
