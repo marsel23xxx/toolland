@@ -1,8 +1,8 @@
 ---
 name: 'Tes Mengetik'
-title: 'Tes Kecepatan Mengetik Online (KPM)'
-description: 'Ukur kecepatan mengetikmu dalam KPM dengan tampilan ala game: combo, nilai S sampai D, grafik per detik, dan rekor pribadi. Gratis, tanpa daftar.'
-summary: 'Ukur KPM dengan combo, nilai S-D, grafik, dan rekor pribadi.'
+title: 'Tes Kecepatan Mengetik: Game Pesawat Luar Angkasa (KPM)'
+description: 'Latih kecepatan mengetik lewat game pesawat luar angkasa: tembak musuh dengan mengetik katanya. Ada juga tes KPM klasik, grafik, dan rekor. Gratis.'
+summary: 'Game pesawat angkasa dan tes KPM, dengan grafik dan rekor.'
 category: 'teks'
 keywords:
   [
@@ -13,10 +13,12 @@ keywords:
     'kpm',
     'latihan mengetik 10 jari',
     'typing speed',
+    'game mengetik',
+    'typing game',
   ]
 howTo:
-  - 'Pilih mode (waktu atau jumlah kata), durasi, dan bahasa kata, lalu klik area ketik.'
-  - 'Ketik kata yang tampil; spasi untuk pindah kata. Jaga combo dengan mengetik tanpa salah.'
+  - 'Pilih Game Angkasa atau Tes Klasik, lalu bahasa katanya, dan klik Mulai.'
+  - 'Di game, ketik kata di bawah pesawat musuh untuk menembak sebelum mereka menabrakmu. Di tes klasik, ketik kata yang tampil.'
   - 'Lihat hasilnya: KPM, akurasi, nilai S sampai D, grafik per detik, dan rekormu.'
 faq:
   - q: 'Apa itu KPM dan bagaimana menghitungnya?'
@@ -27,8 +29,8 @@ faq:
     a: 'Akurasi adalah persentase ketukan yang benar, termasuk yang kemudian kamu hapus. Konsistensi mengukur seberapa stabil tempomu dari detik ke detik; 100% berarti kecepatanmu nyaris rata sepanjang tes.'
   - q: 'Di mana rekor saya disimpan?'
     a: 'Rekor dan riwayat disimpan di localStorage browser ini saja, per kombinasi mode, durasi, dan bahasa. Tidak ada data yang dikirim ke server, dan rekor hilang bila kamu menghapus data situs.'
-  - q: 'Kenapa hasil saya beda dengan situs tes ketik lain?'
-    a: 'Setiap situs sedikit berbeda dalam daftar kata, aturan koreksi, dan pembulatan. Bandingkan hasilmu di situs yang sama dari waktu ke waktu, bukan antar situs.'
+  - q: 'Bagaimana cara main game Laskar Kata?'
+    a: 'Pesawat musuh turun membawa kata. Ketik huruf pertama untuk mengunci target, lalu ketik sisanya untuk menembak; kata selesai berarti musuh meledak. Musuh yang menabrak mengurangi perisai, dan permainan selesai saat tiga perisai habis. Enter meluncurkan bom EMP, Backspace melepas target, Esc menjeda. Tiap gelombang makin cepat, dan setiap gelombang ke-5 datang kapal induk.'
   - q: 'Bagaimana cara cepat meningkatkan KPM?'
     a: 'Utamakan akurasi dulu: kesalahan memutus combo dan memaksa koreksi yang membuang waktu. Latih 10-15 menit sehari dengan 10 jari tanpa melihat keyboard; kecepatan naik menyusul dengan sendirinya.'
 related: ['hitung-kata', 'ubah-huruf', 'bandingkan-teks']

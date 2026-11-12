@@ -1,14 +1,22 @@
 ---
 name: 'Typing Test'
-title: 'Typing Speed Test Online (WPM)'
-description: 'Measure your typing speed in WPM with a game-style test: combos, S-D grades, a per-second chart, and personal records. Free, no sign-up.'
-summary: 'Measure WPM with combos, S-D grades, a chart, and personal records.'
+title: 'Typing Speed Test: Space Shooter Typing Game (WPM)'
+description: 'Practise typing in a space shooter: blast enemy ships by typing their words. Includes a classic WPM test, a speed chart, and personal records. Free.'
+summary: 'Space shooter typing game and WPM test, with charts and records.'
 category: 'teks'
 idSlug: 'tes-kecepatan-mengetik'
-keywords: ['typing test', 'wpm test', 'typing speed', 'words per minute', 'touch typing practice']
+keywords:
+  [
+    'typing test',
+    'wpm test',
+    'typing speed',
+    'words per minute',
+    'touch typing practice',
+    'typing game',
+  ]
 howTo:
-  - 'Pick a mode (time or word count), a duration, and a word language, then click the typing area.'
-  - 'Type the words shown; press space to move on. Keep your combo alive by typing cleanly.'
+  - 'Choose Space Game or Classic Test, pick the word language, and press Start.'
+  - 'In the game, type the word under each enemy ship to shoot it before it hits you. In the classic test, type the words shown.'
   - 'Read your results: WPM, accuracy, an S-D grade, a per-second chart, and your record.'
 faq:
   - q: 'What is WPM and how is it calculated?'
@@ -19,8 +27,8 @@ faq:
     a: 'Accuracy is the share of correct keystrokes, including ones you later delete. Consistency measures how steady your pace is from second to second; 100% means an almost perfectly even speed.'
   - q: 'Where are my records stored?'
     a: 'Records and history live in this browser’s localStorage only, per combination of mode, duration, and language. Nothing is sent to a server, and clearing site data removes them.'
-  - q: 'Why do my results differ from other typing sites?'
-    a: 'Every site differs slightly in word lists, correction rules, and rounding. Compare your results on the same site over time rather than across sites.'
+  - q: 'How do I play Word Squadron?'
+    a: 'Enemy ships descend carrying words. Type the first letter to lock on, then the rest to fire; finishing the word destroys the ship. Ships that reach you cost a shield, and the game ends when all three are gone. Enter fires an EMP bomb, Backspace releases the target, and Esc pauses. Each wave is faster, and every fifth wave brings a mothership.'
   - q: 'How do I get faster quickly?'
     a: 'Accuracy first: every mistake breaks your combo and costs extra keystrokes to fix. Practise 10-15 minutes a day with all ten fingers without looking down; speed follows on its own.'
 related: ['word-counter', 'case-converter', 'diff-checker']

@@ -35,9 +35,57 @@ export const tests = [
     },
   },
   {
-    name: 'tes mengetik: mode kata, hasil, dan rekor',
+    name: 'game mengetik: tembak musuh, jeda, selesai, hasil',
     path: '/tools/tes-kecepatan-mengetik',
     async run(h) {
+      // Tab game tampil secara bawaan.
+      await h.page.waitForSelector('[data-ty-start]');
+      await h.page.click('[data-ty-start]');
+      await h.page.waitForSelector('[data-ty-banner]');
+      // Tembak 3 musuh: ketik kata musuh terdekat dari daftar target.
+      let destroyed = 0;
+      const deadline = Date.now() + 25_000;
+      while (destroyed < 3 && Date.now() < deadline) {
+        const words = await h.page.$$eval('[data-ty-targets] li', (els) =>
+          els.map((e) => e.dataset.word),
+        );
+        if (words.length) {
+          await h.page.keyboard.type(words[0]);
+          destroyed++;
+        }
+        await h.sleep(250);
+      }
+      expect(destroyed === 3, `musuh yang ditembak ${destroyed}`);
+      await h.page.waitForFunction(
+        () => Number(document.querySelector('[data-ty-score]').innerText.replace(/\D/g, '')) > 0,
+        { timeout: 5000 },
+      );
+      // Salah ketik: tidak ada musuh berawalan huruf ini yang dikunci.
+      await h.page.keyboard.type('qqq');
+      // Esc menjeda, Selesai mengakhiri.
+      await h.page.keyboard.press('Escape');
+      await h.page.waitForSelector('[data-ty-paused]');
+      await h.page.click('[data-ty-quit]');
+      await h.page.waitForSelector('[data-ty-result]');
+      expect(
+        Number(await h.text('[data-ty-destroyed]')) >= 3,
+        `hancur ${await h.text('[data-ty-destroyed]')}`,
+      );
+      expect((await h.text('[data-ty-acc]')) !== '100%', 'salah ketik tidak tercatat');
+      expect(Number(await h.text('[data-ty-wpm]')) > 0, 'KPM game 0');
+      expect(!!(await h.page.$('[data-ty-highscore]')), 'skor tertinggi pertama tidak ditandai');
+      expect(!!(await h.page.$('[data-ty-result] svg path')), 'grafik tidak tampil');
+      // Main lagi kembali ke permainan.
+      await h.page.click('[data-ty-again]');
+      await h.page.waitForSelector('[data-ty-score]');
+    },
+  },
+  {
+    name: 'tes mengetik klasik: mode kata, hasil, dan rekor',
+    path: '/tools/tes-kecepatan-mengetik',
+    async run(h) {
+      await h.page.click('[data-ty-tab="classic"]');
+      await h.page.waitForSelector('[data-ty-mode="words"]');
       await h.page.click('[data-ty-mode="words"]');
       await h.page.click('[data-ty-count="25"]');
       await h.page.click('[data-ty-lang="id"]');

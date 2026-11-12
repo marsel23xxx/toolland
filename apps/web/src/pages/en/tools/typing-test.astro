@@ -1,9 +1,9 @@
 ---
-import TypingTest from '../../../components/tools/TypingTest.vue';
+import TypingArena from '../../../components/tools/TypingArena.vue';
 import ToolPage from '../../../components/ui/ToolPage.astro';
 import { toolMessages } from '../../../i18n';
 ---
 
 <ToolPage slug="typing-test">
-  <TypingTest client:visible m={toolMessages('en', 'typing')} />
+  <TypingArena client:visible m={toolMessages('en', 'typing')} />
 </ToolPage>
