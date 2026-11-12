@@ -11,9 +11,11 @@ import { fill, pageLocale } from '../../lib/format';
 import type { TypingLang } from '../../lib/typing';
 import { MAX_EMP, SHIELDS, TypingGame, type GameEvent } from '../../lib/typing-game';
 import { GameRenderer } from '../../lib/typing-game-render';
+import { reportDate, reportSite, type ReportData } from '../../lib/typing-report';
 import { GameSound } from '../../lib/typing-sound';
 import { WORD_LISTS } from '../../lib/typing-words';
 import TypingChart from './TypingChart.vue';
+import TypingExport from './TypingExport.vue';
 
 const props = defineProps<{ m: Record<string, string>; fullscreen?: boolean }>();
 const m = props.m as ToolMessages<'typing'>;
@@ -306,6 +308,42 @@ const GRADE_STYLE: Record<string, string> = {
   C: 'bg-terakota text-white',
   D: 'bg-secang text-white',
 };
+/** Data kartu hasil untuk disimpan sebagai gambar atau PDF. */
+function buildReport(): ReportData {
+  const r = result.value!;
+  return {
+    title: m.reportTitle,
+    subtitle: [
+      m.reportGame,
+      lang.value === 'id' ? m.langId : m.langEn,
+      reportDate(pageLocale()),
+    ].join(' · '),
+    grade: r.grade,
+    gradeNote: gradeNote.value,
+    main: [
+      { label: m.wpm, value: String(r.wpm) },
+      { label: m.accuracy, value: `${r.accuracy}%` },
+    ],
+    stats: [
+      { label: m.score, value: r.score.toLocaleString() },
+      { label: m.waveReached, value: String(r.wave) },
+      { label: m.destroyed, value: String(r.destroyed) },
+      { label: m.raw, value: String(r.raw) },
+      { label: m.maxCombo, value: String(r.maxCombo) },
+      { label: m.errors, value: String(r.errors), tone: 'bad' },
+    ],
+    series: r.series,
+    raw: r.raw,
+    labels: {
+      chartTitle: m.chartTitle,
+      chartAvg: m.chartAvg,
+      errors: m.errors,
+      wpm: m.wpm,
+      footer: fill(m.reportFooter, { site: reportSite() }),
+    },
+  };
+}
+
 const gradeNote = computed(() => (result.value ? m[`grade${result.value.grade}` as 'gradeS'] : ''));
 const chips = 'btn px-3 py-1.5 text-sm';
 </script>
@@ -588,6 +626,7 @@ const chips = 'btn px-3 py-1.5 text-sm';
         </div>
       </div>
       <TypingChart :series="result.series" :raw="result.raw" :m="m" />
+      <TypingExport :build="buildReport" :m="m" />
     </section>
   </div>
 </template>

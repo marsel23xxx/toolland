@@ -136,14 +136,16 @@ async function context(urlPath) {
       await page.waitForSelector(`a[download="${name}"]`, { timeout: 60000 });
       return h.downloadVia(name, () => page.$eval(`a[download="${name}"]`, (a) => a.click()));
     },
-    /** Jalankan aksi yang memicu unduhan (misalnya klik tombol), lalu kembalikan isi file. */
+    /** Jalankan aksi yang memicu unduhan (misalnya klik tombol), lalu kembalikan isi file.
+     *  `name` boleh berupa RegExp untuk nama yang memuat waktu. */
     async downloadVia(name, action) {
       const before = new Set(fs.readdirSync(dlDir));
       await action();
       for (let i = 0; i < 150; i++) {
         const f = fs.readdirSync(dlDir).find((x) => !before.has(x) && !x.endsWith('.crdownload'));
         if (f) {
-          expect(f === name, `nama unduhan ${f}, seharusnya ${name}`);
+          const ok = name instanceof RegExp ? name.test(f) : f === name;
+          expect(ok, `nama unduhan ${f}, seharusnya ${name}`);
           return fs.readFileSync(path.join(dlDir, f));
         }
         await sleep(100);

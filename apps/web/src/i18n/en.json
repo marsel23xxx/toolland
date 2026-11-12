@@ -936,5 +936,17 @@
   "typing.playAgain": "Play again (Enter)",
   "typing.waveReached": "Wave",
   "typing.destroyed": "Enemies destroyed",
+  "typing.savePng": "Save image",
+  "typing.savePdf": "Save PDF",
+  "typing.reportBusy": "Preparing…",
+  "typing.reportError": "Could not create the file. Please try again.",
+  "typing.reportFile": "typing-test-result",
+  "typing.reportTitle": "Typing Test Result",
+  "typing.reportGame": "Word Squadron game",
+  "typing.reportFooter": "Made with the Typing Test at {site}",
+  "typing.record": "Record",
+  "typing.score": "Score",
+  "typing.duration": "Duration",
+  "typing.wordsN": "{n} words",
   "typing.gameHint": "Click the arena, then start typing. A physical keyboard works best."
 }

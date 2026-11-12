@@ -7,6 +7,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import type { ToolMessages } from '../../i18n';
 import TypingChart from './TypingChart.vue';
+import TypingExport from './TypingExport.vue';
+import { reportDate, reportSite, type ReportData } from '../../lib/typing-report';
 import { fill, pageLocale } from '../../lib/format';
 import {
   TIME_OPTIONS,
@@ -356,6 +358,49 @@ const GRADE_STYLE: Record<string, string> = {
   C: 'bg-terakota text-white',
   D: 'bg-secang text-white',
 };
+/** Data kartu hasil untuk disimpan sebagai gambar atau PDF. */
+function buildReport(): ReportData {
+  const r = result.value!;
+  return {
+    title: m.reportTitle,
+    subtitle: [
+      m.tabClassic,
+      mode.value === 'time'
+        ? `${m.modeTime} ${fill(m.seconds, { n: timeSec.value })}`
+        : fill(m.wordsN, { n: wordCount.value }),
+      lang.value === 'id' ? m.langId : m.langEn,
+      reportDate(pageLocale()),
+    ].join(' · '),
+    grade: r.grade,
+    gradeNote: gradeNote.value,
+    main: [
+      { label: m.wpm, value: String(r.wpm) },
+      { label: m.accuracy, value: `${r.accuracy}%` },
+    ],
+    stats: [
+      { label: m.raw, value: String(r.raw) },
+      { label: m.consistency, value: `${r.consistency}%` },
+      { label: m.duration, value: fill(m.seconds, { n: Math.round(r.seconds) }) },
+      { label: m.maxCombo, value: String(maxCombo.value) },
+      { label: m.errors, value: String(r.errors), tone: 'bad' },
+      {
+        label: newBest.value ? m.newBest : m.record,
+        value: `${Math.max(best.value, r.wpm)} ${m.wpm}`,
+        tone: newBest.value ? 'brand' : undefined,
+      },
+    ],
+    series: r.series,
+    raw: r.raw,
+    labels: {
+      chartTitle: m.chartTitle,
+      chartAvg: m.chartAvg,
+      errors: m.errors,
+      wpm: m.wpm,
+      footer: fill(m.reportFooter, { site: reportSite() }),
+    },
+  };
+}
+
 const gradeNote = computed(() => (result.value ? m[`grade${result.value.grade}` as 'gradeS'] : ''));
 const best = computed(() => store.pb?.[settingsKey.value] ?? 0);
 const history = computed(() => (store.runs?.[settingsKey.value] ?? []).slice(-10));
@@ -695,6 +740,7 @@ const chips = 'btn px-3 py-1.5 text-sm';
         <button type="button" class="btn btn-primary" data-ty-again @click="again">
           {{ m.again }}
         </button>
+        <TypingExport :build="buildReport" :m="m" />
       </div>
     </section>
   </div>

@@ -75,6 +75,15 @@ export const tests = [
       expect(Number(await h.text('[data-ty-wpm]')) > 0, 'KPM game 0');
       expect(!!(await h.page.$('[data-ty-highscore]')), 'skor tertinggi pertama tidak ditandai');
       expect(!!(await h.page.$('[data-ty-result] svg path')), 'grafik tidak tampil');
+      // Simpan hasil sebagai gambar dan PDF.
+      const png = await h.downloadVia(/^hasil-tes-mengetik-\d{8}-\d{4}\.png$/, () =>
+        h.page.click('[data-ty-save="png"]'),
+      );
+      expect(png.subarray(1, 4).toString() === 'PNG' && png.length > 20_000, `PNG ${png.length} B`);
+      const pdf = await h.downloadVia(/^hasil-tes-mengetik-\d{8}-\d{4}\.pdf$/, () =>
+        h.page.click('[data-ty-save="pdf"]'),
+      );
+      expect(pdf.subarray(0, 5).toString() === '%PDF-', 'bukan PDF');
       // Main lagi kembali ke permainan.
       await h.page.click('[data-ty-again]');
       await h.page.waitForSelector('[data-ty-score]');
@@ -128,6 +137,10 @@ export const tests = [
       expect(['S', 'A', 'B', 'C', 'D'].includes(await h.text('[data-ty-grade]')), 'nilai huruf');
       // Akurasi 100% dengan tempo e2e seharusnya memecahkan rekor pertama.
       expect(!!(await h.page.$('[data-ty-best]')), 'lencana rekor baru tidak tampil');
+      const card = await h.downloadVia(/^hasil-tes-mengetik-\d{8}-\d{4}\.png$/, () =>
+        h.page.click('[data-ty-save="png"]'),
+      );
+      expect(card.subarray(1, 4).toString() === 'PNG', 'kartu hasil klasik bukan PNG');
       expect(!!(await h.page.$('[data-ty-result] svg path')), 'grafik tidak tampil');
       // Ulangi: kembali ke arena dengan kata baru.
       await h.page.click('[data-ty-again]');

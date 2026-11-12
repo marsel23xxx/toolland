@@ -936,5 +936,17 @@
   "typing.playAgain": "Main lagi (Enter)",
   "typing.waveReached": "Gelombang",
   "typing.destroyed": "Musuh hancur",
+  "typing.savePng": "Simpan gambar",
+  "typing.savePdf": "Simpan PDF",
+  "typing.reportBusy": "Menyiapkan…",
+  "typing.reportError": "Gagal membuat file. Coba lagi.",
+  "typing.reportFile": "hasil-tes-mengetik",
+  "typing.reportTitle": "Hasil Tes Mengetik",
+  "typing.reportGame": "Game Laskar Kata",
+  "typing.reportFooter": "Dibuat dengan Tes Mengetik di {site}",
+  "typing.record": "Rekor",
+  "typing.score": "Skor",
+  "typing.duration": "Durasi",
+  "typing.wordsN": "{n} kata",
   "typing.gameHint": "Klik arena lalu mulai mengetik. Butuh keyboard fisik untuk hasil terbaik."
 }
