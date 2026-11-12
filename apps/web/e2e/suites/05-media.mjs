@@ -55,6 +55,152 @@ export const tests = [
     },
   },
   {
+    name: 'konversi audio: voice note OPUS ke MP3, FLAC tanpa pilihan kualitas',
+    path: '/tools/konversi-audio',
+    async run(h) {
+      await ready(h);
+      await h.upload('suara.opus');
+      await h.page.waitForSelector('audio');
+      expect(await h.page.$('#ac-q'), 'pilihan kualitas MP3 tidak ada');
+      await h.click('Konversi audio');
+      const [c] = await h.results(1, 120000);
+      expect(c.includes('suara.mp3'), c);
+      const mp3 = await h.download('suara.mp3');
+      // MP3 diawali tag ID3 atau frame sync 0xFFEx.
+      const id3 = mp3.subarray(0, 3).toString('latin1') === 'ID3';
+      expect(id3 || (mp3[0] === 0xff && (mp3[1] & 0xe0) === 0xe0), 'bukan MP3');
+      await h.page.select('#ac-fmt', 'flac');
+      expect(!(await h.page.$('#ac-q')), 'FLAC tidak perlu pilihan kualitas');
+      await h.click('Konversi audio');
+      await h.page.waitForFunction(() => document.body.innerText.includes('suara.flac'), {
+        timeout: 120000,
+      });
+      const flac = await h.download('suara.flac');
+      expect(flac.subarray(0, 4).toString('latin1') === 'fLaC', 'bukan FLAC');
+      return [c];
+    },
+  },
+  {
+    name: 'konversi video: MOV HEVC (iPhone) diubah ke MP4 H.264',
+    path: '/tools/konversi-video',
+    async run(h) {
+      await ready(h);
+      await h.upload('klip.mov');
+      await h.page.waitForSelector('[data-vc-mode]');
+      const mode = await h.page.$eval('[data-vc-mode]', (e) => e.dataset.vcMode);
+      expect(mode === 'encode', `HEVC harus di-encode ulang, dapat ${mode}`);
+      expect(await h.bodyHas('HEVC'), 'codec tidak ditampilkan');
+      await h.click('Konversi video');
+      const [c] = await h.results(1, 120000);
+      expect(c.includes('klip.mp4'), c);
+      const mp4 = await h.download('klip.mp4');
+      expect(mp4.subarray(4, 8).toString('latin1') === 'ftyp', 'bukan MP4');
+      // Kotak sampel H.264 bernama avc1; HEVC bernama hvc1/hev1.
+      const s = mp4.toString('latin1');
+      expect(s.includes('avc1') && !s.includes('hvc1'), 'hasil bukan H.264');
+      return [c];
+    },
+  },
+  {
+    name: 'konversi video: MP4 H.264 cukup disalin, WebM di-encode',
+    path: '/tools/konversi-video',
+    async run(h) {
+      await ready(h);
+      await h.upload('klip.mp4');
+      await h.page.waitForSelector('[data-vc-mode="copy"]');
+      await h.click('Konversi video');
+      const [c] = await h.results(1, 60000);
+      expect(c.includes('klip-konversi.mp4'), c);
+      const mp4 = await h.download('klip-konversi.mp4');
+      expect(mp4.subarray(4, 8).toString('latin1') === 'ftyp', 'bukan MP4');
+      await h.page.select('#vcv-fmt', 'webm');
+      await h.page.waitForSelector('[data-vc-mode="encode"]');
+      await h.click('Konversi video');
+      await h.page.waitForFunction(() => document.body.innerText.includes('klip.webm'), {
+        timeout: 120000,
+      });
+      const webm = await h.download('klip.webm');
+      expect(webm.readUInt32BE(0) === 0x1a45dfa3, 'bukan WebM');
+      return [c];
+    },
+  },
+  {
+    name: 'rekam layar: suara layar + mikrofon, jeda, selesai, unduh file yang bisa digeser',
+    path: '/tools/rekam-layar',
+    async run(h) {
+      const { page } = h;
+      await page.waitForSelector('[data-rec-setup]');
+      // Layar tiruan: canvas beranimasi + nada sebagai "suara tab" (dialog pilih layar tidak bisa
+      // diklik di Chrome uji).
+      await page.evaluate(() => {
+        navigator.mediaDevices.getDisplayMedia = async () => {
+          const c = document.createElement('canvas');
+          c.width = 641; // ganjil, seperti jendela yang diubah ukurannya
+          c.height = 360;
+          const ctx = c.getContext('2d');
+          let f = 0;
+          setInterval(() => {
+            ctx.fillStyle = `hsl(${f++ * 7} 70% 50%)`;
+            ctx.fillRect(0, 0, c.width, c.height);
+          }, 33);
+          const ac = new AudioContext();
+          const osc = ac.createOscillator();
+          const dest = ac.createMediaStreamDestination();
+          osc.connect(dest);
+          osc.start();
+          return new MediaStream([
+            ...c.captureStream(30).getVideoTracks(),
+            ...dest.stream.getAudioTracks(),
+          ]);
+        };
+      });
+      await page.click('[data-rec-countdown]');
+      await page.click('[data-rec-mic]');
+      await page.click('[data-rec-start]');
+      await page.waitForSelector('[data-rec-state="recording"]', { timeout: 10000 });
+      await h.sleep(1500);
+      await page.click('[data-rec-pause]');
+      await page.waitForSelector('[data-rec-state="paused"]');
+      const t1 = await h.text('[data-rec-time]');
+      await h.sleep(1200);
+      expect((await h.text('[data-rec-time]')) === t1, 'waktu tetap berjalan saat dijeda');
+      await page.click('[data-rec-pause]');
+      await h.sleep(1000);
+      await page.click('[data-rec-stop]');
+      await page.waitForSelector('[data-rec-preview]', { timeout: 30000 });
+      expect(!(await h.bodyHas('Mikrofon tidak bisa dipakai')), 'mikrofon uji gagal');
+      const dur = await page.$eval('[data-rec-preview]', async (v) => {
+        if (v.readyState < 1) await new Promise((r) => v.addEventListener('loadedmetadata', r));
+        return v.duration;
+      });
+      expect(Number.isFinite(dur) && dur > 1.5 && dur < 6, `durasi pratinjau ${dur}`);
+      const [c] = await h.results(1);
+      const name = /rekaman-layar-\d{4}-\d{2}-\d{2}-\d{4}\.(mp4|webm)/.exec(c)?.[0];
+      expect(name, c);
+      const file = await h.download(name);
+      if (name.endsWith('.mp4')) {
+        expect(file.subarray(4, 8).toString('latin1') === 'ftyp', 'bukan MP4');
+        // Sudah dirapikan: MP4 biasa (moov di depan), bukan potongan mentah MediaRecorder.
+        const s = file.toString('latin1');
+        expect(!s.includes('moof') && s.indexOf('moov') < s.indexOf('mdat'), 'MP4 belum dirapikan');
+      } else expect(file.readUInt32BE(0) === 0x1a45dfa3, 'bukan WebM');
+      return [c];
+    },
+  },
+  {
+    name: 'rekam layar: browser tanpa getDisplayMedia (HP) diberi keterangan',
+    path: '/tools/rekam-layar',
+    async run(h) {
+      const { page } = h;
+      await page.evaluateOnNewDocument(() => {
+        delete MediaDevices.prototype.getDisplayMedia;
+      });
+      await page.reload();
+      await page.waitForSelector('[data-rec-unsupported]');
+      expect(!(await page.$('[data-rec-start]')), 'tombol rekam tetap muncul');
+    },
+  },
+  {
     name: 'edit video: di HP hanya keterangan, editor tidak dibuka',
     path: '/tools/edit-video',
     async run(h) {

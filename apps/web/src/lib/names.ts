@@ -22,6 +22,8 @@ const NAMES = {
     zipPdf: 'hasil-pdf',
     zipDocx: 'hasil-docx',
     image: 'gambar',
+    converted: '-konversi',
+    screenRecording: 'rekaman-layar',
   },
   en: {
     small: '-small',
@@ -43,6 +45,8 @@ const NAMES = {
     zipPdf: 'pdf-files',
     zipDocx: 'docx-files',
     image: 'image',
+    converted: '-converted',
+    screenRecording: 'screen-recording',
   },
 } as const;
 

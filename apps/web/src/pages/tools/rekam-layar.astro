@@ -1,0 +1,14 @@
+---
+import ScreenRecorder from '../../components/tools/media/ScreenRecorder.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { messages } from '../../i18n';
+---
+
+<ToolPage slug="rekam-layar">
+  <ScreenRecorder
+    client:visible
+    t={messages('id', 'recorder')}
+    files={messages('id', 'files')}
+    donate={messages('id', 'donate')}
+  />
+</ToolPage>
