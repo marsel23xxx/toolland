@@ -7,8 +7,14 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import type { ToolMessages } from '../../i18n';
 import TypingChart from './TypingChart.vue';
-import TypingExport from './TypingExport.vue';
-import { reportDate, reportSite, type ReportData } from '../../lib/typing-report';
+import ReportButtons from './ReportButtons.vue';
+import {
+  reportDate,
+  reportPdf,
+  reportPng,
+  reportSite,
+  type ReportData,
+} from '../../lib/typing-report';
 import { fill, pageLocale } from '../../lib/format';
 import {
   TIME_OPTIONS,
@@ -740,7 +746,12 @@ const chips = 'btn px-3 py-1.5 text-sm';
         <button type="button" class="btn btn-primary" data-ty-again @click="again">
           {{ m.again }}
         </button>
-        <TypingExport :build="buildReport" :m="m" />
+        <ReportButtons
+          :png="() => reportPng(buildReport())"
+          :pdf="() => reportPdf(buildReport())"
+          :file="m.reportFile"
+          :m="m"
+        />
       </div>
     </section>
   </div>

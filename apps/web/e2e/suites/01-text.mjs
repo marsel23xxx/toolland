@@ -77,11 +77,11 @@ export const tests = [
       expect(!!(await h.page.$('[data-ty-result] svg path')), 'grafik tidak tampil');
       // Simpan hasil sebagai gambar dan PDF.
       const png = await h.downloadVia(/^hasil-tes-mengetik-\d{8}-\d{4}\.png$/, () =>
-        h.page.click('[data-ty-save="png"]'),
+        h.page.click('[data-save="png"]'),
       );
       expect(png.subarray(1, 4).toString() === 'PNG' && png.length > 20_000, `PNG ${png.length} B`);
       const pdf = await h.downloadVia(/^hasil-tes-mengetik-\d{8}-\d{4}\.pdf$/, () =>
-        h.page.click('[data-ty-save="pdf"]'),
+        h.page.click('[data-save="pdf"]'),
       );
       expect(pdf.subarray(0, 5).toString() === '%PDF-', 'bukan PDF');
       // Main lagi kembali ke permainan.
@@ -116,6 +116,57 @@ export const tests = [
     },
   },
   {
+    name: 'tes IQ: 30 soal acak, konfirmasi selesai, hasil, pembahasan, simpan',
+    path: '/tools/tes-iq',
+    async run(h) {
+      const { page } = h;
+      await page.click('[data-iq-start]');
+      await page.waitForSelector('[data-iq-options]');
+      expect(
+        (await h.text('[data-iq-timer]')).includes('20:00') ||
+          (await h.text('[data-iq-timer]')).includes('19:5'),
+        'timer tidak mulai dari 20 menit',
+      );
+      const first = await page.$eval('[data-iq-test]', (e) => e.innerHTML);
+      // Jawab 20 soal dengan tombol angka (lanjut otomatis), sisanya dibiarkan kosong.
+      for (let i = 0; i < 20; i++) {
+        await page.keyboard.press(String((i % 5) + 1));
+        await h.sleep(380);
+      }
+      expect(
+        (await h.text('[data-iq-progress]')).includes('21'),
+        await h.text('[data-iq-progress]'),
+      );
+      // Selesai dengan soal kosong meminta konfirmasi dulu.
+      await page.click('[data-iq-finish]');
+      await page.waitForSelector('[data-iq-confirm]');
+      await page.click('[data-iq-confirm-yes]');
+      await page.waitForSelector('[data-iq-result]');
+      const iq = Number(await h.text('[data-iq-score]'));
+      expect(iq >= 70 && iq <= 145, `IQ ${iq}`);
+      expect(
+        (await h.text('[data-iq-correct]')).endsWith('/30'),
+        await h.text('[data-iq-correct]'),
+      );
+      await page.click('[data-iq-review] summary');
+      const items = await page.$$eval('[data-iq-review] li', (els) => els.length);
+      expect(items === 30, `pembahasan ${items}`);
+      const png = await h.downloadVia(/^hasil-tes-iq-\d{8}-\d{4}\.png$/, () =>
+        page.click('[data-save="png"]'),
+      );
+      expect(png.subarray(1, 4).toString() === 'PNG', 'kartu IQ bukan PNG');
+      const pdf = await h.downloadVia(/^hasil-tes-iq-\d{8}-\d{4}\.pdf$/, () =>
+        page.click('[data-save="pdf"]'),
+      );
+      expect(pdf.subarray(0, 5).toString() === '%PDF-', 'kartu IQ bukan PDF');
+      // Tes lagi memberi soal baru.
+      await page.click('[data-iq-again]');
+      await page.waitForSelector('[data-iq-options]');
+      const second = await page.$eval('[data-iq-test]', (e) => e.innerHTML);
+      expect(first !== second, 'soal tidak berubah saat tes diulang');
+    },
+  },
+  {
     name: 'tes mengetik klasik: mode kata, hasil, dan rekor',
     path: '/tools/tes-kecepatan-mengetik',
     async run(h) {
@@ -138,7 +189,7 @@ export const tests = [
       // Akurasi 100% dengan tempo e2e seharusnya memecahkan rekor pertama.
       expect(!!(await h.page.$('[data-ty-best]')), 'lencana rekor baru tidak tampil');
       const card = await h.downloadVia(/^hasil-tes-mengetik-\d{8}-\d{4}\.png$/, () =>
-        h.page.click('[data-ty-save="png"]'),
+        h.page.click('[data-save="png"]'),
       );
       expect(card.subarray(1, 4).toString() === 'PNG', 'kartu hasil klasik bukan PNG');
       expect(!!(await h.page.$('[data-ty-result] svg path')), 'grafik tidak tampil');

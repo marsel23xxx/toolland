@@ -11,11 +11,17 @@ import { fill, pageLocale } from '../../lib/format';
 import type { TypingLang } from '../../lib/typing';
 import { MAX_EMP, SHIELDS, TypingGame, type GameEvent } from '../../lib/typing-game';
 import { GameRenderer } from '../../lib/typing-game-render';
-import { reportDate, reportSite, type ReportData } from '../../lib/typing-report';
+import {
+  reportDate,
+  reportPdf,
+  reportPng,
+  reportSite,
+  type ReportData,
+} from '../../lib/typing-report';
 import { GameSound } from '../../lib/typing-sound';
 import { WORD_LISTS } from '../../lib/typing-words';
 import TypingChart from './TypingChart.vue';
-import TypingExport from './TypingExport.vue';
+import ReportButtons from './ReportButtons.vue';
 
 const props = defineProps<{ m: Record<string, string>; fullscreen?: boolean }>();
 const m = props.m as ToolMessages<'typing'>;
@@ -488,12 +494,6 @@ const chips = 'btn px-3 py-1.5 text-sm';
               {{ muted ? '🔇' : '🔊' }} {{ m.sound }}
             </button>
           </div>
-          <ul class="grid max-w-lg gap-1 text-left text-xs opacity-85 sm:grid-cols-2 sm:gap-x-6">
-            <li>⌨ {{ m.howType }}</li>
-            <li>⚡ {{ m.howEmp }}</li>
-            <li>⌫ {{ m.howRelease }}</li>
-            <li>⏸ {{ m.howPause }}</li>
-          </ul>
           <button
             type="button"
             class="btn border-[#eab54d] bg-[#eab54d] px-6 py-2.5 text-base text-[#1b1814] hover:bg-[#f3c565]"
@@ -626,7 +626,12 @@ const chips = 'btn px-3 py-1.5 text-sm';
         </div>
       </div>
       <TypingChart :series="result.series" :raw="result.raw" :m="m" />
-      <TypingExport :build="buildReport" :m="m" />
+      <ReportButtons
+        :png="() => reportPng(buildReport())"
+        :pdf="() => reportPdf(buildReport())"
+        :file="m.reportFile"
+        :m="m"
+      />
     </section>
   </div>
 </template>

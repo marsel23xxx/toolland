@@ -1,0 +1,9 @@
+---
+import IqTest from '../../../components/tools/IqTest.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../../i18n';
+---
+
+<ToolPage slug="iq-test">
+  <IqTest client:visible m={toolMessages('en', 'iq')} />
+</ToolPage>

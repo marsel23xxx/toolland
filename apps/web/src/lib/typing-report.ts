@@ -26,7 +26,7 @@ export interface ReportData {
   labels: { chartTitle: string; chartAvg: string; errors: string; wpm: string; footer: string };
 }
 
-const C = {
+export const C = {
   paper: '#f3eee4',
   card: '#faf7f1',
   ink: '#1b1814',
@@ -44,13 +44,14 @@ const GRADE_BG: Record<Grade, string> = {
   C: '#a8461f',
   D: '#9a2e3f',
 };
-const SANS = "'Plus Jakarta Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif";
-const SERIF = "'Fraunces', Georgia, 'Times New Roman', serif";
+export const SANS =
+  "'Plus Jakarta Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif";
+export const SERIF = "'Fraunces', Georgia, 'Times New Roman', serif";
 
 export const REPORT_W = 1200;
 export const REPORT_H = 860;
 
-async function loadFonts() {
+export async function loadFonts() {
   if (!('fonts' in document)) return;
   await Promise.all(
     [`600 48px ${SERIF}`, `700 20px ${SANS}`, `500 16px ${SANS}`].map((f) =>
@@ -59,7 +60,7 @@ async function loadFonts() {
   );
 }
 
-function roundRect(
+export function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -77,7 +78,7 @@ function roundRect(
 }
 
 /** Pecah teks menjadi baris yang muat di lebar tertentu. */
-function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[] {
+export function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[] {
   const lines: string[] = [];
   let line = '';
   for (const word of text.split(/\s+/)) {
@@ -92,7 +93,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[
 }
 
 /** Perkecil huruf sampai teks muat di lebar tertentu. */
-function fit(
+export function fit(
   ctx: CanvasRenderingContext2D,
   text: string,
   font: (px: number) => string,
@@ -351,7 +352,7 @@ export async function renderReport(d: ReportData, scale = 2): Promise<HTMLCanvas
   return canvas;
 }
 
-function toBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+export function toBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('gagal membuat PNG'))), 'image/png'),
   );
@@ -363,17 +364,28 @@ export async function reportPng(d: ReportData): Promise<Blob> {
 
 /** PDF A4 mendatar berisi kartu hasil, siap dicetak. */
 export async function reportPdf(d: ReportData): Promise<Blob> {
-  const [{ PDFDocument }, png] = await Promise.all([import('pdf-lib'), reportPng(d)]);
+  return pngToPdf(await reportPng(d), REPORT_W, REPORT_H, d.title, d.subtitle);
+}
+
+/** Bungkus gambar PNG kartu (w x h) ke satu halaman PDF A4 mendatar. */
+export async function pngToPdf(
+  png: Blob,
+  w0: number,
+  h0: number,
+  title: string,
+  subject: string,
+): Promise<Blob> {
+  const { PDFDocument } = await import('pdf-lib');
   const pdf = await PDFDocument.create();
-  pdf.setTitle(d.title);
-  pdf.setSubject(d.subtitle);
+  pdf.setTitle(title);
+  pdf.setSubject(subject);
   pdf.setCreator('Toolland');
   const img = await pdf.embedPng(await png.arrayBuffer());
   const page = pdf.addPage([841.89, 595.28]);
   const m = 28;
-  const k = Math.min((page.getWidth() - m * 2) / REPORT_W, (page.getHeight() - m * 2) / REPORT_H);
-  const w = REPORT_W * k;
-  const h = REPORT_H * k;
+  const k = Math.min((page.getWidth() - m * 2) / w0, (page.getHeight() - m * 2) / h0);
+  const w = w0 * k;
+  const h = h0 * k;
   page.drawImage(img, {
     x: (page.getWidth() - w) / 2,
     y: (page.getHeight() - h) / 2,
