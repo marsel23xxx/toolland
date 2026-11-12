@@ -17,11 +17,11 @@ keywords:
   ]
 howTo:
   - 'Paste text or upload a file (TXT, Word, ODT, PDF) on the left and right.'
-  - 'Use the Differences tab to see changes, or the Similarity Check tab to measure how similar two documents are.'
-  - 'In Differences, green was added and red was removed. In Similarity Check, matching passages are highlighted in both documents.'
+  - 'The similarity percentage appears right away. Under Show, pick Matching parts, or a diff by line, word, or character.'
+  - 'Matching parts highlights identical passages in both texts. In the diff views, green was added and red was removed.'
 faq:
   - q: 'How do I check two documents for plagiarism?'
-    a: 'Open the Similarity Check tab and paste or upload two documents. The tool calculates the share of identical content and highlights matching passages in both, even if paragraphs were reordered or capitalisation and punctuation changed.'
+    a: 'Paste or upload two documents, then choose Show: Matching parts. The tool calculates the share of identical content and highlights matching passages in both, even if paragraphs were reordered or capitalisation and punctuation changed.'
   - q: 'Is this the same as Turnitin?'
     a: 'No. It compares two documents with each other, such as two students’ assignments, not with the internet or a journal database. It is ideal for spotting copied work or comparing a draft with its source.'
   - q: 'Is my text sent to a server?'
@@ -41,7 +41,7 @@ Revisions to a thesis, contract changes, or two versions of a config file: inste
 
 ## Plagiarism check between documents
 
-The **Similarity Check** tab looks for identical runs of words in both documents (at least 5 in a
+As soon as both texts are filled in, the tool looks for identical runs of words in both documents (at least 5 in a
 row by default), ignoring capitalisation, punctuation, and paragraph order. You get an overall
 similarity percentage, the share of each document that matches, and a list of matching passages.
 Click a highlighted passage to jump to its match in the other document.

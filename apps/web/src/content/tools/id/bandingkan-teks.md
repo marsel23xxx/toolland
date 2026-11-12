@@ -17,11 +17,11 @@ keywords:
   ]
 howTo:
   - 'Tempel teks atau unggah file (TXT, Word, ODT, PDF) di kolom kiri dan kanan.'
-  - 'Pilih tab Perbedaan untuk melihat perubahan, atau tab Cek Kemiripan untuk menghitung persentase kemiripan dua dokumen.'
-  - 'Di Perbedaan, hijau berarti ditambahkan dan merah dihapus. Di Cek Kemiripan, bagian yang sama disorot di kedua dokumen.'
+  - 'Persentase kemiripan kedua teks langsung tampil. Pilih Tampilkan: Bagian sama, atau perbedaan per baris, kata, atau karakter.'
+  - 'Di Bagian sama, kalimat yang sama disorot di kedua teks. Di tampilan perbedaan, hijau berarti ditambahkan dan merah dihapus.'
 faq:
   - q: 'Bagaimana cara cek plagiarisme dua dokumen?'
-    a: 'Buka tab Cek Kemiripan, lalu tempel atau unggah dua dokumen. Tool menghitung persentase isi yang sama dan menyorot kalimat yang sama di kedua dokumen, walaupun urutan paragrafnya dipindah atau huruf besar dan tanda bacanya diubah.'
+    a: 'Tempel atau unggah dua dokumen, lalu pilih Tampilkan: Bagian sama. Tool menghitung persentase isi yang sama dan menyorot kalimat yang sama di kedua dokumen, walaupun urutan paragrafnya dipindah atau huruf besar dan tanda bacanya diubah.'
   - q: 'Apakah cek kemiripan ini sama dengan Turnitin?'
     a: 'Tidak. Tool ini membandingkan dua dokumen satu sama lain, misalnya tugas dua siswa, bukan dengan internet atau database jurnal. Cocok untuk mencari siswa yang saling mencontek atau membandingkan naskah dengan sumbernya.'
   - q: 'Apakah teks saya dikirim ke server?'
@@ -42,7 +42,7 @@ ulang baris demi baris, tempel kedua versi dan lihat langsung bagian yang ditamb
 
 ## Cek plagiarisme antar dokumen
 
-Tab **Cek Kemiripan** mencari rangkaian kata yang sama persis di dua dokumen (bawaannya minimal 5
+Begitu kedua teks terisi, tool mencari rangkaian kata yang sama persis di dua dokumen (bawaannya minimal 5
 kata berturut-turut), tanpa memedulikan huruf besar, tanda baca, atau urutan paragraf. Hasilnya
 berupa persentase kemiripan, porsi tiap dokumen yang sama, dan daftar bagian yang sama. Klik bagian
 yang disorot untuk melihat pasangannya di dokumen lain.

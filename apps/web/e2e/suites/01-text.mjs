@@ -256,7 +256,7 @@ export const tests = [
       await h.sleep(300);
       let t = await h.text('main');
       expect(/2 ditambah · 1 dihapus/.test(t), t.slice(0, 400));
-      await h.click('Kata');
+      await h.page.click('[data-df-view="words"]');
       await h.sleep(300);
       const ins = await h.page.$$eval('ins', (e) => e.map((x) => x.textContent.trim()));
       expect(ins.includes('DUA'), JSON.stringify(ins));
@@ -277,8 +277,7 @@ export const tests = [
         document.querySelector('#df-b').value.includes('Surat uji Toolland'),
       );
       expect((await h.text('[data-df-meta="b"]')).includes('surat.docx'), 'nama file tidak tampil');
-      // Tab Cek Kemiripan: PDF di kiri, teks yang sebagian sama di kanan.
-      await page.click('[data-df-tab="similar"]');
+      // Kemiripan: PDF di kiri, teks yang sebagian sama di kanan.
       await (await page.$('[data-df-file="a"]')).uploadFile(h.fixture('teks.pdf'));
       await page.waitForFunction(() => document.querySelector('#df-a').value.includes('halaman 4'));
       await h.type(
@@ -286,6 +285,8 @@ export const tests = [
         'Ini kalimat lain. DOKUMEN UJI, halaman 2! Dokumen uji - halaman 3 selesai.',
       );
       await page.waitForSelector('[data-sim-overall]');
+      await page.click('[data-df-view="similar"]');
+      await page.waitForSelector('[data-sim-panel="a"]');
       const overall = parseFloat((await h.text('[data-sim-overall]')).replace(',', '.'));
       expect(overall > 30 && overall < 100, `kemiripan ${overall}`);
       const marksA = await page.$$eval('[data-sim-panel="a"] mark', (e) => e.length);
@@ -300,11 +301,11 @@ export const tests = [
         (await page.$$('[data-sim-passage]')).length >= 1,
         'mode longgar kehilangan kecocokan',
       );
-      // Tab diingat setelah halaman dimuat ulang.
+      // Pilihan tampilan diingat setelah halaman dimuat ulang.
       await page.reload({ waitUntil: 'networkidle0' });
       await page.waitForFunction(
         () =>
-          document.querySelector('[data-df-tab="similar"]')?.getAttribute('aria-selected') ===
+          document.querySelector('[data-df-view="similar"]')?.getAttribute('aria-pressed') ===
           'true',
       );
     },

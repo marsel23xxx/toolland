@@ -1,9 +1,8 @@
 <script setup lang="ts">
 /**
- * Bandingkan Teks: dua mode dalam satu tool.
- * - Perbedaan: diff per baris, kata, atau karakter.
- * - Cek kemiripan: persentase kemiripan dua dokumen dan bagian yang sama (deteksi plagiarisme
- *   antar dokumen), termasuk kalimat yang urutannya dipindah.
+ * Bandingkan Teks: satu alur untuk dua kebutuhan. Setelah kedua teks diisi, ringkasan kemiripan
+ * (deteksi plagiarisme antar dokumen) selalu tampil, lalu pengguna memilih satu tampilan:
+ * bagian yang sama, atau perbedaan per baris, kata, atau karakter.
  * Teks bisa ditempel atau diambil dari file (TXT, DOCX, ODT, PDF). Semua berjalan di browser.
  */
 import type { ChangeObject } from 'diff';
@@ -17,20 +16,22 @@ import { TEXT_ACCEPT } from '../../lib/text-extract';
 const props = defineProps<{ m: Record<string, string> }>();
 const m = props.m as ToolMessages<'diff'>;
 
-type Tab = 'diff' | 'similar';
-const TAB_KEY = 'toolland-diff-tab';
-const tab = ref<Tab>('diff');
-function selectTab(t: Tab) {
-  tab.value = t;
+type View = 'similar' | 'lines' | 'words' | 'chars';
+const VIEWS: View[] = ['similar', 'lines', 'words', 'chars'];
+const VIEW_KEY = 'toolland-diff-view';
+const view = ref<View>('lines');
+function selectView(v: View) {
+  view.value = v;
   try {
-    localStorage.setItem(TAB_KEY, t);
+    localStorage.setItem(VIEW_KEY, v);
   } catch {
     // Penyimpanan tidak tersedia.
   }
 }
 onMounted(() => {
   try {
-    if (localStorage.getItem(TAB_KEY) === 'similar') tab.value = 'similar';
+    const v = localStorage.getItem(VIEW_KEY) as View | null;
+    if (v && VIEWS.includes(v)) view.value = v;
   } catch {
     // Abaikan.
   }
@@ -127,7 +128,7 @@ async function compare() {
 }
 
 const compareSoon = debounce(() => {
-  if (tab.value === 'diff') void compare();
+  if (view.value !== 'similar') void compare();
 }, 250);
 watch([original, changed], compareSoon);
 watch(mode, compare);
@@ -171,12 +172,15 @@ function runSimilarity() {
   }
   sim.value = compareTexts(original.value, changed.value, k.value);
 }
-const similaritySoon = debounce(() => {
-  if (tab.value === 'similar') runSimilarity();
-}, 300);
+// Kemiripan selalu dihitung karena ringkasannya tampil di semua tampilan.
+const similaritySoon = debounce(runSimilarity, 300);
 watch([original, changed], similaritySoon);
 watch(k, runSimilarity);
-watch(tab, (t) => (t === 'similar' ? runSimilarity() : void compare()));
+watch(view, (v) => {
+  if (v === 'similar') return;
+  if (mode.value === v) void compare();
+  else mode.value = v;
+});
 
 const level = computed(() => similarityLevel(sim.value?.overall ?? 0));
 const LEVEL_STYLE = {
@@ -221,40 +225,13 @@ const snippet = (s: string) => (s.length > 180 ? `${s.slice(0, 180)}…` : s);
 
 <template>
   <div class="space-y-4">
-    <div role="tablist" :aria-label="m.tabsLabel" class="flex gap-1.5 border-b border-rule">
-      <button
-        v-for="t in ['diff', 'similar'] as const"
-        :key="t"
-        type="button"
-        role="tab"
-        :aria-selected="tab === t"
-        class="-mb-px border-b-2 px-3 py-2 text-sm font-semibold transition-colors"
-        :class="
-          tab === t
-            ? 'border-brand-600 text-ink dark:border-brand-400'
-            : 'border-transparent text-ink-3 hover:text-ink'
-        "
-        :data-df-tab="t"
-        @click="selectTab(t)"
-      >
-        {{ t === 'diff' ? `± ${m.tabDiff}` : `🔍 ${m.tabSimilar}` }}
-      </button>
-    </div>
-    <p class="text-sm text-ink-2">{{ tab === 'diff' ? m.introDiff : m.introSimilar }}</p>
+    <p class="text-sm text-ink-2">{{ m.intro }}</p>
 
     <div class="grid gap-3 md:grid-cols-2">
       <div v-for="side in ['a', 'b'] as const" :key="side">
         <div class="mb-1 flex flex-wrap items-end justify-between gap-2">
           <label :for="`df-${side}`" class="label mb-0">
-            {{
-              tab === 'similar'
-                ? side === 'a'
-                  ? m.doc1
-                  : m.doc2
-                : side === 'a'
-                  ? m.original
-                  : m.changed
-            }}
+            {{ side === 'a' ? m.text1 : m.text2 }}
           </label>
           <div class="flex items-center gap-1.5">
             <button
@@ -292,7 +269,7 @@ const snippet = (s: string) => (s.length > 180 ? `${s.slice(0, 180)}…` : s);
           v-model="original"
           class="field h-48 font-mono text-sm sm:h-64"
           :class="{ 'ring-2 ring-brand-600 dark:ring-brand-400': dragOver === 'a' }"
-          :placeholder="tab === 'similar' ? m.placeholderDoc : m.placeholderOriginal"
+          :placeholder="m.placeholderOriginal"
           spellcheck="false"
           @dragover.prevent="dragOver = 'a'"
           @dragleave="dragOver = ''"
@@ -304,7 +281,7 @@ const snippet = (s: string) => (s.length > 180 ? `${s.slice(0, 180)}…` : s);
           v-model="changed"
           class="field h-48 font-mono text-sm sm:h-64"
           :class="{ 'ring-2 ring-brand-600 dark:ring-brand-400': dragOver === 'b' }"
-          :placeholder="tab === 'similar' ? m.placeholderDoc : m.placeholderChanged"
+          :placeholder="m.placeholderChanged"
           spellcheck="false"
           @dragover.prevent="dragOver = 'b'"
           @dragleave="dragOver = ''"
@@ -319,206 +296,212 @@ const snippet = (s: string) => (s.length > 180 ? `${s.slice(0, 180)}…` : s);
     </div>
     <p class="text-xs text-ink-3">{{ m.uploadHint }}</p>
 
-    <!-- Perbedaan -->
-    <template v-if="tab === 'diff'">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <fieldset class="flex flex-wrap items-center gap-2">
-          <legend class="sr-only">{{ m.mode }}</legend>
-          <span class="text-sm font-medium">{{ m.mode }}</span>
-          <button
-            v-for="opt in ['lines', 'words', 'chars'] as const"
-            :key="opt"
-            type="button"
-            class="btn btn-secondary"
-            :class="{ 'btn-active': mode === opt }"
-            :aria-pressed="mode === opt"
-            @click="mode = opt"
-          >
-            {{ m[opt] }}
-          </button>
-        </fieldset>
-        <p v-if="parts && !identical" class="text-sm font-semibold" aria-live="polite">
-          <span class="text-green-700 dark:text-green-400">{{
-            fill(m.added, { n: counts.added })
-          }}</span>
-          ·
-          <span class="text-red-700 dark:text-red-400">{{
-            fill(m.removed, { n: counts.removed })
-          }}</span>
+    <!-- Ringkasan: selalu tampil bila kedua teks terisi -->
+    <div
+      v-if="sim"
+      class="grid items-center gap-4 rounded-md border border-ink bg-paper-2 p-4 sm:grid-cols-[auto_1fr]"
+      data-sim-summary
+    >
+      <div class="text-center sm:px-4">
+        <p class="text-xs font-semibold tracking-wider text-ink-3 uppercase">
+          {{ m.simOverall }}
+        </p>
+        <p
+          class="font-display text-5xl leading-none tabular-nums"
+          :class="LEVEL_STYLE[level]"
+          data-sim-overall
+        >
+          {{ num(sim.overall) }}<span class="text-2xl">%</span>
+        </p>
+        <p class="mt-1 text-sm font-bold" :class="LEVEL_STYLE[level]" data-sim-level>
+          {{ m[`level_${level}`] }}
         </p>
       </div>
-
-      <section :aria-label="m.result">
-        <p v-if="timedOut" class="error-text">{{ m.timeout }}</p>
-        <p v-else-if="!parts" class="text-sm text-slate-600 dark:text-slate-400">{{ m.empty }}</p>
-        <p v-else-if="identical" class="text-sm font-semibold text-brand-700 dark:text-brand-300">
-          {{ m.identical }}
-        </p>
-
-        <div v-else-if="mode === 'lines'" class="card overflow-x-auto p-0 font-mono text-sm">
-          <div
-            v-for="(line, i) in lines"
-            :key="i"
-            class="flex whitespace-pre-wrap"
-            :class="{
-              'bg-green-50 text-green-900 dark:bg-green-950/50 dark:text-green-200':
-                line.type === 'add',
-              'bg-red-50 text-red-900 dark:bg-red-950/50 dark:text-red-200': line.type === 'del',
-            }"
+      <div class="space-y-2.5">
+        <div v-for="row in ['a', 'b'] as const" :key="row">
+          <p class="flex justify-between gap-3 text-sm">
+            <span>{{ row === 'a' ? m.coverA : m.coverB }}</span>
+            <b class="tabular-nums" :data-sim-cover="row"
+              >{{ num(row === 'a' ? sim.coverA : sim.coverB) }}%</b
+            >
+          </p>
+          <svg
+            viewBox="0 0 100 4"
+            preserveAspectRatio="none"
+            class="mt-1 h-2 w-full"
+            aria-hidden="true"
           >
-            <span class="w-6 shrink-0 text-center select-none" aria-hidden="true">{{
-              line.type === 'add' ? '+' : line.type === 'del' ? '−' : ' '
-            }}</span>
-            <span class="min-w-0 flex-1 px-1 break-words">{{ line.text || ' ' }}</span>
-          </div>
+            <rect width="100" height="4" rx="2" class="fill-ink/10" />
+            <rect
+              :width="row === 'a' ? sim.coverA : sim.coverB"
+              height="4"
+              rx="2"
+              :class="LEVEL_BAR[level]"
+            />
+          </svg>
         </div>
+        <p class="text-xs text-ink-3 tabular-nums">
+          {{ fill(m.passagesN, { n: sim.passages.length }) }}
+          <template v-if="longest"> · {{ fill(m.longest, { n: longest }) }}</template>
+          · {{ fill(m.wordsBoth, { a: sim.wordsA, b: sim.wordsB }) }}
+        </p>
+      </div>
+    </div>
 
-        <div v-else class="card font-mono text-sm break-words whitespace-pre-wrap">
-          <template v-for="(p, i) in parts" :key="i">
-            <ins
-              v-if="p.added"
-              class="bg-green-100 text-green-900 no-underline dark:bg-green-900/60 dark:text-green-100"
-              >{{ p.value }}</ins
-            >
-            <del
-              v-else-if="p.removed"
-              class="bg-red-100 text-red-900 dark:bg-red-900/60 dark:text-red-100"
-              >{{ p.value }}</del
-            >
-            <span v-else>{{ p.value }}</span>
-          </template>
-        </div>
-      </section>
-    </template>
-
-    <!-- Cek kemiripan -->
-    <template v-else>
+    <!-- Satu pilihan tampilan untuk semua hasil -->
+    <div class="flex flex-wrap items-center justify-between gap-3">
       <fieldset class="flex flex-wrap items-center gap-2">
-        <legend class="sr-only">{{ m.sensitivity }}</legend>
-        <span class="text-sm font-medium">{{ m.sensitivity }}</span>
+        <legend class="sr-only">{{ m.view }}</legend>
+        <span class="text-sm font-medium">{{ m.view }}</span>
         <button
-          v-for="opt in K_OPTIONS"
+          v-for="opt in VIEWS"
           :key="opt"
           type="button"
           class="btn btn-secondary"
-          :class="{ 'btn-active': k === opt }"
-          :aria-pressed="k === opt"
-          :data-sim-k="opt"
-          @click="k = opt"
+          :class="{ 'btn-active': view === opt }"
+          :aria-pressed="view === opt"
+          :data-df-view="opt"
+          @click="selectView(opt)"
         >
-          {{ m[`sens${opt}` as 'sens5'] }}
+          {{ m[`view_${opt}`] }}
         </button>
       </fieldset>
+      <p
+        v-if="view !== 'similar' && parts && !identical"
+        class="text-sm font-semibold"
+        aria-live="polite"
+      >
+        <span class="text-green-700 dark:text-green-400">{{
+          fill(m.added, { n: counts.added })
+        }}</span>
+        ·
+        <span class="text-red-700 dark:text-red-400">{{
+          fill(m.removed, { n: counts.removed })
+        }}</span>
+      </p>
+    </div>
 
-      <section :aria-label="m.simResult" class="space-y-4" data-sim-result>
-        <p v-if="!sim" class="text-sm text-ink-3">{{ m.simEmpty }}</p>
+    <!-- Bagian yang sama -->
+    <section v-if="view === 'similar'" :aria-label="m.simResult" class="space-y-4" data-sim-result>
+      <p v-if="!sim" class="text-sm text-ink-3">{{ m.simEmpty }}</p>
+      <template v-else>
+        <fieldset class="flex flex-wrap items-center gap-2">
+          <legend class="sr-only">{{ m.sensitivity }}</legend>
+          <span class="text-xs font-medium text-ink-2">{{ m.sensitivity }}</span>
+          <button
+            v-for="opt in K_OPTIONS"
+            :key="opt"
+            type="button"
+            class="btn btn-secondary px-2.5 py-1 text-xs"
+            :class="{ 'btn-active': k === opt }"
+            :aria-pressed="k === opt"
+            :data-sim-k="opt"
+            @click="k = opt"
+          >
+            {{ m[`sens${opt}` as 'sens5'] }}
+          </button>
+        </fieldset>
+
+        <p v-if="!sim.passages.length" class="text-sm text-ink-3">{{ m.noMatch }}</p>
         <template v-else>
-          <div class="grid gap-3 md:grid-cols-[auto_1fr]">
-            <div
-              class="flex flex-col items-center justify-center rounded-md border border-ink bg-paper-2 p-5 text-center md:px-10"
-            >
-              <p class="text-xs font-semibold tracking-wider text-ink-3 uppercase">
-                {{ m.simOverall }}
-              </p>
-              <p
-                class="font-display text-6xl leading-none tabular-nums"
-                :class="LEVEL_STYLE[level]"
-                data-sim-overall
+          <p class="text-xs text-ink-3">{{ m.clickHint }}</p>
+          <div class="grid gap-3 md:grid-cols-2">
+            <div v-for="side in ['a', 'b'] as const" :key="side">
+              <p class="label">{{ side === 'a' ? m.text1 : m.text2 }}</p>
+              <div
+                :ref="(el) => (panels[side] = (el as HTMLDivElement) ?? undefined)"
+                class="card relative max-h-96 overflow-y-auto text-sm leading-relaxed break-words whitespace-pre-wrap"
+                :data-sim-panel="side"
               >
-                {{ num(sim.overall) }}<span class="text-3xl">%</span>
-              </p>
-              <p class="mt-2 font-bold" :class="LEVEL_STYLE[level]" data-sim-level>
-                {{ m[`level_${level}`] }}
-              </p>
-            </div>
-            <div class="space-y-3 rounded-md border border-rule bg-paper-2 p-4">
-              <div v-for="row in ['a', 'b'] as const" :key="row">
-                <p class="flex justify-between gap-3 text-sm">
-                  <span>{{ row === 'a' ? m.coverA : m.coverB }}</span>
-                  <b class="tabular-nums" :data-sim-cover="row"
-                    >{{ num(row === 'a' ? sim.coverA : sim.coverB) }}%</b
-                  >
-                </p>
-                <svg
-                  viewBox="0 0 100 4"
-                  preserveAspectRatio="none"
-                  class="mt-1 h-2 w-full"
-                  aria-hidden="true"
-                >
-                  <rect width="100" height="4" rx="2" class="fill-ink/10" />
-                  <rect
-                    :width="row === 'a' ? sim.coverA : sim.coverB"
-                    height="4"
-                    rx="2"
-                    :class="LEVEL_BAR[level]"
-                  />
-                </svg>
+                <template v-for="(s, i) in side === 'a' ? sim.segA : sim.segB" :key="i">
+                  <mark
+                    v-if="s.id !== null"
+                    class="cursor-pointer rounded-sm text-inherit"
+                    :class="[
+                      markClass(s.id),
+                      active === s.id ? 'ring-2 ring-ink dark:ring-white' : '',
+                    ]"
+                    :data-sim-id="s.id"
+                    @click="focusPassage(s.id)"
+                    >{{ s.text }}</mark
+                  ><template v-else>{{ s.text }}</template>
+                </template>
               </div>
-              <p class="text-sm text-ink-2 tabular-nums">
-                {{ fill(m.passagesN, { n: sim.passages.length }) }}
-                <template v-if="longest"> · {{ fill(m.longest, { n: longest }) }}</template>
-                · {{ fill(m.wordsBoth, { a: sim.wordsA, b: sim.wordsB }) }}
-              </p>
             </div>
           </div>
 
-          <template v-if="sim.passages.length">
-            <p class="text-xs text-ink-3">{{ m.clickHint }}</p>
-            <div class="grid gap-3 md:grid-cols-2">
-              <div v-for="side in ['a', 'b'] as const" :key="side">
-                <p class="label">{{ side === 'a' ? m.doc1 : m.doc2 }}</p>
-                <div
-                  :ref="(el) => (panels[side] = (el as HTMLDivElement) ?? undefined)"
-                  class="card relative max-h-96 overflow-y-auto text-sm leading-relaxed break-words whitespace-pre-wrap"
-                  :data-sim-panel="side"
+          <div>
+            <h3 class="mb-2 text-sm font-semibold">{{ m.passagesTitle }}</h3>
+            <ol class="space-y-1.5">
+              <li v-for="p in topPassages" :key="p.id">
+                <button
+                  type="button"
+                  class="flex w-full gap-3 rounded-md border border-rule bg-paper-2 p-2.5 text-left text-sm hover:border-ink-3"
+                  :class="{ 'border-ink': active === p.id }"
+                  data-sim-passage
+                  @click="focusPassage(p.id)"
                 >
-                  <template v-for="(s, i) in side === 'a' ? sim.segA : sim.segB" :key="i">
-                    <mark
-                      v-if="s.id !== null"
-                      class="cursor-pointer rounded-sm text-inherit"
-                      :class="[
-                        markClass(s.id),
-                        active === s.id ? 'ring-2 ring-ink dark:ring-white' : '',
-                      ]"
-                      :data-sim-id="s.id"
-                      @click="focusPassage(s.id)"
-                      >{{ s.text }}</mark
-                    ><template v-else>{{ s.text }}</template>
-                  </template>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 class="mb-2 text-sm font-semibold">{{ m.passagesTitle }}</h3>
-              <ol class="space-y-1.5">
-                <li v-for="p in topPassages" :key="p.id">
-                  <button
-                    type="button"
-                    class="flex w-full gap-3 rounded-md border border-rule bg-paper-2 p-2.5 text-left text-sm hover:border-ink-3"
-                    :class="{ 'border-ink': active === p.id }"
-                    data-sim-passage
-                    @click="focusPassage(p.id)"
-                  >
-                    <span
-                      class="h-auto w-1.5 shrink-0 rounded-full"
-                      :class="markClass(p.id)"
-                      aria-hidden="true"
-                    />
-                    <span class="min-w-0 flex-1">{{ snippet(p.text) }}</span>
-                    <span class="shrink-0 text-xs text-ink-3 tabular-nums">{{
-                      fill(m.wordsN, { n: p.len })
-                    }}</span>
-                  </button>
-                </li>
-              </ol>
-            </div>
-          </template>
-          <p class="rounded-md border border-rule bg-paper-2 p-3 text-xs text-ink-3">
-            {{ m.simNote }}
-          </p>
+                  <span
+                    class="h-auto w-1.5 shrink-0 rounded-full"
+                    :class="markClass(p.id)"
+                    aria-hidden="true"
+                  />
+                  <span class="min-w-0 flex-1">{{ snippet(p.text) }}</span>
+                  <span class="shrink-0 text-xs text-ink-3 tabular-nums">{{
+                    fill(m.wordsN, { n: p.len })
+                  }}</span>
+                </button>
+              </li>
+            </ol>
+          </div>
         </template>
-      </section>
-    </template>
+        <p class="rounded-md border border-rule bg-paper-2 p-3 text-xs text-ink-3">
+          {{ m.simNote }}
+        </p>
+      </template>
+    </section>
+
+    <!-- Perbedaan -->
+    <section v-else :aria-label="m.result">
+      <p v-if="timedOut" class="error-text">{{ m.timeout }}</p>
+      <p v-else-if="!parts" class="text-sm text-slate-600 dark:text-slate-400">{{ m.empty }}</p>
+      <p v-else-if="identical" class="text-sm font-semibold text-brand-700 dark:text-brand-300">
+        {{ m.identical }}
+      </p>
+
+      <div v-else-if="mode === 'lines'" class="card overflow-x-auto p-0 font-mono text-sm">
+        <div
+          v-for="(line, i) in lines"
+          :key="i"
+          class="flex whitespace-pre-wrap"
+          :class="{
+            'bg-green-50 text-green-900 dark:bg-green-950/50 dark:text-green-200':
+              line.type === 'add',
+            'bg-red-50 text-red-900 dark:bg-red-950/50 dark:text-red-200': line.type === 'del',
+          }"
+        >
+          <span class="w-6 shrink-0 text-center select-none" aria-hidden="true">{{
+            line.type === 'add' ? '+' : line.type === 'del' ? '−' : ' '
+          }}</span>
+          <span class="min-w-0 flex-1 px-1 break-words">{{ line.text || ' ' }}</span>
+        </div>
+      </div>
+
+      <div v-else class="card font-mono text-sm break-words whitespace-pre-wrap">
+        <template v-for="(p, i) in parts" :key="i">
+          <ins
+            v-if="p.added"
+            class="bg-green-100 text-green-900 no-underline dark:bg-green-900/60 dark:text-green-100"
+            >{{ p.value }}</ins
+          >
+          <del
+            v-else-if="p.removed"
+            class="bg-red-100 text-red-900 dark:bg-red-900/60 dark:text-red-100"
+            >{{ p.value }}</del
+          >
+          <span v-else>{{ p.value }}</span>
+        </template>
+      </div>
+    </section>
   </div>
 </template>
