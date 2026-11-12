@@ -1,16 +1,29 @@
 ---
 name: 'QR Code Generator'
-title: 'QR Code Generator'
-description: 'Create QR codes for links, text, or phone numbers. Choose size, colors, and error correction, then download PNG or SVG. No watermark.'
-summary: 'QR codes for links and text, PNG or SVG.'
+title: 'QR Code Generator with Logo and Custom Shapes'
+description: 'Create QR codes with a center logo and custom shapes (hearts, stars, dots, rounded). Automatically checked to scan. Download PNG or SVG, no watermark.'
+summary: 'QR codes with logos and custom shapes, guaranteed to scan.'
 category: 'developer'
 idSlug: 'buat-qr-code'
-keywords: ['qr code generator', 'qr generator', 'free qr code', 'qr link']
+keywords:
+  [
+    'qr code generator',
+    'qr generator',
+    'free qr code',
+    'qr code with logo',
+    'custom qr code',
+    'heart qr code',
+    'qr link',
+  ]
 howTo:
   - 'Type a link, text, or phone number.'
-  - 'Set the size, colors, and error correction. The preview updates instantly.'
-  - 'Download PNG to print or share, or SVG for design work.'
+  - 'Pick a quick style or set the dot shape, eye shape, colors, and center logo yourself.'
+  - 'Wait for the "Readable" badge, then download PNG to share or SVG for print design.'
 faq:
+  - q: 'Will a QR code with a logo or hearts still scan?'
+    a: 'Yes. Every design is automatically re-scanned at two sizes, and the download buttons only unlock when the code reads back the exact content. The three corner markers and alignment patterns are always drawn solid, and a logo automatically uses maximum error correction.'
+  - q: 'How big can the logo be?'
+    a: 'Up to 30% of the QR width. The default 22% is the safest. If a design does not scan, the tool tells you and locks downloads until you shrink the logo or change the shape.'
   - q: 'Does the QR code expire?'
     a: 'No. The QR code contains your text or link directly, with no redirect. It never expires and does not depend on Toolland’s servers.'
   - q: 'Is there a watermark?'

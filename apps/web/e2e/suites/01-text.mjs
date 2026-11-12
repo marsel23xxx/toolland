@@ -432,6 +432,85 @@ export const tests = [
     },
   },
   {
+    name: 'QR bergaya: semua bentuk titik × mata dan logo tetap terbaca',
+    path: '/tools/buat-qr-code',
+    async run(h) {
+      const { page } = h;
+      const url = 'https://julian-marcell.com/tools/buat-qr-code?uji=gaya';
+      await h.type('#qr-text', url);
+      const status = async () => {
+        await page.waitForFunction(
+          () => document.querySelector('[data-qr-check]')?.dataset.qrCheck !== 'checking',
+          { timeout: 10_000 },
+        );
+        await h.sleep(50);
+        return page.$eval('[data-qr-check]', (e) => e.dataset.qrCheck);
+      };
+      const shapes = ['square', 'rounded', 'dots', 'diamond', 'heart', 'star'];
+      const eyes = ['square', 'rounded', 'circle', 'leaf'];
+      const failed = [];
+      for (const sh of shapes)
+        for (const e of eyes) {
+          await page.click(`[data-qr-shape="${sh}"]`);
+          await page.click(`[data-qr-eye="${e}"]`);
+          if ((await status()) !== 'ok') failed.push(`${sh}/${e}`);
+        }
+      expect(!failed.length, `tidak terbaca: ${failed.join(', ')}`);
+      // Logo di tengah (ukuran bawaan) untuk setiap bentuk titik.
+      await (await page.$('[data-qr-logo]')).uploadFile(h.fixture('foto.jpg'));
+      await page.waitForSelector('[data-qr-logo-size]');
+      expect(
+        await page.$eval('#qr-level', (e) => e.disabled && e.value === 'H'),
+        'koreksi error tidak dikunci saat ada logo',
+      );
+      const logoFailed = [];
+      for (const sh of shapes) {
+        await page.click(`[data-qr-shape="${sh}"]`);
+        if ((await status()) !== 'ok') logoFailed.push(sh);
+      }
+      expect(!logoFailed.length, `logo membuat tidak terbaca: ${logoFailed.join(', ')}`);
+      // Logo maksimal 30%: catat hasilnya; bila gagal, unduhan wajib terkunci.
+      await page.$eval('[data-qr-logo-size]', (el) => {
+        el.value = el.max;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await h.sleep(300);
+      const big = await status();
+      if (big !== 'ok')
+        expect(await page.$eval('[data-qr-png]', (b) => b.disabled), 'unduhan tidak dikunci');
+      // Gaya hati + logo: unduh PNG dan pindai ulang di luar halaman.
+      await page.$eval('[data-qr-logo-size]', (el) => {
+        el.value = '0.22';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await page.click('[data-qr-preset="heart"]');
+      expect((await status()) === 'ok', 'gaya hati tidak terbaca');
+      const png = await h.downloadVia('qr-code.png', () => page.click('[data-qr-png]'));
+      const decoded = await page.evaluate(async (b64) => {
+        const img = new Image();
+        img.src = `data:image/png;base64,${b64}`;
+        await img.decode();
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth;
+        c.height = img.naturalHeight;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const d = ctx.getImageData(0, 0, c.width, c.height);
+        return { w: c.width, h: c.height, data: Array.from(d.data) };
+      }, png.toString('base64'));
+      const code = jsQR(Uint8ClampedArray.from(decoded.data), decoded.w, decoded.h);
+      expect(code?.data === url, `PNG unduhan terbaca: ${code?.data}`);
+      // Warna terbalik/pucat ditolak dan unduhan dikunci.
+      await page.$eval('#qr-fg', (el) => {
+        el.value = '#ffffff';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      expect((await status()) === 'contrast', 'kontras buruk tidak terdeteksi');
+      expect(await page.$eval('[data-qr-png]', (b) => b.disabled), 'unduhan tidak dikunci');
+      return [`logo 30%: ${big}`];
+    },
+  },
+  {
     name: 'JSON ke CSV dan sebaliknya',
     path: '/tools/json-ke-csv',
     async run(h) {
@@ -484,9 +563,9 @@ export const tests = [
     async run(h) {
       const url = 'https://julian-marcell.com/tools/gabung-pdf?uji=1';
       await h.type('#qr-text', url);
-      await h.page.waitForSelector('img[src^="data:image/png"]');
+      await h.page.waitForSelector('img[src^="data:image/svg"]');
       await h.sleep(300);
-      const img = await h.page.$eval('img[src^="data:image/png"]', async (el) => {
+      const img = await h.page.$eval('img[src^="data:image/svg"]', async (el) => {
         await el.decode();
         const c = document.createElement('canvas');
         c.width = el.naturalWidth;
