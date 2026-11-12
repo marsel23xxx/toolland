@@ -909,6 +909,8 @@
   "typing.modeLabel": "Typing test mode",
   "typing.tabGame": "Space Game",
   "typing.tabClassic": "Classic Test",
+  "typing.fullscreen": "Full screen",
+  "typing.exitFullscreen": "Exit full screen",
   "typing.gameArea": "Space typing game arena",
   "typing.gameKicker": "Typing game",
   "typing.gameTitle": "Word Squadron",

@@ -81,6 +81,32 @@ export const tests = [
     },
   },
   {
+    name: 'game mengetik: layar penuh membesarkan arena, keluar menjeda',
+    path: '/tools/tes-kecepatan-mengetik',
+    async run(h) {
+      await h.page.waitForSelector('[data-ty-start]');
+      const width = () => h.page.$eval('[data-ty-game]', (e) => e.getBoundingClientRect().width);
+      const before = await width();
+      await h.page.click('[data-ty-fullscreen]');
+      await h.page.waitForSelector('[data-ty-fs]');
+      await h.sleep(300);
+      const vh = await h.page.evaluate(() => window.innerHeight);
+      const box = await h.page.$eval('[data-ty-game]', (e) => {
+        const r = e.getBoundingClientRect();
+        return { w: r.width, h: r.height, bottom: r.bottom };
+      });
+      expect(box.bottom <= vh + 1, `arena melewati layar: ${box.bottom} > ${vh}`);
+      expect(Math.abs(box.w / box.h - 960 / 600) < 0.02, `proporsi arena ${box.w}x${box.h}`);
+      expect(box.w >= before - 1, `arena mengecil: ${before} -> ${box.w}`);
+      // Main sebentar dalam layar penuh, lalu keluar: game otomatis dijeda.
+      await h.page.click('[data-ty-start]');
+      await h.page.waitForSelector('[data-ty-banner]');
+      await h.page.click('[data-ty-fullscreen]');
+      await h.page.waitForFunction(() => !document.querySelector('[data-ty-fs]'));
+      await h.page.waitForSelector('[data-ty-paused]');
+    },
+  },
+  {
     name: 'tes mengetik klasik: mode kata, hasil, dan rekor',
     path: '/tools/tes-kecepatan-mengetik',
     async run(h) {
