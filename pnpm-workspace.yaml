@@ -4,3 +4,5 @@ packages:
 allowBuilds:
   # postinstall protobufjs hanya pengecekan versi, tidak dibutuhkan.
   protobufjs: false
+  # postinstall tesseract.js hanya ajakan donasi (opencollective).
+  tesseract.js: false

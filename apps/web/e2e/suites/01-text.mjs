@@ -311,6 +311,36 @@ export const tests = [
     },
   },
   {
+    name: 'gambar ke teks (OCR): screenshot dan PDF scan, bahasa Indonesia',
+    path: '/tools/gambar-ke-teks',
+    async run(h) {
+      const { page } = h;
+      // Buat gambar uji: tangkapan layar teks hitam di latar putih.
+      await page.evaluate(() => {
+        const d = document.createElement('div');
+        d.id = 'ocr-uji';
+        d.textContent = 'Selamat pagi Indonesia, kegiatan belajar dimulai pukul tujuh.';
+        d.className = 'fixed left-0 top-0 z-[999] bg-white p-6 text-3xl text-black';
+        document.body.append(d);
+      });
+      await (await page.$('#ocr-uji')).screenshot({ path: h.fixture('ocr-uji.png') });
+      await page.evaluate(() => document.getElementById('ocr-uji').remove());
+      await page.click('[data-ocr-lang="ind"]');
+      await h.upload('ocr-uji.png');
+      await page.waitForSelector('[data-ocr-text]', { timeout: 90_000 });
+      const text = await page.$eval('[data-ocr-text]', (e) => e.value.toLowerCase());
+      for (const w of ['selamat', 'indonesia', 'belajar', 'tujuh'])
+        expect(text.includes(w), `OCR tidak menemukan "${w}": ${text}`);
+      // PDF: tiap halaman dirender lalu dibaca.
+      await h.upload('surat.pdf');
+      await page.waitForFunction(() => document.querySelectorAll('[data-ocr-text]').length === 2, {
+        timeout: 90_000,
+      });
+      const pdfText = await page.$$eval('[data-ocr-text]', (e) => e[1].value);
+      expect(/SURAT KETERANGAN/i.test(pdfText) && /Budi/.test(pdfText), pdfText);
+    },
+  },
+  {
     name: 'JSON ke CSV dan sebaliknya',
     path: '/tools/json-ke-csv',
     async run(h) {

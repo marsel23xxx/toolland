@@ -1,0 +1,9 @@
+---
+import OcrTool from '../../../components/tools/OcrTool.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { messages, toolMessages } from '../../../i18n';
+---
+
+<ToolPage slug="image-to-text">
+  <OcrTool client:visible m={toolMessages('en', 'ocr')} dropzone={messages('en', 'dropzone')} />
+</ToolPage>

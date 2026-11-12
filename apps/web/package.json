@@ -43,6 +43,8 @@
     "@jsquash/webp": "^1.5.0",
     "@lezer/highlight": "^1.2.5",
     "@tailwindcss/vite": "^4.3.3",
+    "@tesseract.js-data/eng": "1.0.0",
+    "@tesseract.js-data/ind": "1.0.0",
     "astro": "^7.4.4",
     "comlink": "^4.4.2",
     "diff": "^9.0.0",
@@ -56,6 +58,8 @@
     "qrcode": "^1.5.4",
     "signature_pad": "^5.1.4",
     "tailwindcss": "^4.3.3",
+    "tesseract.js": "7.0.0",
+    "tesseract.js-core": "7.0.0",
     "vue": "^3.5.44"
   },
   "devDependencies": {

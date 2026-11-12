@@ -46,7 +46,12 @@ async function context(urlPath) {
   const problems = [];
   page.on('console', (m) => {
     // MediaPipe/TFLite menulis log informasi (INFO:, W0000 ...) lewat console.error; itu bukan error.
-    if (m.type() === 'error' && !/^(INFO|WARNING|[IW]\d{4})[: ]/.test(m.text()))
+    // Begitu juga Tesseract (OCR) yang melaporkan perkiraan resolusi gambar.
+    if (
+      m.type() === 'error' &&
+      !/^(INFO|WARNING|[IW]\d{4})[: ]/.test(m.text()) &&
+      !/^Estimating resolution as \d+/.test(m.text())
+    )
       problems.push(m.text().slice(0, 300));
   });
   page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));

@@ -4,6 +4,7 @@
 // - pdf.js: cmaps, standard_fonts, wasm, iccs (dari node_modules)
 // - ffmpeg core single-thread dan multi-thread (dari node_modules)
 // - @imgly/background-removal: runtime ONNX + model isnet_fp16 & isnet_quint8 (unduh, diverifikasi SHA-256)
+// - tesseract.js (OCR): worker, core WASM khusus LSTM, dan data bahasa Indonesia + Inggris
 //
 // Unduhan disimpan di cache (~/.cache/toolland-vendor) agar build berikutnya tidak mengunduh ulang.
 // Menulis src/lib/vendor.ts berisi path versi yang dipakai kode.
@@ -59,6 +60,7 @@ const v = {
   ffmpegCore: await version('@ffmpeg/core'),
   ffmpegCoreMt: await version('@ffmpeg/core-mt'),
   imgly: await version('@imgly/background-removal'),
+  tesseract: await version('tesseract.js'),
 };
 
 const paths = {
@@ -66,6 +68,7 @@ const paths = {
   ffmpegCore: `/vendor/ffmpeg-core/${v.ffmpegCore}/`,
   ffmpegCoreMt: `/vendor/ffmpeg-core-mt/${v.ffmpegCoreMt}/`,
   imgly: `/vendor/imgly/${v.imgly}/`,
+  tesseract: `/vendor/tesseract/${v.tesseract}/`,
 };
 const dest = (p) => path.join(root, 'public', p);
 
@@ -86,6 +89,26 @@ for (const dir of ['cmaps', 'standard_fonts', 'wasm', 'iccs']) {
 // ffmpeg core
 await copy(path.join(pkgDir('@ffmpeg/core'), 'dist/esm'), dest(paths.ffmpegCore));
 await copy(path.join(pkgDir('@ffmpeg/core-mt'), 'dist/esm'), dest(paths.ffmpegCoreMt));
+
+// tesseract.js: worker klasik (importScripts), tiga varian core LSTM (dipilih otomatis sesuai
+// dukungan SIMD browser), dan data bahasa versi best_int (LSTM, ukuran kecil).
+await copy(
+  path.join(pkgDir('tesseract.js'), 'dist/worker.min.js'),
+  path.join(dest(paths.tesseract), 'worker.min.js'),
+);
+for (const variant of ['', 'simd-', 'relaxedsimd-']) {
+  const file = `tesseract-core-${variant}lstm.wasm.js`;
+  await copy(
+    path.join(pkgDir('tesseract.js-core'), file),
+    path.join(dest(paths.tesseract), 'core', file),
+  );
+}
+for (const lang of ['ind', 'eng']) {
+  await copy(
+    path.join(pkgDir(`@tesseract.js-data/${lang}`), '4.0.0_best_int', `${lang}.traineddata.gz`),
+    path.join(dest(paths.tesseract), 'lang', `${lang}.traineddata.gz`),
+  );
+}
 
 // @imgly/background-removal: hanya model dan runtime yang dipakai.
 const imglyBase = `https://staticimgly.com/@imgly/background-removal-data/${v.imgly}/dist/`;
