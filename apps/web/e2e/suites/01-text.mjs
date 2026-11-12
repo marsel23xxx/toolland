@@ -267,6 +267,49 @@ export const tests = [
     },
   },
   {
+    name: 'bandingkan teks: unggah DOCX/PDF dan cek kemiripan (plagiarisme)',
+    path: '/tools/bandingkan-teks',
+    async run(h) {
+      const { page } = h;
+      // Unggah Word ke kolom kanan pada tab Perbedaan.
+      await (await page.$('[data-df-file="b"]')).uploadFile(h.fixture('surat.docx'));
+      await page.waitForFunction(() =>
+        document.querySelector('#df-b').value.includes('Surat uji Toolland'),
+      );
+      expect((await h.text('[data-df-meta="b"]')).includes('surat.docx'), 'nama file tidak tampil');
+      // Tab Cek Kemiripan: PDF di kiri, teks yang sebagian sama di kanan.
+      await page.click('[data-df-tab="similar"]');
+      await (await page.$('[data-df-file="a"]')).uploadFile(h.fixture('teks.pdf'));
+      await page.waitForFunction(() => document.querySelector('#df-a').value.includes('halaman 4'));
+      await h.type(
+        '#df-b',
+        'Ini kalimat lain. DOKUMEN UJI, halaman 2! Dokumen uji - halaman 3 selesai.',
+      );
+      await page.waitForSelector('[data-sim-overall]');
+      const overall = parseFloat((await h.text('[data-sim-overall]')).replace(',', '.'));
+      expect(overall > 30 && overall < 100, `kemiripan ${overall}`);
+      const marksA = await page.$$eval('[data-sim-panel="a"] mark', (e) => e.length);
+      const marksB = await page.$$eval('[data-sim-panel="b"] mark', (e) => e.length);
+      expect(marksA >= 1 && marksB >= 1, `sorotan ${marksA}/${marksB}`);
+      await page.click('[data-sim-passage]');
+      expect(!!(await page.$('mark.ring-2')), 'bagian yang diklik tidak disorot');
+      // Kepekaan longgar (8 kata) tetap menemukan rangkaian 8 kata yang sama.
+      await page.click('[data-sim-k="8"]');
+      await h.sleep(200);
+      expect(
+        (await page.$$('[data-sim-passage]')).length >= 1,
+        'mode longgar kehilangan kecocokan',
+      );
+      // Tab diingat setelah halaman dimuat ulang.
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-df-tab="similar"]')?.getAttribute('aria-selected') ===
+          'true',
+      );
+    },
+  },
+  {
     name: 'JSON ke CSV dan sebaliknya',
     path: '/tools/json-ke-csv',
     async run(h) {
