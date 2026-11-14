@@ -6,7 +6,6 @@
  */
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import type { ToolMessages } from '../../i18n';
-import type { DropzoneMessages } from '../../lib/dropzone-messages';
 import { downloadBlob } from '../../lib/download';
 import { fill, pageLocale } from '../../lib/format';
 import {
@@ -28,7 +27,7 @@ import {
   type PresetId,
   type ThesisRules,
 } from '../../lib/thesis/rules';
-import Dropzone from '../ui/Dropzone.vue';
+import Dropzone, { type DropzoneMessages } from '../ui/Dropzone.vue';
 
 const props = defineProps<{ m: Record<string, string>; dropzone: DropzoneMessages }>();
 const m = props.m as ToolMessages<'thesis'>;
