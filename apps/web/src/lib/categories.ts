@@ -26,11 +26,15 @@ export const CATEGORY_NOTES: Record<CategoryId, Record<Locale, string>> = {
 };
 
 /** Kelompok tool di dalam kategori: konverter tampil sebagai chip, tes sebagai daftar sendiri. */
-export const GROUP_IDS = ['konversi', 'tes'] as const;
+export const GROUP_IDS = ['konversi', 'tes', 'skripsi'] as const;
 export type GroupId = (typeof GROUP_IDS)[number];
 
 /** Judul kelompok di beranda dan navbar. */
 export const GROUP_NAMES: Record<GroupId, Record<Locale, string>> = {
   konversi: { id: 'Konversi format', en: 'Convert formats' },
   tes: { id: 'Tes & Psikotes', en: 'Tests & assessments' },
+  skripsi: { id: 'Skripsi & Penelitian', en: 'Thesis & research' },
 };
+
+/** Kelompok yang tampil sebagai daftar bersub-judul (bukan chip seperti konversi). */
+export const LIST_GROUPS = ['skripsi', 'tes'] as const satisfies readonly GroupId[];

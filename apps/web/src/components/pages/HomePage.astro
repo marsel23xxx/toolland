@@ -11,6 +11,7 @@ import {
   CATEGORY_NAMES,
   CATEGORY_NOTES,
   GROUP_NAMES,
+  LIST_GROUPS,
   toolPath,
 } from '../../lib/categories';
 
@@ -52,7 +53,10 @@ const groups = CATEGORY_IDS.map((id) => {
       ...inCat.filter((x) => !x.data.popular && !x.data.group),
     ],
     convert: inCat.filter((x) => x.data.group === 'konversi'),
-    tests: inCat.filter((x) => x.data.group === 'tes'),
+    lists: LIST_GROUPS.map((g) => ({
+      id: g,
+      tools: inCat.filter((x) => x.data.group === g),
+    })).filter((g) => g.tools.length),
   };
 });
 
@@ -217,11 +221,11 @@ const pad = (n: number) => String(n).padStart(2, '0');
               />
             ))}
           </ul>
-          {group.tests.length > 0 && (
+          {group.lists.map((list) => (
             <div data-group class="mt-6">
-              <p class="eyebrow mb-1">{GROUP_NAMES.tes[locale]}</p>
+              <p class="eyebrow mb-1">{GROUP_NAMES[list.id][locale]}</p>
               <ul class="grid gap-x-10 sm:grid-cols-2">
-                {group.tests.map((tool) => (
+                {list.tools.map((tool) => (
                   <ToolRow
                     href={toolPath(locale, slugOf(tool))}
                     name={tool.data.name}
@@ -231,7 +235,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
                 ))}
               </ul>
             </div>
-          )}
+          ))}
           {group.convert.length > 0 && (
             <div data-group class="mt-6">
               <p class="eyebrow mb-3">{GROUP_NAMES.konversi[locale]}</p>

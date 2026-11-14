@@ -1,0 +1,13 @@
+---
+import ThesisFormat from '../../components/tools/ThesisFormat.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { messages, toolMessages } from '../../i18n';
+---
+
+<ToolPage slug="cek-format-skripsi">
+  <ThesisFormat
+    client:visible
+    m={toolMessages('id', 'thesis')}
+    dropzone={messages('id', 'dropzone')}
+  />
+</ToolPage>

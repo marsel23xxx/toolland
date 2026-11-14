@@ -1,3 +1,4 @@
+import { strFromU8, unzipSync } from 'fflate';
 import jsQR from 'jsqr';
 import { expect } from '../expect.mjs';
 
@@ -374,6 +375,80 @@ export const tests = [
       expect(
         txt.includes('Jurusan kuliah yang cocok') && txt.includes('Kedokteran'),
         txt.slice(0, 300),
+      );
+    },
+  },
+  {
+    name: 'cek format skripsi: deteksi masalah, ganti pedoman, rapikan, link pedoman',
+    path: '/tools/cek-format-skripsi',
+    async run(h) {
+      const { page } = h;
+      await page.evaluate(() => localStorage.removeItem('toolland-thesis-rules'));
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.waitForSelector('[data-tf-summary]');
+      await h.upload('skripsi.docx');
+      await page.waitForSelector('[data-tf-result]');
+      const detected = await h.text('[data-tf-detected]');
+      expect(detected.includes('BAB I, BAB II') && detected.includes('Daftar Pustaka'), detected);
+      const count = Number(await h.text('[data-tf-count]'));
+      expect(count >= 10, `masalah ${count}`);
+      for (const code of [
+        'paper',
+        'margin',
+        'pagenumMissing',
+        'font',
+        'line',
+        'chapterPage',
+        'captionSeq',
+      ])
+        expect(!!(await page.$(`[data-tf-issue="${code}"]`)), `tidak ada ${code}`);
+      const font = await h.text('[data-tf-issue="font"]');
+      expect(font.includes('Calibri') && font.includes('Times New Roman'), font);
+      // Nomor tabel tidak bisa dirapikan otomatis.
+      expect((await h.text('[data-tf-issue="captionSeq"]')).includes('Manual'), 'label manual');
+      // Lokasi masalah melompat ke pratinjau.
+      await page.click('[data-tf-issue="chapterPage"] button');
+      await page.click('[data-tf-issue="chapterPage"] li button');
+      expect(!!(await page.$('[data-tp].bg-brand-600\\/15')), 'paragraf tidak disorot');
+      // Ganti preset ke spasi 1,5: pesan spasi ikut berubah.
+      await page.click('[data-tf-preset="spasi15"]');
+      await h.sleep(200);
+      expect(
+        (await h.text('[data-tf-issue="line"]')).includes('1,5'),
+        await h.text('[data-tf-issue="line"]'),
+      );
+      // Ubah pedoman: nomor halaman kanan atas.
+      await page.click('[data-tf-edit]');
+      await page.select('[data-tf-pos]', 'top-right');
+      await h.sleep(200);
+      const out = await h.downloadVia(/^skripsi-rapi\.docx$/, () => page.click('[data-tf-fix]'));
+      expect(out.subarray(0, 2).toString() === 'PK', 'hasil bukan docx');
+      const files = unzipSync(new Uint8Array(out));
+      const docXml = strFromU8(files['word/document.xml']);
+      expect(
+        docXml.includes('Times New Roman') && docXml.includes('w:pgSz w:w="11906"'),
+        'format belum dirapikan',
+      );
+      expect(!!files['word/header1.xml'], 'header nomor halaman tidak dibuat');
+      await page.waitForSelector('[data-tf-after]');
+      const after = await h.text('[data-tf-after]');
+      expect(after.includes('Tabel 1.3') && !after.includes('Calibri'), after);
+      // Link pedoman membawa pengaturan ke halaman baru.
+      await page.evaluate(() => {
+        window.__copied = '';
+        navigator.clipboard.writeText = async (t) => {
+          window.__copied = t;
+        };
+      });
+      await page.click('[data-tf-share]');
+      const link = await page.evaluate(() => window.__copied);
+      expect(/#p=[\w-]+$/.test(link), link);
+      await page.evaluate(() => localStorage.removeItem('toolland-thesis-rules'));
+      // Halaman kosong dulu supaya link (yang hanya beda hash) benar-benar dimuat ulang.
+      await page.goto('about:blank');
+      await page.goto(link, { waitUntil: 'networkidle0' });
+      await page.waitForFunction(() =>
+        document.querySelector('[data-tf-summary]')?.textContent?.includes('1,5'),
       );
     },
   },

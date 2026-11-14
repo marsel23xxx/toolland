@@ -13,6 +13,7 @@ import {
   CATEGORY_NAMES,
   CATEGORY_NOTES,
   GROUP_NAMES,
+  LIST_GROUPS,
   type CategoryId,
   toolPath,
 } from '../lib/categories';
@@ -74,7 +75,7 @@ const toolMenus = CATEGORY_IDS.map((id) => {
         note: x.data.summary,
         href: toolPath(locale, slug),
         icon: x.data.idSlug ?? slug,
-        tes: x.data.group === 'tes',
+        group: x.data.group,
       };
     });
   const count = items.length;
@@ -84,9 +85,13 @@ const toolMenus = CATEGORY_IDS.map((id) => {
     note: CATEGORY_NOTES[id][locale],
     href: `${homeHref}#${id}`,
     count,
-    // Tes (IQ, kepribadian, ...) dikumpulkan di bawah sub-judul sendiri.
-    items: items.filter((x) => !x.tes),
-    tests: items.filter((x) => x.tes),
+    // Kelompok bersub-judul (tes, skripsi) dipisah dari daftar utama.
+    items: items.filter((x) => !(LIST_GROUPS as readonly string[]).includes(x.group ?? '')),
+    groups: LIST_GROUPS.map((g) => ({
+      id: g,
+      name: GROUP_NAMES[g][locale],
+      items: items.filter((x) => x.group === g),
+    })).filter((g) => g.items.length),
     // Lebar panel mengikuti jumlah item.
     panel: count > 10 ? 'w-[54rem]' : count > 4 ? 'w-[38rem]' : 'w-80',
     grid: count > 10 ? 'grid-cols-3' : count > 4 ? 'grid-cols-2' : '',
@@ -207,18 +212,16 @@ const tplGroups = TEMPLATE_FORMATS.map((f) => ({
                       <NavTile name={it.name} note={it.note} href={it.href} icon={it.icon} />
                     ))}
                   </ul>
-                  {m.tests.length > 0 && (
-                    <div data-nav-group="tes">
-                      <p class="eyebrow mt-2 border-t border-rule px-2 pt-3 pb-1">
-                        {GROUP_NAMES.tes[locale]}
-                      </p>
+                  {m.groups.map((g) => (
+                    <div data-nav-group={g.id}>
+                      <p class="eyebrow mt-2 border-t border-rule px-2 pt-3 pb-1">{g.name}</p>
                       <ul class={`grid gap-1 ${m.grid}`}>
-                        {m.tests.map((it) => (
+                        {g.items.map((it) => (
                           <NavTile name={it.name} note={it.note} href={it.href} icon={it.icon} />
                         ))}
                       </ul>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
             </li>
@@ -335,16 +338,16 @@ const tplGroups = TEMPLATE_FORMATS.map((f) => ({
                         <NavTile name={it.name} note={it.note} href={it.href} icon={it.icon} />
                       ))}
                     </ul>
-                    {m.tests.length > 0 && (
+                    {m.groups.map((g) => (
                       <>
-                        <p class="eyebrow px-3 pt-1 pb-1">{GROUP_NAMES.tes[locale]}</p>
+                        <p class="eyebrow px-3 pt-1 pb-1">{g.name}</p>
                         <ul class="grid gap-1 pb-2 sm:grid-cols-2">
-                          {m.tests.map((it) => (
+                          {g.items.map((it) => (
                             <NavTile name={it.name} note={it.note} href={it.href} icon={it.icon} />
                           ))}
                         </ul>
                       </>
-                    )}
+                    ))}
                   </div>
                 </div>
               </div>

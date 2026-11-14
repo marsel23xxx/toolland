@@ -94,6 +94,53 @@ export async function makeFixtures() {
     }),
   );
 
+  // Skripsi kecil dengan format berantakan untuk Cek Format Skripsi: Letter, margin 2,54 cm,
+  // font Calibri 11 (tema), spasi 1,08, judul BAB I tanpa halaman baru, nomor tabel loncat.
+  const para = (t, pPr = '', rPr = '') =>
+    `<w:p>${pPr ? `<w:pPr>${pPr}</w:pPr>` : ''}<w:r>${rPr ? `<w:rPr>${rPr}</w:rPr>` : ''}<w:t xml:space="preserve">${t}</w:t></w:r></w:p>`;
+  const isi =
+    'Penelitian ini membahas pengaruh media pembelajaran digital terhadap hasil belajar siswa sekolah menengah atas di Kota Bandung.';
+  const skripsiBody = [
+    para('SKRIPSI', '<w:jc w:val="center"/>', '<w:b/>'),
+    para('Kata Pengantar'),
+    para(isi),
+    para('BAB I', '<w:jc w:val="center"/>', '<w:b/>'),
+    para('PENDAHULUAN', '<w:jc w:val="center"/>', '<w:b/>'),
+    para('1.1 Latar Belakang'),
+    para(isi),
+    para(`${isi} Istilah blended learning sering dipakai.`),
+    para('Tabel 1.1 Data responden'),
+    '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Kelas</w:t></w:r></w:p></w:tc></w:tr></w:tbl>',
+    para('Tabel 1.3 Data lanjutan'),
+    '<w:p><w:r><w:br w:type="page"/></w:r></w:p>',
+    para('BAB II', '<w:jc w:val="center"/>', '<w:b/>'),
+    para('TINJAUAN PUSTAKA', '<w:jc w:val="center"/>', '<w:b/>'),
+    para(isi),
+    para('DAFTAR PUSTAKA', '<w:jc w:val="center"/>', '<w:b/>'),
+    para('Sugiyono. (2019). Metode Penelitian Kuantitatif. Bandung: Alfabeta.'),
+    '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>',
+  ].join('');
+  fs.writeFileSync(
+    path.join(dir, 'skripsi.docx'),
+    zipSync({
+      '[Content_Types].xml': strToU8(
+        '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>',
+      ),
+      '_rels/.rels': strToU8(
+        '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
+      ),
+      'word/document.xml': strToU8(
+        `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="${W}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${skripsiBody}</w:body></w:document>`,
+      ),
+      'word/styles.xml': strToU8(
+        `<?xml version="1.0" encoding="UTF-8"?><w:styles xmlns:w="${W}"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>`,
+      ),
+      'word/_rels/document.xml.rels': strToU8(
+        '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',
+      ),
+    }),
+  );
+
   // Foto wajah untuk uji AI: aset uji MediaPipe (Apache-2.0). Tidak di-commit; diunduh sekali ke cache.
   const cache = path.join(base, 'cache');
   fs.mkdirSync(cache, { recursive: true });
