@@ -33,6 +33,15 @@ pub enum ApiError {
     /// Server RDAP registry error atau tidak menjawab.
     #[error("server registry gagal")]
     Upstream,
+    /// Cek Website: tujuan adalah alamat privat/internal atau bukan http(s) standar.
+    #[error("alamat diblokir")]
+    Blocked,
+    /// Cek Website: situs tidak bisa dibuka (DNS gagal, koneksi ditolak, terlalu banyak redirect).
+    #[error("situs tidak terjangkau")]
+    Unreachable,
+    /// Sertifikat TLS ditolak (dipakai di dalam service, lalu diulang tanpa verifikasi).
+    #[error("sertifikat tidak valid")]
+    BadCert(&'static str),
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -55,6 +64,8 @@ impl ApiError {
             Self::NotFound => (StatusCode::NOT_FOUND, "not_found"),
             Self::NoRdap => (StatusCode::UNPROCESSABLE_ENTITY, "no_rdap"),
             Self::Upstream => (StatusCode::BAD_GATEWAY, "upstream"),
+            Self::Blocked => (StatusCode::FORBIDDEN, "blocked"),
+            Self::Unreachable | Self::BadCert(_) => (StatusCode::BAD_GATEWAY, "unreachable"),
             Self::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
         }
     }

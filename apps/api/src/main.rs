@@ -56,9 +56,17 @@ pub fn app(state: AppState) -> Router {
         .key_extractor(RealIp)
         .finish()
         .expect("konfigurasi rate limit valid");
+    // Cek Website membuka beberapa alamat di situs orang lain: batasnya paling ketat.
+    let scan_governor = GovernorConfigBuilder::default()
+        .period(Duration::from_secs(60) / cfg.scan_rate_per_minute.max(1))
+        .burst_size(cfg.scan_rate_per_minute.max(1))
+        .key_extractor(RealIp)
+        .finish()
+        .expect("konfigurasi rate limit valid");
     let limiters = [
         governor.limiter().clone(),
         lookup_governor.limiter().clone(),
+        scan_governor.limiter().clone(),
     ];
     // Bersihkan catatan IP lama agar memori tidak tumbuh.
     if tokio::runtime::Handle::try_current().is_ok() {
@@ -87,10 +95,16 @@ pub fn app(state: AppState) -> Router {
         .layer(DefaultBodyLimit::max(1024))
         .layer(GovernorLayer::new(Arc::new(lookup_governor)));
 
+    let scan = Router::new()
+        .route("/site-check", post(routes::site_check::handler))
+        .layer(DefaultBodyLimit::max(1024))
+        .layer(GovernorLayer::new(Arc::new(scan_governor)));
+
     let v1 = Router::new()
         .route("/health", get(routes::health::health))
         .merge(heavy)
         .merge(lookup)
+        .merge(scan)
         .with_state(state);
 
     Router::new()

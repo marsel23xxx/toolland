@@ -196,6 +196,9 @@ async fn ctx(max_upload: usize, rate: u32) -> Ctx {
         queue_timeout: Duration::from_secs(5),
         rate_per_minute: rate,
         lookup_rate_per_minute: rate,
+        scan_rate_per_minute: rate,
+        scan_concurrency: 2,
+        doh_url: format!("http://127.0.0.1:{port}/dns-query"),
         rdap_bootstrap_url: format!("http://127.0.0.1:{port}/rdap/dns.json"),
         metrics_port: 0,
     };
@@ -504,4 +507,52 @@ async fn whois_dibatasi_per_ip() {
         whois_status(&c.app, "contoh.com").await.0,
         StatusCode::TOO_MANY_REQUESTS
     );
+}
+
+fn site_check(host: &str) -> Request<Body> {
+    Request::post("/api/tools/v1/site-check")
+        .header("content-type", "application/json")
+        .header("x-real-ip", "203.0.113.9")
+        .body(Body::from(serde_json::json!({ "host": host }).to_string()))
+        .unwrap()
+}
+
+#[tokio::test]
+async fn cek_website_menolak_alamat_internal() {
+    let c = ctx(1024, 20).await;
+    // Ditolak sebelum ada koneksi apa pun: IP langsung, nama lokal, port, dan URL utuh.
+    for host in [
+        "127.0.0.1",
+        "localhost",
+        "[::1]",
+        "gotenberg",
+        "api.internal",
+        "contoh.com:8080",
+        "http://contoh.com/",
+        "169.254.169.254",
+    ] {
+        let resp = c.app.clone().oneshot(site_check(host)).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST, "{host}");
+    }
+}
+
+#[tokio::test]
+async fn cek_website_dibatasi_per_ip() {
+    let c = ctx(1024, 2).await;
+    for _ in 0..2 {
+        let resp = c
+            .app
+            .clone()
+            .oneshot(site_check("localhost"))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    }
+    let resp = c
+        .app
+        .clone()
+        .oneshot(site_check("localhost"))
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
 }

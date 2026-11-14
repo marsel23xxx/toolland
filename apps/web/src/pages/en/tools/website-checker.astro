@@ -1,0 +1,9 @@
+---
+import SiteChecker from '../../../components/tools/SiteChecker.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../../i18n';
+---
+
+<ToolPage slug="website-checker">
+  <SiteChecker client:visible m={toolMessages('en', 'sitecheck')} />
+</ToolPage>

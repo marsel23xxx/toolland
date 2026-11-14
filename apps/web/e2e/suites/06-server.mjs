@@ -144,4 +144,32 @@ export const tests = [
       return [t.replace(/\s+/g, ' ').slice(0, 160)];
     },
   },
+  {
+    name: 'Cek Website (API Rust, butuh internet): nilai, sertifikat, teknologi, alamat lokal ditolak',
+    path: '/tools/cek-website',
+    async run(h) {
+      if (skip) return ['dilewati: TOOLLAND_API_URL tidak diisi'];
+      await h.type('#sc-host', 'https://julian-marcell.com/tools');
+      await h.page.click('form button[type=submit]');
+      const sel = 'section[aria-label="Hasil cek website"]';
+      await h.page.waitForSelector(sel, { timeout: 40000 });
+      const grade = await h.text('[data-sc-grade]');
+      expect(/^[A-F]$/.test(grade.trim()), grade);
+      const https = await h.page.$eval('[data-check="https"]', (el) => el.dataset.status);
+      expect(https === 'pass', `https: ${https}`);
+      const tech = await h.text('[data-sc-tech]');
+      expect(/Cloudflare/.test(tech), tech);
+      const t = await h.text(sel);
+      expect(/Sertifikat SSL/.test(t) && /sisa \d+ hari/.test(t), t.slice(0, 300));
+
+      // Domain yang mengarah ke 127.0.0.1 ditolak server (403), bukan dibuka.
+      await h.type('#sc-host', 'localtest.me');
+      await h.page.click('form button[type=submit]');
+      await h.page.waitForSelector('#sc-error', { timeout: 30000 });
+      const err = await h.text('#sc-error');
+      expect(/jaringan lokal/.test(err), err);
+      h.problems.length = 0;
+      return [`nilai ${grade.trim()}`, tech.replace(/\s+/g, ' ').slice(0, 120)];
+    },
+  },
 ];

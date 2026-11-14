@@ -32,7 +32,7 @@ faq:
     a: 'Semua ekstensi yang registry-nya menyediakan RDAP, termasuk .com, .net, .org, .id, .co.id, .my.id, .web.id, dan ratusan lainnya. Beberapa ekstensi negara belum punya RDAP dan akan diberi tahu.'
   - q: 'Apakah domain yang saya cek disimpan?'
     a: 'Tidak dicatat di log. Hasil pengecekan hanya disimpan sementara di RAM server paling lama 1 jam agar registry tidak ditanya berulang kali, lalu terhapus.'
-related: ['cari-subdomain', 'json-formatter', 'hash-md5-sha']
+related: ['cek-website', 'cari-subdomain', 'json-formatter']
 ---
 
 ## Kapan perlu cek WHOIS?

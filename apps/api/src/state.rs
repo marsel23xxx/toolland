@@ -5,7 +5,7 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use crate::{
     config::Config,
     error::{ApiError, ApiResult},
-    services::rdap::Rdap,
+    services::{rdap::Rdap, site_scan::Scanner},
 };
 
 #[derive(Clone)]
@@ -20,6 +20,8 @@ pub struct AppState {
     pub docx: Arc<Semaphore>,
     /// Pencarian WHOIS (RDAP) dengan cache di memori.
     pub rdap: Arc<Rdap>,
+    /// Cek Website dengan cache di memori.
+    pub scanner: Arc<Scanner>,
 }
 
 impl AppState {
@@ -32,6 +34,7 @@ impl AppState {
             gs: Arc::new(Semaphore::new(cfg.gs_concurrency)),
             docx: Arc::new(Semaphore::new(cfg.docx_concurrency)),
             rdap: Arc::new(Rdap::new(cfg.rdap_bootstrap_url.clone())?),
+            scanner: Arc::new(Scanner::new(cfg.doh_url.clone(), cfg.scan_concurrency)?),
             cfg: Arc::new(cfg),
         })
     }

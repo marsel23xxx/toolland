@@ -28,6 +28,12 @@ pub struct Config {
     pub rate_per_minute: u32,
     /// Batas cek WHOIS per IP per menit (terpisah dari tool berat).
     pub lookup_rate_per_minute: u32,
+    /// Batas Cek Website per IP per menit (tiap cek membuka beberapa alamat di situs tujuan).
+    pub scan_rate_per_minute: u32,
+    /// Cek Website yang berjalan bersamaan.
+    pub scan_concurrency: usize,
+    /// DNS-over-HTTPS (format JSON) untuk catatan SPF, DMARC, dan CAA.
+    pub doh_url: String,
     /// Daftar server RDAP per TLD dari IANA.
     pub rdap_bootstrap_url: String,
     /// Port Prometheus metrics (hanya jaringan internal), 0 = mati.
@@ -69,6 +75,10 @@ impl Config {
             queue_timeout: Duration::from_secs(var("TOOLLAND_QUEUE_TIMEOUT_SECS", 20)?),
             rate_per_minute: var("TOOLLAND_RATE_PER_MINUTE", 20)?,
             lookup_rate_per_minute: var("TOOLLAND_LOOKUP_RATE_PER_MINUTE", 15)?,
+            scan_rate_per_minute: var("TOOLLAND_SCAN_RATE_PER_MINUTE", 6)?,
+            scan_concurrency: var("TOOLLAND_SCAN_CONCURRENCY", 6)?,
+            doh_url: env::var("DOH_URL")
+                .unwrap_or_else(|_| "https://cloudflare-dns.com/dns-query".into()),
             rdap_bootstrap_url: env::var("RDAP_BOOTSTRAP_URL")
                 .unwrap_or_else(|_| "https://data.iana.org/rdap/dns.json".into()),
             metrics_port: var("TOOLLAND_METRICS_PORT", 9091)?,

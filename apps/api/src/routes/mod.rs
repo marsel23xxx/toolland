@@ -1,6 +1,7 @@
 pub mod health;
 pub mod office_to_pdf;
 pub mod pdf_compress;
+pub mod site_check;
 pub mod to_docx;
 pub mod whois;
 
