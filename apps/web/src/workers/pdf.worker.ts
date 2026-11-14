@@ -27,6 +27,7 @@ import {
   type CompressResult,
   type ImagePageInput,
   type ImagesToPdfOptions,
+  type OrganizePage,
   type PageNumberOptions,
   type PdfErrorCode,
   type WatermarkOptions,
@@ -182,6 +183,25 @@ const api = {
       results,
       results.map((r) => r.buffer as ArrayBuffer),
     );
+  },
+
+  /**
+   * Susun ulang halaman: urutan baru, putaran tambahan (kelipatan 90), dan halaman yang dihapus
+   * cukup tidak dicantumkan. Halaman yang sama boleh muncul lebih dari sekali.
+   */
+  async organize(buf: ArrayBuffer, pages: OrganizePage[]): Promise<Uint8Array> {
+    const src = await load(buf);
+    const doc = await PDFDocument.create();
+    const copied = await doc.copyPages(
+      src,
+      pages.map((p) => p.index),
+    );
+    copied.forEach((page, i) => {
+      const extra = pages[i].rotate;
+      if (extra) page.setRotation(degrees(normalizeRotation(page.getRotation().angle + extra)));
+      doc.addPage(page);
+    });
+    return out(await save(doc));
   },
 
   async imagesToPdf(images: ImagePageInput[], o: ImagesToPdfOptions): Promise<Uint8Array> {

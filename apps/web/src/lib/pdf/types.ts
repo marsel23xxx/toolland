@@ -82,3 +82,10 @@ export interface EditImage {
 
 /** Tinggi baris teks dibanding ukuran huruf, sama di layar dan di PDF. */
 export const EDIT_LINE_HEIGHT = 1.2;
+
+/** Satu halaman hasil Atur Halaman: indeks halaman asal (mulai 0) dan putaran tambahan. */
+export interface OrganizePage {
+  index: number;
+  /** Derajat searah jarum jam: 0, 90, 180, atau 270. */
+  rotate: number;
+}

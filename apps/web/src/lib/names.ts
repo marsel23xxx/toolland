@@ -23,6 +23,7 @@ const NAMES = {
     zipDocx: 'hasil-docx',
     image: 'gambar',
     converted: '-konversi',
+    organized: '-diatur',
     screenRecording: 'rekaman-layar',
   },
   en: {
@@ -46,6 +47,7 @@ const NAMES = {
     zipDocx: 'docx-files',
     image: 'image',
     converted: '-converted',
+    organized: '-organized',
     screenRecording: 'screen-recording',
   },
 } as const;

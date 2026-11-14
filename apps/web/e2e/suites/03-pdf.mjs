@@ -50,6 +50,60 @@ export const tests = [
     },
   },
   {
+    name: 'atur halaman PDF: hapus, putar, seret, keyboard, simpan',
+    path: '/tools/atur-halaman-pdf',
+    async run(h) {
+      const { page } = h;
+      await h.upload('teks.pdf');
+      await page.waitForFunction(
+        () => document.querySelectorAll('[data-org-grid] img').length === 4,
+        {
+          timeout: 20000,
+        },
+      );
+      expect(
+        await page.$eval('[data-org-reset]', (b) => b.disabled),
+        'reset aktif sebelum ada perubahan',
+      );
+      const order = () =>
+        page.$$eval('[data-org-pos]', (els) => els.map((e) => +e.dataset.orgIndex));
+      // Hapus halaman 2, putar halaman 1 ke kanan.
+      await page.click('[data-org-pos="1"] [data-org-del]');
+      await page.click('[data-org-pos="0"] [data-org-cw]');
+      expect(
+        (await page.$eval('[data-org-pos="0"]', (e) => e.dataset.orgRotate)) === '90',
+        'halaman 1 tidak berputar',
+      );
+      // Seret halaman 4 (posisi 3 setelah dihapus = 2) ke depan dengan mouse.
+      const box = async (pos) => (await page.$(`[data-org-pos="${pos}"] img`)).boundingBox();
+      const a = await box(2);
+      const b = await box(0);
+      await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 15 });
+      await page.mouse.up();
+      expect(JSON.stringify(await order()) === '[3,0,2]', `urutan setelah seret ${await order()}`);
+      // Keyboard: panah kanan pada pegangan memindah halaman satu posisi.
+      await page.focus('[data-org-pos="0"] [data-org-handle]');
+      await page.keyboard.press('ArrowRight');
+      await page.keyboard.press('ArrowLeft');
+      expect(
+        JSON.stringify(await order()) === '[3,0,2]',
+        `urutan setelah keyboard ${await order()}`,
+      );
+      await page.click('[data-org-save]');
+      await h.results(1);
+      const out = await h.download('teks-diatur.pdf');
+      const doc = await PDFDocument.load(out);
+      // Halaman 3 asli sudah berputar 90°; halaman 1 ditambah 90°.
+      const rot = doc.getPages().map((p) => p.getRotation().angle);
+      expect(JSON.stringify(rot) === '[0,90,90]', `putaran hasil ${rot}`);
+      // Kembalikan semula.
+      await page.click('[data-org-reset]');
+      expect(JSON.stringify(await order()) === '[0,1,2,3]', 'reset gagal');
+    },
+  },
+  {
     name: 'kompres PDF berisi foto',
     path: '/tools/kompres-pdf',
     async run(h) {
