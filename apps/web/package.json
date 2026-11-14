@@ -44,7 +44,7 @@
     "@lezer/highlight": "^1.2.5",
     "@mediapipe/tasks-vision": "1.2.0",
     "@neslinesli93/qpdf-wasm": "0.3.0",
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.5",
     "@tesseract.js-data/eng": "1.0.0",
     "@tesseract.js-data/ind": "1.0.0",
     "astro": "^7.4.4",
