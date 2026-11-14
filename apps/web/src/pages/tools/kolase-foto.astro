@@ -1,0 +1,15 @@
+---
+import PhotoCollage from '../../components/tools/image/PhotoCollage.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { messages } from '../../i18n';
+---
+
+<ToolPage slug="kolase-foto">
+  <PhotoCollage
+    client:visible
+    c={messages('id', 'collage')}
+    files={messages('id', 'files')}
+    dropzone={messages('id', 'dropzone')}
+    donate={messages('id', 'donate')}
+  />
+</ToolPage>

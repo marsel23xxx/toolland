@@ -35,6 +35,66 @@ async function sendFile(h, how, name = 'tempel.png', type = 'image/png') {
 
 export const tests = [
   {
+    name: 'kolase foto: tata letak, tukar posisi, zoom, latar, unduh PNG',
+    path: '/tools/kolase-foto',
+    async run(h) {
+      const { page } = h;
+      await h.upload('foto.jpg', 'kecil.jpg', 'foto.webp');
+      await page.waitForSelector('[data-cl-canvas]');
+      const names = () => page.$$eval('[data-cl-photos] img', (els) => els.map((e) => e.alt));
+      expect((await names()).length === 3, 'jumlah foto salah');
+      // Tambah foto ke-4 lalu buang lagi: tata letak menyesuaikan jumlah foto.
+      await (await page.$('[data-cl-add]')).uploadFile(h.fixture('foto.avif'));
+      await page.waitForFunction(
+        () => document.querySelectorAll('[data-cl-photos] img').length === 4,
+      );
+      const xs = await page.$$('[data-cl-remove]');
+      await xs[xs.length - 1].click();
+      await page.waitForFunction(
+        () => document.querySelectorAll('[data-cl-photos] img').length === 3,
+      );
+      await page.click('[data-cl-ratio="1:1"]');
+      await page.click('[data-cl-layout="feature-left"]');
+      // Seret foto 1 (kotak besar kiri) ke kotak 2 (kanan atas): posisinya ditukar.
+      const before = await names();
+      const cv = await (await page.$('[data-cl-canvas]')).boundingBox();
+      await page.mouse.move(cv.x + cv.width * 0.3, cv.y + cv.height * 0.5);
+      await page.mouse.down();
+      await page.mouse.move(cv.x + cv.width * 0.8, cv.y + cv.height * 0.25, { steps: 12 });
+      await page.mouse.up();
+      const after = await names();
+      expect(after[0] === before[1] && after[1] === before[0], `tidak tertukar: ${after}`);
+      // Kotak terpilih punya kontrol zoom.
+      await page.waitForSelector('[data-cl-zoom]');
+      await h.type('#cl-zoom', '2');
+      // Latar merah dan jarak lebar, unduh PNG.
+      await h.type('#cl-gap', '40');
+      await page.$eval('[data-cl-bg]', (el) => {
+        el.value = '#ff0000';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await page.select('#cl-fmt', 'png');
+      await page.click('[data-cl-save]');
+      await h.results(1);
+      const png = await h.download('kolase-foto.png');
+      const px = await page.evaluate(async (b64) => {
+        const img = new Image();
+        img.src = `data:image/png;base64,${b64}`;
+        await img.decode();
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth;
+        c.height = img.naturalHeight;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const at = (x, y) => [...ctx.getImageData(x, y, 1, 1).data.slice(0, 3)];
+        return { w: c.width, h: c.height, corner: at(10, 10), cell: at(300, 540) };
+      }, png.toString('base64'));
+      expect(px.w === 1080 && px.h === 1080, `ukuran ${px.w}x${px.h}`);
+      expect(JSON.stringify(px.corner) === '[255,0,0]', `latar ${px.corner}`);
+      expect(JSON.stringify(px.cell) !== '[255,0,0]', 'foto tidak tergambar');
+    },
+  },
+  {
     name: 'JPG ke WebP, batch 6 file + ZIP',
     path: '/tools/jpg-ke-webp',
     async run(h) {
