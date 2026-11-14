@@ -53,7 +53,7 @@ export const tests = [
       const pdf = await h.page.$$eval('header ul [data-nav-dd][data-open] .nav-tile', (as) =>
         as.map((a) => a.getAttribute('href')),
       );
-      expect(pdf.length === 15 && pdf.includes('/tools/gabung-pdf'), pdf.join(', '));
+      expect(pdf.length === 18 && pdf.includes('/tools/gabung-pdf'), pdf.join(', '));
       // Panel tidak boleh keluar dari layar.
       const right = await h.page.$eval('header [data-nav-dd][data-open] .nav-panel', (p) =>
         Math.round(p.getBoundingClientRect().right),
