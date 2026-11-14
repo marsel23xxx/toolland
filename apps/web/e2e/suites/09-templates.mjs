@@ -59,6 +59,16 @@ export const tests = [
         Math.round(p.getBoundingClientRect().right),
       );
       expect(right <= 1280, `panel melewati layar: ${right}`);
+      // Dropdown Teks: tes dikumpulkan di bawah sub-judul Tes & Psikotes.
+      await triggers[2].click();
+      const tests = await h.page.$$eval(
+        'header ul [data-nav-dd][data-open] [data-nav-group="tes"] .nav-tile',
+        (as) => as.map((a) => a.getAttribute('href')),
+      );
+      expect(
+        tests.length === 5 && tests.includes('/tools/tes-disc') && tests.includes('/tools/tes-iq'),
+        tests.join(', '),
+      );
       // Membuka dropdown lain menutup yang pertama.
       await triggers[5].click();
       const open = await h.page.$$eval('header [data-nav-dd][data-open]', (d) => d.length);

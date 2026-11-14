@@ -1,0 +1,10 @@
+---
+import PersonalityTest from '../../components/tools/PersonalityTest.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../i18n';
+import { bigFiveTest } from '../../lib/personality/bigfive-text';
+---
+
+<ToolPage slug="tes-kepribadian">
+  <PersonalityTest client:visible test={bigFiveTest('id')} m={toolMessages('id', 'persona')} />
+</ToolPage>

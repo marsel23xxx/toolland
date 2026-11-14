@@ -25,7 +25,12 @@ export const CATEGORY_NOTES: Record<CategoryId, Record<Locale, string>> = {
   media: { id: 'Video dan audio', en: 'Video and audio' },
 };
 
-/** Judul kelompok di beranda. */
-export const GROUP_NAMES: Record<'konversi', Record<Locale, string>> = {
+/** Kelompok tool di dalam kategori: konverter tampil sebagai chip, tes sebagai daftar sendiri. */
+export const GROUP_IDS = ['konversi', 'tes'] as const;
+export type GroupId = (typeof GROUP_IDS)[number];
+
+/** Judul kelompok di beranda dan navbar. */
+export const GROUP_NAMES: Record<GroupId, Record<Locale, string>> = {
   konversi: { id: 'Konversi format', en: 'Convert formats' },
+  tes: { id: 'Tes & Psikotes', en: 'Tests & assessments' },
 };

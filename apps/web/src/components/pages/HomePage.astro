@@ -5,6 +5,7 @@ import IconSearch from '~icons/lucide/search';
 import { useTranslations, type Locale } from '../../i18n';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import HeroDemo from './HeroDemo.astro';
+import ToolRow from './ToolRow.astro';
 import {
   CATEGORY_IDS,
   CATEGORY_NAMES,
@@ -44,12 +45,14 @@ const groups = CATEGORY_IDS.map((id) => {
     name: CATEGORY_NAMES[id][locale],
     note: CATEGORY_NOTES[id][locale],
     count: inCat.length,
-    // Tool populer di atas, sisanya alfabetis; konverter dikumpulkan dalam satu baris.
+    // Tool populer di atas, sisanya alfabetis; konverter dikumpulkan dalam satu baris dan tes
+    // dalam daftar tersendiri.
     rows: [
-      ...inCat.filter((x) => x.data.popular),
+      ...inCat.filter((x) => x.data.popular && !x.data.group),
       ...inCat.filter((x) => !x.data.popular && !x.data.group),
     ],
     convert: inCat.filter((x) => x.data.group === 'konversi'),
+    tests: inCat.filter((x) => x.data.group === 'tes'),
   };
 });
 
@@ -206,27 +209,29 @@ const pad = (n: number) => String(n).padStart(2, '0');
           {group.count === 0 && <p class="text-ink-3">{t('home.comingSoon')}</p>}
           <ul class="grid gap-x-10 sm:grid-cols-2">
             {group.rows.map((tool) => (
-              <li data-search={searchText(tool)}>
-                <a
-                  href={toolPath(locale, slugOf(tool))}
-                  class="group flex items-baseline justify-between gap-4 border-b border-rule py-3.5"
-                >
-                  <span>
-                    <span class="font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-300">
-                      {tool.data.name}
-                    </span>
-                    <span class="mt-0.5 block text-sm text-ink-3">{tool.data.summary}</span>
-                  </span>
-                  <span
-                    class="text-brand-600 transition-transform group-hover:translate-x-1 dark:text-brand-400"
-                    aria-hidden="true"
-                  >
-                    →
-                  </span>
-                </a>
-              </li>
+              <ToolRow
+                href={toolPath(locale, slugOf(tool))}
+                name={tool.data.name}
+                summary={tool.data.summary}
+                search={searchText(tool)}
+              />
             ))}
           </ul>
+          {group.tests.length > 0 && (
+            <div data-group class="mt-6">
+              <p class="eyebrow mb-1">{GROUP_NAMES.tes[locale]}</p>
+              <ul class="grid gap-x-10 sm:grid-cols-2">
+                {group.tests.map((tool) => (
+                  <ToolRow
+                    href={toolPath(locale, slugOf(tool))}
+                    name={tool.data.name}
+                    summary={tool.data.summary}
+                    search={searchText(tool)}
+                  />
+                ))}
+              </ul>
+            </div>
+          )}
           {group.convert.length > 0 && (
             <div data-group class="mt-6">
               <p class="eyebrow mb-3">{GROUP_NAMES.konversi[locale]}</p>

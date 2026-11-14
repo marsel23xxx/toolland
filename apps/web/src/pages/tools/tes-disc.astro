@@ -1,0 +1,10 @@
+---
+import PersonalityTest from '../../components/tools/PersonalityTest.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../i18n';
+import { discTest } from '../../lib/personality/disc-text';
+---
+
+<ToolPage slug="tes-disc">
+  <PersonalityTest client:visible test={discTest('id')} m={toolMessages('id', 'persona')} />
+</ToolPage>

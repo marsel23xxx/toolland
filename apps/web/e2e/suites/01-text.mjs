@@ -1,6 +1,60 @@
 import jsQR from 'jsqr';
 import { expect } from '../expect.mjs';
 
+// Kata DISC gaya D dan C (bahasa Indonesia), untuk memilih kata tanpa bergantung pada urutan.
+const D_WORDS = [
+  'Tegas',
+  'Berani',
+  'Kompetitif',
+  'Lugas',
+  'Ambisius',
+  'Mandiri',
+  'Gigih',
+  'Suka memimpin',
+  'Pantang menyerah',
+  'Berorientasi hasil',
+  'Percaya diri',
+  'Blak-blakan',
+  'Berani ambil risiko',
+  'Keras kepala',
+  'Tidak sabaran',
+  'Menuntut',
+  'Cepat bertindak',
+  'Tangguh',
+  'Agresif',
+  'Berkemauan keras',
+  'Suka menantang',
+  'Pelopor',
+  'Berwibawa',
+  'Suka tantangan',
+];
+const C_WORDS = [
+  'Teliti',
+  'Hati-hati',
+  'Sistematis',
+  'Analitis',
+  'Perfeksionis',
+  'Logis',
+  'Tertib',
+  'Detail',
+  'Disiplin',
+  'Objektif',
+  'Akurat',
+  'Waspada',
+  'Taat aturan',
+  'Kritis',
+  'Pemilih',
+  'Terlalu berhati-hati',
+  'Terencana',
+  'Cermat',
+  'Rapi',
+  'Berpikir mendalam',
+  'Skeptis',
+  'Berstandar tinggi',
+  'Tepat waktu',
+  'Penuh pertimbangan',
+];
+
 export const tests = [
   {
     name: 'beranda: pencarian',
@@ -162,6 +216,165 @@ export const tests = [
       await page.waitForSelector('[data-iq-options]');
       const second = await page.$eval('[data-iq-test]', (e) => e.innerHTML);
       expect(first !== second, 'soal tidak berubah saat tes diulang');
+    },
+  },
+  {
+    name: 'tes kepribadian Big Five: lanjut setelah reload, hasil 5 sifat, kartu PNG',
+    path: '/tools/tes-kepribadian',
+    async run(h) {
+      const { page } = h;
+      // Mulai bersih (riwayat dari percobaan sebelumnya di browser yang sama).
+      await page.evaluate(() => localStorage.removeItem('toolland-persona-big-five'));
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.click('[data-pt-start]');
+      await page.waitForSelector('[data-pt-options]');
+      const answer = async (n, from) => {
+        for (let i = 0; i < n; i++) {
+          await page.keyboard.press(String(((from + i) % 5) + 1));
+          await h.sleep(300);
+        }
+      };
+      await answer(10, 0);
+      expect(
+        (await h.text('[data-pt-progress]')).startsWith('11 '),
+        await h.text('[data-pt-progress]'),
+      );
+      // Progres tersimpan: setelah reload ada tombol lanjutkan.
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.waitForSelector('[data-pt-resume]');
+      expect(
+        (await h.text('[data-pt-resume]')).includes('10/50'),
+        await h.text('[data-pt-resume]'),
+      );
+      await page.click('[data-pt-resume]');
+      await page.waitForSelector('[data-pt-options]');
+      // Kembali satu langkah dengan panah kiri, lalu jawab lagi.
+      await page.keyboard.press('ArrowLeft');
+      expect(
+        (await h.text('[data-pt-progress]')).startsWith('10 '),
+        await h.text('[data-pt-progress]'),
+      );
+      await answer(1, 9);
+      await answer(40, 10);
+      await page.waitForSelector('[data-pt-result]');
+      const bars = await page.$$eval('[data-pt-bar]', (els) => els.length);
+      expect(bars === 5, `batang ${bars}`);
+      expect(!(await page.$('[data-pt-code]')), 'Big Five tidak punya kode tipe');
+      const txt = await h.text('[data-pt-result]');
+      for (const t of [
+        'Keterbukaan',
+        'Ketelitian',
+        'Ekstraversi',
+        'Keramahan',
+        'Neurotisisme',
+        'Kekuatanmu',
+      ])
+        expect(txt.includes(t), `tidak ada ${t}`);
+      const png = await h.downloadVia(/^hasil-tes-big-five-\d{8}-\d{4}\.png$/, () =>
+        page.click('[data-save="png"]'),
+      );
+      expect(png.subarray(1, 4).toString() === 'PNG', 'kartu Big Five bukan PNG');
+      // Hasil terakhir bisa dibuka lagi dari layar pembuka (reload memulihkan posisi gulir,
+      // jadi kembali ke atas agar island terlihat dan aktif).
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForSelector('[data-pt-last]');
+      await page.click('[data-pt-last]');
+      await page.waitForSelector('[data-pt-result]');
+    },
+  },
+  {
+    name: 'tes 16 tipe: semua sangat sesuai menghasilkan ESTJ seimbang',
+    path: '/tools/tes-16-kepribadian',
+    async run(h) {
+      const { page } = h;
+      await page.evaluate(() => localStorage.removeItem('toolland-persona-16-types'));
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.click('[data-pt-start]');
+      await page.waitForSelector('[data-pt-options]');
+      // Klik juga berfungsi, bukan hanya tombol angka.
+      await page.click('[data-pt-option="5"]');
+      await h.sleep(300);
+      for (let i = 1; i < 48; i++) {
+        await page.keyboard.press('5');
+        await h.sleep(260);
+      }
+      await page.waitForSelector('[data-pt-result]');
+      // Pernyataan kedua kutub disetujui semua: tiap dimensi 50%, seri condong ke kiri.
+      expect((await h.text('[data-pt-code]')) === 'ESTJ', await h.text('[data-pt-code]'));
+      expect(
+        (await h.text('[data-pt-name]')) === 'Pengelola Andal',
+        await h.text('[data-pt-name]'),
+      );
+      const txt = await h.text('[data-pt-result]');
+      expect(txt.includes('50%') && txt.includes('Pekerjaan yang cocok'), txt.slice(0, 300));
+      const pdf = await h.downloadVia(/^hasil-tes-16-tipe-\d{8}-\d{4}\.pdf$/, () =>
+        page.click('[data-save="pdf"]'),
+      );
+      expect(pdf.subarray(0, 5).toString() === '%PDF-', 'kartu 16 tipe bukan PDF');
+    },
+  },
+  {
+    name: 'tes DISC: paling dan paling tidak sesuai, grafik 4 gaya',
+    path: '/tools/tes-disc',
+    async run(h) {
+      const { page } = h;
+      await page.evaluate(() => localStorage.removeItem('toolland-persona-disc'));
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.click('[data-pt-start]');
+      await page.waitForSelector('[data-pt-most="0"]');
+      // Kata yang sama tidak bisa dipilih untuk + dan −.
+      await page.click('[data-pt-most="0"]');
+      await page.click('[data-pt-least="0"]');
+      const pressed = await page.$$eval('[aria-pressed="true"]', (b) => b.length);
+      expect(pressed === 1, `tombol aktif ${pressed}`);
+      expect(
+        (await h.text('[data-pt-progress]')).startsWith('1 '),
+        'pindah sebelum + dan − dipilih',
+      );
+      // Pilih kata dengan gaya D sebagai paling sesuai dan C sebagai paling tidak di semua kelompok.
+      for (let i = 0; i < 24; i++) {
+        const words = await page.$$eval('[data-pt-word]', (els) =>
+          els.map((e) => e.textContent.trim()),
+        );
+        const most = words.findIndex((w) => D_WORDS.includes(w));
+        const least = words.findIndex((w) => C_WORDS.includes(w));
+        expect(most >= 0 && least >= 0, words.join(', '));
+        await page.click(`[data-pt-most="${most}"]`);
+        await page.click(`[data-pt-least="${least}"]`);
+        await h.sleep(480);
+      }
+      await page.waitForSelector('[data-pt-result]');
+      expect((await h.text('[data-pt-code]')) === 'D', await h.text('[data-pt-code]'));
+      const bars = await page.$$eval('[data-pt-bar]', (els) => els.map((e) => e.textContent));
+      expect(
+        bars.length === 4 && bars[0].includes('+24') && bars[3].includes('-24'),
+        bars.join(' | '),
+      );
+    },
+  },
+  {
+    name: 'tes minat bakat: kode Holland 3 huruf dan saran jurusan',
+    path: '/tools/tes-minat-bakat',
+    async run(h) {
+      const { page } = h;
+      await page.evaluate(() => localStorage.removeItem('toolland-persona-riasec'));
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.click('[data-pt-start]');
+      await page.waitForSelector('[data-pt-options]');
+      // Urutan kegiatan R, I, A, S, E, C bergiliran: sukai I dan A, lalu S.
+      const like = [1, 5, 4, 3, 1, 1];
+      for (let i = 0; i < 48; i++) {
+        await page.keyboard.press(String(like[i % 6]));
+        await h.sleep(260);
+      }
+      await page.waitForSelector('[data-pt-result]');
+      expect((await h.text('[data-pt-code]')) === 'IAS', await h.text('[data-pt-code]'));
+      const txt = await h.text('[data-pt-result]');
+      expect(
+        txt.includes('Jurusan kuliah yang cocok') && txt.includes('Kedokteran'),
+        txt.slice(0, 300),
+      );
     },
   },
   {

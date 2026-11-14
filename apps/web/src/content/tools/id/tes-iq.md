@@ -4,6 +4,7 @@ title: 'Tes IQ Online Gratis: 30 Soal Acak dengan Perkiraan Skor IQ'
 description: 'Tes IQ online 30 soal dalam 20 menit: pola gambar, deret angka, dan bentuk berbeda. Soal selalu acak, lengkap dengan perkiraan IQ dan grafik. Gratis.'
 summary: 'Tes logika 30 soal acak dengan perkiraan skor IQ.'
 category: 'teks'
+group: 'tes'
 keywords:
   [
     'tes iq',
@@ -32,7 +33,7 @@ faq:
     a: 'Tidak. Soal dibuat dan dinilai langsung di browsermu. Riwayat skor hanya disimpan di localStorage browser ini dan hilang bila kamu menghapus data situs.'
   - q: 'Bagaimana cara meningkatkan skor?'
     a: 'Latih pengenalan pola secara rutin dan perhatikan jenis soal dengan skor terendah. Kebanyakan soal mengikuti beberapa aturan dasar: perubahan per baris atau kolom, gabungan garis, dan pola selisih pada deret. Kerjakan saat segar dan tidak terburu-buru.'
-related: ['tes-kecepatan-mengetik', 'hitung-kata', 'bandingkan-teks']
+related: ['tes-kepribadian', 'tes-minat-bakat', 'tes-kecepatan-mengetik']
 ---
 
 ## Mengukur logika, bukan hafalan

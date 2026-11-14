@@ -4,6 +4,7 @@ title: 'Free Online IQ Test: 30 Random Questions with an IQ Estimate'
 description: 'Online IQ test with 30 questions in 20 minutes: figure matrices, number series, and odd one out. Questions are always random, with an IQ estimate and charts. Free.'
 summary: '30 random logic questions with an estimated IQ score.'
 category: 'teks'
+group: 'tes'
 idSlug: 'tes-iq'
 keywords:
   [
@@ -32,7 +33,7 @@ faq:
     a: 'No. Questions are generated and scored in your browser. Score history is kept only in this browser’s localStorage and disappears if you clear site data.'
   - q: 'How can I improve my score?'
     a: 'Practise pattern spotting regularly and focus on the question type where you scored lowest. Most puzzles follow a handful of rules: changes along rows or columns, combining lines, and patterns in the differences of a series. Take the test when you are fresh and unhurried.'
-related: ['typing-test', 'word-counter', 'diff-checker']
+related: ['big-five-personality-test', 'career-interest-test', 'typing-test']
 ---
 
 ## Measuring reasoning, not memory

@@ -1,0 +1,10 @@
+---
+import PersonalityTest from '../../../components/tools/PersonalityTest.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../../i18n';
+import { riasecTest } from '../../../lib/personality/riasec-text';
+---
+
+<ToolPage slug="career-interest-test">
+  <PersonalityTest client:visible test={riasecTest('en')} m={toolMessages('en', 'persona')} />
+</ToolPage>

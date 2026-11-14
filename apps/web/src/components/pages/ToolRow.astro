@@ -1,0 +1,31 @@
+---
+/** Satu baris tool di daftar beranda: nama, ringkasan, dan panah. */
+interface Props {
+  href: string;
+  name: string;
+  summary: string;
+  /** Teks pencarian (huruf kecil tanpa aksen) untuk penyaring beranda. */
+  search: string;
+}
+const { href, name, summary, search } = Astro.props;
+---
+
+<li data-search={search}>
+  <a
+    href={href}
+    class="group flex items-baseline justify-between gap-4 border-b border-rule py-3.5"
+  >
+    <span>
+      <span class="font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-300">
+        {name}
+      </span>
+      <span class="mt-0.5 block text-sm text-ink-3">{summary}</span>
+    </span>
+    <span
+      class="text-brand-600 transition-transform group-hover:translate-x-1 dark:text-brand-400"
+      aria-hidden="true"
+    >
+      →
+    </span>
+  </a>
+</li>

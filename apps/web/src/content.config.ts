@@ -1,7 +1,7 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
-import { CATEGORY_IDS } from './lib/categories';
+import { CATEGORY_IDS, GROUP_IDS } from './lib/categories';
 import { TEMPLATE_CATEGORY_IDS, TEMPLATE_FORMATS } from './lib/templates/catalog';
 
 /**
@@ -34,8 +34,8 @@ const tools = defineCollection({
     related: z.array(z.string()).default([]),
     /** Tampil di deretan "Paling sering dipakai" di beranda. */
     popular: z.boolean().default(false),
-    /** Kelompok di beranda, misalnya semua konverter format gambar dalam satu baris. */
-    group: z.enum(['konversi']).optional(),
+    /** Kelompok di beranda dan navbar, misalnya semua konverter format atau semua tes. */
+    group: z.enum(GROUP_IDS).optional(),
     /** Khusus konten non-Indonesia: slug halaman Indonesia yang sama (untuk hreflang). */
     idSlug: z.string().optional(),
   }),
