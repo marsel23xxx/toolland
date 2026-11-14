@@ -5,7 +5,7 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use crate::{
     config::Config,
     error::{ApiError, ApiResult},
-    services::{rdap::Rdap, site_scan::Scanner},
+    services::{meet::Meet, rdap::Rdap, site_scan::Scanner},
 };
 
 #[derive(Clone)]
@@ -22,6 +22,8 @@ pub struct AppState {
     pub rdap: Arc<Rdap>,
     /// Cek Website dengan cache di memori.
     pub scanner: Arc<Scanner>,
+    /// Room Rapat Video (signaling) di memori.
+    pub meet: Arc<Meet>,
 }
 
 impl AppState {
@@ -35,6 +37,11 @@ impl AppState {
             docx: Arc::new(Semaphore::new(cfg.docx_concurrency)),
             rdap: Arc::new(Rdap::new(cfg.rdap_bootstrap_url.clone())?),
             scanner: Arc::new(Scanner::new(cfg.doh_url.clone(), cfg.scan_concurrency)?),
+            meet: Arc::new(Meet::new(
+                cfg.meet_max_rooms,
+                cfg.meet_per_ip,
+                cfg.ice_servers.clone(),
+            )),
             cfg: Arc::new(cfg),
         })
     }

@@ -1,6 +1,7 @@
 // Server statis untuk uji: meniru infra/nginx/web.conf (URL tanpa .html, 404, COOP/COEP halaman media).
 import fs from 'node:fs';
 import http from 'node:http';
+import net from 'node:net';
 import path from 'node:path';
 
 const TYPES = {
@@ -75,6 +76,21 @@ export function startServer(dist, nginxConf, port = 0) {
     headers['content-type'] = TYPES[path.extname(file)] ?? 'application/octet-stream';
     res.writeHead(found ? 200 : 404, headers);
     fs.createReadStream(file).pipe(res);
+  });
+  // WebSocket (Rapat Video): teruskan upgrade ke API apa adanya. Host asli dipertahankan seperti
+  // Nginx host (proxy_set_header Host $host), sehingga cek Origin di API tetap berlaku.
+  server.on('upgrade', (req, socket, head) => {
+    if (!api || !req.url.startsWith('/api/')) return socket.destroy();
+    const target = new URL(api);
+    const upstream = net.connect(Number(target.port) || 80, target.hostname, () => {
+      const headers = { ...req.headers, 'x-real-ip': '127.0.0.1' };
+      const lines = Object.entries(headers).map(([k, v]) => `${k}: ${v}`);
+      upstream.write(`${req.method} ${req.url} HTTP/1.1\r\n${lines.join('\r\n')}\r\n\r\n`);
+      upstream.write(head);
+      socket.pipe(upstream).pipe(socket);
+    });
+    upstream.on('error', () => socket.destroy());
+    socket.on('error', () => upstream.destroy());
   });
   return new Promise((resolve) =>
     server.listen(port, '127.0.0.1', () =>

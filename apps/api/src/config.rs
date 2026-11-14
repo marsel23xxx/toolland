@@ -4,6 +4,11 @@ use std::{env, net::SocketAddr, path::PathBuf, time::Duration};
 
 use anyhow::Context;
 
+/// STUN publik bawaan: hanya membantu peserta mengetahui alamat publiknya sendiri,
+/// tidak meneruskan video.
+const DEFAULT_ICE: &str =
+    r#"[{"urls":["stun:stun.cloudflare.com:3478","stun:stun.l.google.com:19302"]}]"#;
+
 #[derive(Clone, Debug)]
 pub struct Config {
     pub addr: SocketAddr,
@@ -38,6 +43,16 @@ pub struct Config {
     pub rdap_bootstrap_url: String,
     /// Port Prometheus metrics (hanya jaringan internal), 0 = mati.
     pub metrics_port: u16,
+    /// Rapat Video: koneksi signaling baru per IP per menit.
+    pub meet_rate_per_minute: u32,
+    /// Rapat Video: room aktif maksimal di seluruh server.
+    pub meet_max_rooms: usize,
+    /// Rapat Video: koneksi bersamaan maksimal per IP.
+    pub meet_per_ip: usize,
+    /// Server ICE untuk WebRTC dalam JSON (STUN; TURN menyusul setelah hardening server).
+    pub ice_servers: serde_json::Value,
+    /// Origin tambahan yang boleh membuka signaling (selain origin yang sama dengan Host).
+    pub meet_origins: Vec<String>,
 }
 
 fn var<T: std::str::FromStr>(name: &str, default: T) -> anyhow::Result<T>
@@ -82,6 +97,19 @@ impl Config {
             rdap_bootstrap_url: env::var("RDAP_BOOTSTRAP_URL")
                 .unwrap_or_else(|_| "https://data.iana.org/rdap/dns.json".into()),
             metrics_port: var("TOOLLAND_METRICS_PORT", 9091)?,
+            meet_rate_per_minute: var("TOOLLAND_MEET_RATE_PER_MINUTE", 30)?,
+            meet_max_rooms: var("TOOLLAND_MEET_MAX_ROOMS", 200)?,
+            meet_per_ip: var("TOOLLAND_MEET_PER_IP", 8)?,
+            ice_servers: serde_json::from_str(
+                &env::var("TOOLLAND_ICE_SERVERS").unwrap_or_else(|_| DEFAULT_ICE.into()),
+            )
+            .context("TOOLLAND_ICE_SERVERS harus JSON")?,
+            meet_origins: env::var("TOOLLAND_MEET_ORIGINS")
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().trim_end_matches('/').to_owned())
+                .filter(|s| !s.is_empty())
+                .collect(),
         })
     }
 }

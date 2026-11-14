@@ -63,11 +63,20 @@ pub fn app(state: AppState) -> Router {
         .key_extractor(RealIp)
         .finish()
         .expect("konfigurasi rate limit valid");
+    // Rapat Video: batasi pembukaan koneksi signaling baru per IP.
+    let meet_governor = GovernorConfigBuilder::default()
+        .period(Duration::from_secs(60) / cfg.meet_rate_per_minute.max(1))
+        .burst_size(cfg.meet_rate_per_minute.max(1))
+        .key_extractor(RealIp)
+        .finish()
+        .expect("konfigurasi rate limit valid");
     let limiters = [
         governor.limiter().clone(),
         lookup_governor.limiter().clone(),
         scan_governor.limiter().clone(),
+        meet_governor.limiter().clone(),
     ];
+    let meet = state.meet.clone();
     // Bersihkan catatan IP lama agar memori tidak tumbuh.
     if tokio::runtime::Handle::try_current().is_ok() {
         tokio::spawn(async move {
@@ -77,6 +86,7 @@ pub fn app(state: AppState) -> Router {
                 for l in &limiters {
                     l.retain_recent();
                 }
+                meet.sweep();
             }
         });
     }
@@ -100,11 +110,16 @@ pub fn app(state: AppState) -> Router {
         .layer(DefaultBodyLimit::max(1024))
         .layer(GovernorLayer::new(Arc::new(scan_governor)));
 
+    let meet = Router::new()
+        .route("/meet", get(routes::meet::handler))
+        .layer(GovernorLayer::new(Arc::new(meet_governor)));
+
     let v1 = Router::new()
         .route("/health", get(routes::health::health))
         .merge(heavy)
         .merge(lookup)
         .merge(scan)
+        .merge(meet)
         .with_state(state);
 
     Router::new()

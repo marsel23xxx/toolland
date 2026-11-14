@@ -172,4 +172,95 @@ export const tests = [
       return [`nilai ${grade.trim()}`, tech.replace(/\s+/g, ' ').slice(0, 120)];
     },
   },
+  {
+    name: 'rapat online: tamu menunggu, host menerima, video mengalir, chat, kunci, blur',
+    path: '/tools/rapat-online',
+    async run(h) {
+      if (skip) return ['dilewati: TOOLLAND_API_URL tidak diisi'];
+      const { page } = h;
+      const enterName = async (p, name) => {
+        await p.waitForSelector('[data-meet-name-input]');
+        await p.$eval('[data-meet-name-input]', (e) => (e.value = ''));
+        await p.type('[data-meet-name-input]', name);
+        await p.click('[data-meet-join]');
+      };
+      const others = [];
+      const guest = async (room, name) => {
+        const ctx = await h.browser.createBrowserContext();
+        others.push(ctx);
+        const p = await ctx.newPage();
+        await p.goto(`${h.base}/tools/rapat-online#r=${room}`, { waitUntil: 'networkidle0' });
+        await enterName(p, name);
+        return p;
+      };
+      try {
+        await page.click('[data-meet-new]');
+        await enterName(page, 'Ana');
+        await page.waitForSelector('[data-meet-room-view]');
+        const room = await page.evaluate(() => location.hash.slice(3));
+        expect(/^[a-z2-9]{3}-[a-z2-9]{4}-[a-z2-9]{3}$/.test(room), room);
+
+        // Tamu menunggu sampai host menerima.
+        const budi = await guest(room, 'Budi');
+        await budi.waitForSelector('[data-meet-waiting]');
+        await page.waitForSelector('[data-meet-knock]');
+        expect((await h.text('[data-meet-knock]')).includes('Budi'), 'nama tamu tidak muncul');
+        await page.click('[data-meet-admit]');
+        await budi.waitForSelector('[data-meet-room-view]');
+
+        // Video tamu benar-benar mengalir ke host dan sebaliknya (peer-to-peer).
+        const flowing = () =>
+          [...document.querySelectorAll('[data-meet-tile] video')].length === 2 &&
+          [...document.querySelectorAll('[data-meet-tile] video')][1].videoWidth > 0;
+        await page.waitForFunction(flowing, { timeout: 20000 });
+        await budi.waitForFunction(flowing, { timeout: 20000 });
+        const names = await page.$$eval('[data-meet-name]', (e) => e.map((x) => x.textContent));
+        expect(
+          names.some((n) => n.includes('Budi')),
+          names.join(', '),
+        );
+
+        // Chat: tamu melihat tanda belum dibaca, lalu pesannya.
+        await page.click('[data-meet-chat-btn]');
+        await page.type('[data-meet-chat-input]', 'Halo dari Ana');
+        await page.keyboard.press('Enter');
+        await budi.waitForFunction(() =>
+          document.querySelector('[data-meet-chat-btn]')?.textContent?.includes('1'),
+        );
+        await budi.click('[data-meet-chat-btn]');
+        await budi.waitForFunction(() =>
+          document.querySelector('[data-meet-chat]')?.textContent?.includes('Halo dari Ana'),
+        );
+
+        // Kunci rapat: orang ketiga ditolak.
+        await page.click('[data-meet-people-btn]');
+        await page.click('[data-meet-lock]');
+        await h.sleep(300);
+        const citra = await guest(room, 'Citra');
+        await citra.waitForSelector('[data-meet-ended][data-reason="locked"]');
+
+        // Blur latar di host: video ke tamu tetap mengalir.
+        await page.click('[data-meet-room-view] [data-meet-blur]');
+        await page.waitForFunction(
+          () =>
+            document
+              .querySelector('[data-meet-room-view] [data-meet-blur]')
+              ?.getAttribute('aria-pressed') === 'true' &&
+            !document.querySelector('[data-meet-room-view] [data-meet-blur]')?.disabled,
+          { timeout: 30000 },
+        );
+        await h.sleep(1500);
+        await budi.waitForFunction(flowing, { timeout: 10000 });
+
+        // Tamu keluar: host kembali sendirian.
+        await budi.click('[data-meet-leave]');
+        await page.waitForFunction(
+          () => document.querySelectorAll('[data-meet-tile]').length === 1,
+          { timeout: 10000 },
+        );
+      } finally {
+        for (const c of others) await c.close();
+      }
+    },
+  },
 ];

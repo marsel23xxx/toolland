@@ -201,6 +201,11 @@ async fn ctx(max_upload: usize, rate: u32) -> Ctx {
         doh_url: format!("http://127.0.0.1:{port}/dns-query"),
         rdap_bootstrap_url: format!("http://127.0.0.1:{port}/rdap/dns.json"),
         metrics_port: 0,
+        meet_rate_per_minute: rate,
+        meet_max_rooms: 10,
+        meet_per_ip: 4,
+        ice_servers: serde_json::json!([]),
+        meet_origins: Vec::new(),
     };
     Ctx {
         app: app(AppState::new(cfg).unwrap()),
@@ -555,4 +560,133 @@ async fn cek_website_dibatasi_per_ip() {
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
+}
+
+mod meet_ws {
+    //! Rapat Video lewat WebSocket sungguhan: room, ruang tunggu, signal, dan penolakan origin.
+    use std::net::SocketAddr;
+
+    use futures_util::{SinkExt, StreamExt};
+    use serde_json::{Value, json};
+    use tokio_tungstenite::tungstenite::{Message, client::IntoClientRequest};
+
+    use super::ctx;
+
+    type Ws = tokio_tungstenite::WebSocketStream<
+        tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+    >;
+
+    async fn serve() -> SocketAddr {
+        let c = ctx(1024, 100).await;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            axum::serve(
+                listener,
+                c.app
+                    .clone()
+                    .into_make_service_with_connect_info::<SocketAddr>(),
+            )
+            .await
+            .unwrap()
+        });
+        addr
+    }
+
+    async fn connect(addr: SocketAddr) -> Ws {
+        tokio_tungstenite::connect_async(format!("ws://{addr}/api/tools/v1/meet"))
+            .await
+            .unwrap()
+            .0
+    }
+
+    async fn send(ws: &mut Ws, v: Value) {
+        ws.send(Message::Text(v.to_string().into())).await.unwrap();
+    }
+
+    /// Pesan JSON berikutnya (lewati ping), atau {"t":"close","reason":..}.
+    async fn next(ws: &mut Ws) -> Value {
+        loop {
+            let msg = tokio::time::timeout(std::time::Duration::from_secs(3), ws.next())
+                .await
+                .expect("tidak ada pesan")
+                .unwrap()
+                .unwrap();
+            match msg {
+                Message::Text(t) => return serde_json::from_str(&t).unwrap(),
+                Message::Close(f) => {
+                    return json!({"t": "close", "reason": f.map(|f| f.reason.to_string())});
+                }
+                _ => {}
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn rapat_dua_orang_dengan_ruang_tunggu() {
+        let addr = serve().await;
+        let mut host = connect(addr).await;
+        send(
+            &mut host,
+            json!({"t": "hello", "room": "rapat-uji-01", "name": "Ana"}),
+        )
+        .await;
+        let w = next(&mut host).await;
+        assert_eq!(w["t"], "welcome");
+        let host_id = w["you"].clone();
+
+        let mut tamu = connect(addr).await;
+        send(
+            &mut tamu,
+            json!({"t": "hello", "room": "rapat-uji-01", "name": "Budi"}),
+        )
+        .await;
+        assert_eq!(next(&mut tamu).await["t"], "waiting");
+        let knock = next(&mut host).await;
+        assert_eq!(
+            (knock["t"].as_str(), knock["name"].as_str()),
+            (Some("knock"), Some("Budi"))
+        );
+
+        send(&mut host, json!({"t": "admit", "id": knock["id"]})).await;
+        assert_eq!(next(&mut host).await["t"], "peer-join");
+        let welcome = next(&mut tamu).await;
+        assert_eq!(welcome["t"], "welcome");
+        assert_eq!(welcome["peers"][0]["name"], "Ana");
+
+        send(
+            &mut tamu,
+            json!({"t": "signal", "to": host_id, "data": {"type": "offer", "sdp": "v=0"}}),
+        )
+        .await;
+        let s = loop {
+            let m = next(&mut host).await;
+            if m["t"] == "signal" {
+                break m;
+            }
+        };
+        assert_eq!(s["data"]["type"], "offer");
+
+        send(&mut tamu, json!({"t": "ping"})).await;
+        assert_eq!(next(&mut tamu).await["t"], "pong");
+
+        // Tamu keluar: host diberi tahu.
+        tamu.close(None).await.unwrap();
+        assert_eq!(next(&mut host).await["t"], "peer-leave");
+    }
+
+    #[tokio::test]
+    async fn hello_tidak_valid_dan_origin_asing_ditolak() {
+        let addr = serve().await;
+        let mut ws = connect(addr).await;
+        send(&mut ws, json!({"t": "hello", "room": "A B", "name": "Ana"})).await;
+        assert_eq!(next(&mut ws).await["reason"], "invalid");
+
+        let mut req = format!("ws://{addr}/api/tools/v1/meet")
+            .into_client_request()
+            .unwrap();
+        req.headers_mut()
+            .insert("origin", "https://jahat.example".parse().unwrap());
+        assert!(tokio_tungstenite::connect_async(req).await.is_err());
+    }
 }

@@ -6,6 +6,7 @@
 // - @imgly/background-removal: runtime ONNX + model isnet_fp16 & isnet_quint8 (unduh, diverifikasi SHA-256)
 // - tesseract.js (OCR): worker, core WASM khusus LSTM, dan data bahasa Indonesia + Inggris
 // - qpdf (WASM): kunci dan buka kunci PDF
+// - MediaPipe tasks-vision: WASM + model Selfie Segmenter (blur latar Rapat Video)
 //
 // Unduhan disimpan di cache (~/.cache/toolland-vendor) agar build berikutnya tidak mengunduh ulang.
 // Menulis src/lib/vendor.ts berisi path versi yang dipakai kode.
@@ -63,6 +64,7 @@ const v = {
   imgly: await version('@imgly/background-removal'),
   tesseract: await version('tesseract.js'),
   qpdf: await version('@neslinesli93/qpdf-wasm'),
+  mediapipe: await version('@mediapipe/tasks-vision'),
 };
 
 const paths = {
@@ -72,6 +74,7 @@ const paths = {
   imgly: `/vendor/imgly/${v.imgly}/`,
   tesseract: `/vendor/tesseract/${v.tesseract}/`,
   qpdf: `/vendor/qpdf/${v.qpdf}/`,
+  mediapipe: `/vendor/mediapipe/${v.mediapipe}/`,
 };
 const dest = (p) => path.join(root, 'public', p);
 
@@ -117,6 +120,25 @@ for (const lang of ['ind', 'eng']) {
 await copy(
   path.join(pkgDir('@neslinesli93/qpdf-wasm'), 'dist/qpdf.wasm'),
   path.join(dest(paths.qpdf), 'qpdf.wasm'),
+);
+
+// MediaPipe: loader + WASM (SIMD dan tanpa SIMD), dan model Selfie Segmenter (Apache-2.0)
+// dari URL berversi, diverifikasi SHA-256.
+for (const file of [
+  'vision_wasm_internal.js',
+  'vision_wasm_internal.wasm',
+  'vision_wasm_nosimd_internal.js',
+  'vision_wasm_nosimd_internal.wasm',
+]) {
+  await copy(
+    path.join(pkgDir('@mediapipe/tasks-vision'), 'wasm', file),
+    path.join(dest(paths.mediapipe), 'wasm', file),
+  );
+}
+await fetchCached(
+  'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite',
+  path.join(dest(paths.mediapipe), 'selfie_segmenter.tflite'),
+  '191ac9529ae506ee0beefa6b2c945a172dab9d07d1e802a290a4e4038226658b',
 );
 
 // @imgly/background-removal: hanya model dan runtime yang dipakai.

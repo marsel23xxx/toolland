@@ -75,6 +75,9 @@ async function context(urlPath) {
     page,
     problems,
     sleep,
+    /** Untuk tes yang butuh lebih dari satu pengguna (misalnya Rapat Video). */
+    browser,
+    base: url,
     fixture: (name) => path.join(fixtures, name),
     downloads: dlDir,
     async upload(...names) {

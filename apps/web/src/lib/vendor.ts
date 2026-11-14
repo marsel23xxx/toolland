@@ -6,4 +6,5 @@ export const VENDOR = {
   imgly: '/vendor/imgly/1.7.0/',
   tesseract: '/vendor/tesseract/7.0.0/',
   qpdf: '/vendor/qpdf/0.3.0/',
+  mediapipe: '/vendor/mediapipe/1.2.0/',
 } as const;
