@@ -856,6 +856,9 @@ function onRelink(e: Event) {
 
 function reset() {
   if (dirty.value && !empty.value && !confirm(props.t.confirmDiscard)) return;
+  // Simpan otomatis yang masih berjalan tidak boleh menulis ulang proyek yang dibuang.
+  clearTimeout(autoTimer);
+  saveGen++;
   void clearSnapshot();
   autosavedAt.value = 0;
   playing.value = false;
@@ -1240,17 +1243,22 @@ const recovery = ref<Snapshot | null>(null);
 const autosavedAt = ref(0);
 let autoTimer: ReturnType<typeof setTimeout> | undefined;
 let autoBusy = false;
+/** Naik setiap proyek dibuang; simpanan yang dimulai sebelumnya dianggap usang. */
+let saveGen = 0;
 
 async function autosave() {
   if (empty.value || recovery.value || autoBusy) return;
   autoBusy = true;
+  const gen = saveGen;
   try {
     const ok = await saveSnapshot(
       JSON.stringify(project.value),
       sources.value,
       pickStoredFiles(project.value.media),
     );
-    if (ok) autosavedAt.value = Date.now();
+    // Proyek dibuang saat sedang menyimpan: hapus lagi simpanan yang baru tertulis.
+    if (gen !== saveGen) await clearSnapshot();
+    else if (ok) autosavedAt.value = Date.now();
   } finally {
     autoBusy = false;
   }

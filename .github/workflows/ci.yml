@@ -46,7 +46,10 @@ jobs:
         if: failure()
         with:
           name: e2e-screenshots
-          path: apps/web/e2e/.tmp/run-*/*.png
+          # Hanya screenshot tes yang gagal. Folder .tmp tersembunyi (diawali titik),
+          # jadi harus diizinkan eksplisit; bawaannya dilewati upload-artifact.
+          path: apps/web/e2e/.tmp/run-*/gagal-*.png
+          include-hidden-files: true
           retention-days: 7
       - uses: actions/upload-artifact@v7
         with:

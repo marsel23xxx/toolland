@@ -572,6 +572,24 @@ export const tests = [
           .find((b) => b.textContent.trim() === 'Proyek baru')
           .click(),
       );
+      // Tunggu simpanan benar-benar terhapus dari IndexedDB sebelum muat ulang (mesin CI lambat).
+      await fresh.waitForFunction(
+        () =>
+          new Promise((resolve) => {
+            const req = indexedDB.open('toolland-editor');
+            req.onerror = () => resolve(false);
+            req.onsuccess = () => {
+              const db = req.result;
+              const count = db.transaction('project').objectStore('project').count();
+              count.onsuccess = () => {
+                db.close();
+                resolve(count.result === 0);
+              };
+              count.onerror = () => resolve(false);
+            };
+          }),
+        { timeout: 15000, polling: 250 },
+      );
       await fresh.reload({ waitUntil: 'networkidle0' });
       await h.sleep(1500);
       expect(!(await fresh.$('[data-recovery]')), 'tawaran pemulihan muncul lagi');

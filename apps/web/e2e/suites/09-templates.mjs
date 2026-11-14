@@ -108,9 +108,18 @@ export const tests = [
     name: 'navbar HP: accordion kategori',
     path: '/',
     async run(h) {
+      // Di mesin CI yang lambat, klik saat animasi buka-tutup belum selesai bisa meleset:
+      // tunggu sampai tidak ada animasi yang berjalan di header sebelum setiap klik.
+      const settled = () =>
+        h.page.waitForFunction(
+          () => !document.querySelector('header').getAnimations({ subtree: true }).length,
+          { timeout: 5000 },
+        );
       await h.page.setViewport({ width: 390, height: 844 });
       await h.page.click('header [data-mobile] > button');
+      await settled();
       await h.page.click('header .nav-acc[data-cat=media] > button');
+      await settled();
       const media = await h.page.$$eval('header .nav-acc[data-cat=media] .nav-tile', (as) =>
         as.map((a) => a.getAttribute('href')),
       );

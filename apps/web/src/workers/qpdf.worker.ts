@@ -71,7 +71,7 @@ async function qpdf(
 function fail(lines: string[]): never {
   const text = lines.join('\n');
   if (/invalid password/i.test(text)) throw new Error('password');
-  if (/out of memory|bad_alloc/i.test(text)) throw new Error('memory', { cause: e });
+  if (/out of memory|bad_alloc/i.test(text)) throw new Error('memory');
   console.warn('[qpdf]', text.split('\n').slice(-5).join('\n'));
   throw new Error('invalid');
 }
