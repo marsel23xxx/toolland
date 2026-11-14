@@ -1,0 +1,10 @@
+---
+import PdfProtect from '../../components/tools/pdf/PdfProtect.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { messages } from '../../i18n';
+import { pdfToolProps } from '../../lib/pdf/props';
+---
+
+<ToolPage slug="buka-kunci-pdf">
+  <PdfProtect client:visible mode="unlock" {...pdfToolProps('id')} p={messages('id', 'protect')} />
+</ToolPage>

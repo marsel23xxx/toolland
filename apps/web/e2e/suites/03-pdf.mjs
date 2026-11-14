@@ -104,6 +104,83 @@ export const tests = [
     },
   },
   {
+    name: 'kunci PDF: password + larang cetak, PDF terkunci ditolak',
+    path: '/tools/kunci-pdf',
+    async run(h) {
+      const { page } = h;
+      await h.upload('teks.pdf');
+      await page.waitForSelector('[data-lock-state="none"]', { timeout: 20000 });
+      await h.type('#pp-pw', 'Rahasia 123');
+      await h.type('#pp-pw2', 'Rahasia 12');
+      await page.waitForSelector('[data-pp-mismatch]');
+      expect(
+        await page.$eval('[data-pp-run]', (b) => b.disabled),
+        'tombol aktif saat password beda',
+      );
+      await h.type('#pp-pw2', 'Rahasia 123');
+      await page.click('[data-pp-noprint]');
+      await page.click('[data-pp-run]');
+      await h.results(1);
+      const out = await h.download('teks-terkunci.pdf');
+      const s = out.toString('latin1');
+      expect(s.includes('/Encrypt') && s.includes('/AESV3'), 'tidak terenkripsi AES-256');
+      let refused = false;
+      try {
+        await PDFDocument.load(out);
+      } catch {
+        refused = true;
+      }
+      expect(refused, 'PDF terkunci bisa dibuka tanpa password');
+      fs.writeFileSync(h.fixture('terkunci.pdf'), out);
+      // Mengunci PDF yang sudah terkunci diarahkan ke Buka Kunci PDF.
+      await h.click('Ganti file');
+      await h.upload('terkunci.pdf');
+      await page.waitForSelector('[data-lock-state="password"]', { timeout: 20000 });
+      expect(await page.$('a[href="/tools/buka-kunci-pdf"]'), 'link Buka Kunci PDF tidak ada');
+      expect(!(await page.$('#pp-pw')), 'form password tetap muncul');
+    },
+  },
+  {
+    name: 'buka kunci PDF: password salah ditolak, password benar membuka',
+    path: '/tools/buka-kunci-pdf',
+    async run(h) {
+      const { page } = h;
+      await h.upload('terkunci.pdf');
+      await page.waitForSelector('[data-lock-state="password"]', { timeout: 20000 });
+      await h.type('#pp-pw', 'salah');
+      await page.click('[data-pp-run]');
+      await page.waitForFunction(() => document.body.innerText.includes('Password salah'), {
+        timeout: 20000,
+      });
+      await h.type('#pp-pw', 'Rahasia 123');
+      await page.click('[data-pp-run]');
+      await h.results(1);
+      const out = await h.download('terkunci-terbuka.pdf');
+      expect(!out.toString('latin1').includes('/Encrypt'), 'masih terenkripsi');
+      expect((await pagesOf(out)) === 4, 'jumlah halaman berubah');
+    },
+  },
+  {
+    name: 'buka kunci PDF: hapus larangan cetak/salin tanpa password',
+    path: '/tools/buka-kunci-pdf',
+    async run(h) {
+      const { page } = h;
+      await h.upload('dibatasi.pdf');
+      await page.waitForSelector('[data-lock-state="restricted"]', { timeout: 20000 });
+      expect(await h.bodyHas('tidak bisa dicetak'), 'jenis pembatasan tidak ditampilkan');
+      expect(!(await page.$('#pp-pw')), 'password diminta untuk PDF yang hanya dibatasi');
+      await h.click('Hapus pembatasan');
+      await h.results(1);
+      const out = await h.download('dibatasi-terbuka.pdf');
+      expect(!out.toString('latin1').includes('/Encrypt'), 'pembatasan masih ada');
+      // PDF biasa: diberi tahu tidak terkunci.
+      await h.click('Ganti file');
+      await h.upload('teks.pdf');
+      await page.waitForSelector('[data-lock-state="none"]', { timeout: 20000 });
+      expect(!(await page.$('[data-pp-run]')), 'tombol buka kunci muncul untuk PDF biasa');
+    },
+  },
+  {
     name: 'kompres PDF berisi foto',
     path: '/tools/kompres-pdf',
     async run(h) {

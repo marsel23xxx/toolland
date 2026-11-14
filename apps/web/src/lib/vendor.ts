@@ -5,4 +5,5 @@ export const VENDOR = {
   ffmpegCoreMt: '/vendor/ffmpeg-core-mt/0.12.10/',
   imgly: '/vendor/imgly/1.7.0/',
   tesseract: '/vendor/tesseract/7.0.0/',
+  qpdf: '/vendor/qpdf/0.3.0/',
 } as const;

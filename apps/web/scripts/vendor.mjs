@@ -5,6 +5,7 @@
 // - ffmpeg core single-thread dan multi-thread (dari node_modules)
 // - @imgly/background-removal: runtime ONNX + model isnet_fp16 & isnet_quint8 (unduh, diverifikasi SHA-256)
 // - tesseract.js (OCR): worker, core WASM khusus LSTM, dan data bahasa Indonesia + Inggris
+// - qpdf (WASM): kunci dan buka kunci PDF
 //
 // Unduhan disimpan di cache (~/.cache/toolland-vendor) agar build berikutnya tidak mengunduh ulang.
 // Menulis src/lib/vendor.ts berisi path versi yang dipakai kode.
@@ -61,6 +62,7 @@ const v = {
   ffmpegCoreMt: await version('@ffmpeg/core-mt'),
   imgly: await version('@imgly/background-removal'),
   tesseract: await version('tesseract.js'),
+  qpdf: await version('@neslinesli93/qpdf-wasm'),
 };
 
 const paths = {
@@ -69,6 +71,7 @@ const paths = {
   ffmpegCoreMt: `/vendor/ffmpeg-core-mt/${v.ffmpegCoreMt}/`,
   imgly: `/vendor/imgly/${v.imgly}/`,
   tesseract: `/vendor/tesseract/${v.tesseract}/`,
+  qpdf: `/vendor/qpdf/${v.qpdf}/`,
 };
 const dest = (p) => path.join(root, 'public', p);
 
@@ -109,6 +112,12 @@ for (const lang of ['ind', 'eng']) {
     path.join(dest(paths.tesseract), 'lang', `${lang}.traineddata.gz`),
   );
 }
+
+// qpdf: cukup file wasm-nya; kode JS ikut di-bundle oleh Vite.
+await copy(
+  path.join(pkgDir('@neslinesli93/qpdf-wasm'), 'dist/qpdf.wasm'),
+  path.join(dest(paths.qpdf), 'qpdf.wasm'),
+);
 
 // @imgly/background-removal: hanya model dan runtime yang dipakai.
 const imglyBase = `https://staticimgly.com/@imgly/background-removal-data/${v.imgly}/dist/`;

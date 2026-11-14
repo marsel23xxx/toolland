@@ -24,6 +24,8 @@ const NAMES = {
     image: 'gambar',
     converted: '-konversi',
     organized: '-diatur',
+    locked: '-terkunci',
+    unlocked: '-terbuka',
     screenRecording: 'rekaman-layar',
   },
   en: {
@@ -48,6 +50,8 @@ const NAMES = {
     image: 'image',
     converted: '-converted',
     organized: '-organized',
+    locked: '-protected',
+    unlocked: '-unlocked',
     screenRecording: 'screen-recording',
   },
 } as const;
