@@ -14,6 +14,16 @@ describe('pickRecType', () => {
   it('tidak ada yang didukung -> string kosong (pakai bawaan browser)', () => {
     expect(pickRecType(() => false)).toBe('');
   });
+
+  it('tanpa audio: codec audio dibuang (Firefox macet bila diberi vp8,opus tanpa audio)', () => {
+    const firefox = (t: string) => t.startsWith('video/webm');
+    expect(pickRecType(firefox, false)).toBe('video/webm;codecs=vp9');
+    expect(pickRecType((t) => t === 'video/webm;codecs=vp8', false)).toBe('video/webm;codecs=vp8');
+    expect(pickRecType((t) => t.startsWith('video/mp4'), false)).toBe(
+      'video/mp4;codecs=avc1.640028',
+    );
+    expect(pickRecType(firefox, true)).toBe('video/webm;codecs=vp9,opus');
+  });
 });
 
 describe('extForType', () => {

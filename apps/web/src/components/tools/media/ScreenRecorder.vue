@@ -112,7 +112,7 @@ async function start() {
   // Tombol "Berhenti berbagi" milik browser juga menghentikan rekaman.
   display.getVideoTracks()[0]?.addEventListener('ended', stop);
 
-  const type = pickRecType((x) => MediaRecorder.isTypeSupported(x));
+  const type = pickRecType((x) => MediaRecorder.isTypeSupported(x), !!mixed.track);
   recorder = new MediaRecorder(stream, {
     ...(type ? { mimeType: type } : {}),
     videoBitsPerSecond: REC_BITRATE[quality.value],
@@ -123,6 +123,8 @@ async function start() {
     if (e.data.size) chunks.push(e.data);
   };
   recorder.onstop = () => void finish();
+  // Rekaman gagal di tengah jalan (encoder browser error): simpan yang sudah terekam.
+  recorder.onerror = () => void finish();
 
   if (countdownOn.value) {
     state.value = 'countdown';
@@ -143,14 +145,20 @@ async function start() {
 
 function togglePause() {
   if (!recorder) return;
-  if (state.value === 'recording') {
-    recorder.pause();
-    banked += (performance.now() - segStart) / 1000;
-    state.value = 'paused';
-  } else if (state.value === 'paused') {
-    recorder.resume();
-    segStart = performance.now();
-    state.value = 'recording';
+  try {
+    if (state.value === 'recording') {
+      recorder.pause();
+      banked += (performance.now() - segStart) / 1000;
+      state.value = 'paused';
+    } else if (state.value === 'paused') {
+      recorder.resume();
+      segStart = performance.now();
+      state.value = 'recording';
+    }
+  } catch {
+    // Perekam browser sudah berhenti sendiri: selesaikan dengan data yang ada.
+    void finish();
+    return;
   }
   tick();
 }
@@ -164,13 +172,19 @@ function stop() {
     state.value = 'idle';
     return;
   }
-  if (recorder && recorder.state !== 'inactive') {
-    tick();
-    recorder.stop();
-  }
+  if (!recorder) return;
+  tick();
+  if (recorder.state !== 'inactive') recorder.stop();
+  // Pengaman: bila browser tidak pernah mengirim event stop, selesaikan sendiri.
+  const r = recorder;
+  setTimeout(() => {
+    if (recorder === r) void finish();
+  }, 4000);
 }
 
 async function finish() {
+  // Bisa dipanggil dari onstop, onerror, atau pengaman; cukup sekali per rekaman.
+  if (!recorder) return;
   clearInterval(timer);
   const type = recorder?.mimeType || 'video/webm';
   recorder = null;
@@ -205,6 +219,7 @@ onBeforeUnmount(() => {
   aborted = true;
   if (recorder && recorder.state !== 'inactive') {
     recorder.onstop = null;
+    recorder.onerror = null;
     recorder.stop();
   }
   stopTracks();

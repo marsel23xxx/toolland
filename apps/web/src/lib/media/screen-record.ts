@@ -26,8 +26,16 @@ export const REC_TYPES = [
   'video/webm',
 ];
 
-export function pickRecType(isSupported: (t: string) => boolean): string {
-  return REC_TYPES.find((t) => isSupported(t)) ?? '';
+/**
+ * Format rekaman yang didukung browser. Tanpa track audio, codec audio dibuang dari pilihan:
+ * Firefox yang diberi "vp8,opus" tanpa audio menunggu audio selamanya, tidak pernah memulai
+ * rekaman, dan tidak pernah mengirim event stop (tombol Jeda/Selesai seolah tidak berfungsi).
+ */
+export function pickRecType(isSupported: (t: string) => boolean, hasAudio = true): string {
+  const types = hasAudio
+    ? REC_TYPES
+    : [...new Set(REC_TYPES.map((t) => t.replace(/,(mp4a[\w.]*|opus)$/, '')))];
+  return types.find((t) => isSupported(t)) ?? '';
 }
 
 export function extForType(type: string): 'mp4' | 'webm' {
