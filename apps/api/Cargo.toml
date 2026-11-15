@@ -30,5 +30,5 @@ x509-parser = "0.18.1"
 [dev-dependencies]
 futures-util = "0.3.31"
 http-body-util = "0.1.5"
-tokio-tungstenite = "0.29.0"
+tokio-tungstenite = "0.30.0"
 tower = { version = "0.5.3", features = ["util"] }
