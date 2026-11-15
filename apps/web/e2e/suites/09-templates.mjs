@@ -133,7 +133,12 @@ export const tests = [
       const media = await h.page.$$eval('header .nav-acc[data-cat=media] .nav-tile', (as) =>
         as.map((a) => a.getAttribute('href')),
       );
-      expect(media.length === 7 && media.includes('/tools/kompres-video'), media.join(', '));
+      expect(
+        media.length === 8 &&
+          media.includes('/tools/kompres-video') &&
+          media.includes('/tools/rapat-online'),
+        media.join(', '),
+      );
       const acc = await h.page.$eval('header .nav-acc[data-cat=media]', (d) => ({
         expanded: d.querySelector('button').ariaExpanded,
         inert: d.querySelector('.nav-acc-body').inert,
