@@ -39,7 +39,7 @@ dikompres (deflate + base64).
 - Pintasan keyboard (Delete, Ctrl+Z/Y, Ctrl+C/X/V/D, Ctrl+A, Ctrl+G, panah untuk menggeser).
 - Simpan otomatis di browser dan pulihkan saat dibuka lagi.
 
-## Tahap 2: pustaka shape teknik
+## Tahap 2: pustaka shape teknik (selesai 2026-11-16)
 
 - Elektronika/kelistrikan: resistor, kapasitor, induktor, dioda, LED, transistor, IC, sumber,
   ground, saklar, sekering, motor, lampu, gerbang logika.

@@ -1728,7 +1728,7 @@
   "diagram.panelFormat": "Panel format",
   "diagram.searchShapes": "Cari shape…",
   "diagram.noShapes": "Shape tidak ditemukan.",
-  "diagram.moreSoon": "Pustaka elektronika, IoT, jaringan, UML, dan ERD sedang disiapkan.",
+  "diagram.moreSoon": "Tips: ketik nama komponen di kotak cari, misalnya resistor, ESP32, sensor suhu, router, atau kelas.",
   "diagram.canvas": "Kanvas diagram",
   "diagram.emptyTitle": "Kanvas masih kosong",
   "diagram.emptyBody": "Seret shape dari panel kiri, atau klik shape untuk menaruhnya di tengah. Arahkan kursor ke shape lalu tarik dari titik birunya untuk membuat garis penghubung.",

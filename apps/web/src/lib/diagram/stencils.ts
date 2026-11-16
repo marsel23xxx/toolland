@@ -6,6 +6,8 @@
  * Koordinat path memakai ruang w × h stencil dan diskalakan ke ukuran shape (aspect="variable").
  */
 import { StencilShape, StencilShapeRegistry } from '@maxgraph/core';
+import { registerMarkers } from './markers';
+import { TECH_STENCILS } from './stencils-tech';
 
 /** Titik sambung standar: 4 sisi tengah + 4 sudut (sama seperti shape persegi di editor lain). */
 const BOX_POINTS = `<connections>
@@ -171,7 +173,8 @@ let registered = false;
 
 /** Daftarkan semua stencil sekali per halaman. */
 export function registerStencils(extra: Record<string, string> = {}): void {
-  const all = registered ? extra : { ...STENCILS, ...extra };
+  registerMarkers();
+  const all = registered ? extra : { ...STENCILS, ...TECH_STENCILS, ...extra };
   registered = true;
   const parser = new DOMParser();
   for (const [name, xml] of Object.entries(all)) {

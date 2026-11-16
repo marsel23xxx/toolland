@@ -3,6 +3,7 @@
  * ukuran awal, dan kata kunci pencarian dua bahasa. Shape tambahan (stencil) ada di stencils.ts.
  */
 import type { CellStyle } from '@maxgraph/core';
+import { TECH_GROUPS } from './library-tech';
 
 export interface LibItem {
   id: string;
@@ -283,7 +284,7 @@ export const FLOWCHART: LibGroup = {
   ],
 };
 
-export const LIBRARY: LibGroup[] = [GENERAL, FLOWCHART];
+export const LIBRARY: LibGroup[] = [GENERAL, FLOWCHART, ...TECH_GROUPS];
 
 /** Cari item di semua grup (nama dua bahasa + kata kunci). */
 export function searchLibrary(groups: LibGroup[], q: string): LibItem[] {

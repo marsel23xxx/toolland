@@ -1,7 +1,7 @@
 ---
 name: 'Editor Diagram'
-title: 'Editor Diagram Online: Flowchart dan Diagram Teknik Gratis'
-description: 'Buat flowchart dan diagram online di browser dengan pustaka shape, konektor otomatis, dan layar penuh. Buka dan simpan file .drawio, ekspor PNG atau SVG.'
+title: 'Editor Diagram Online: Flowchart, Rangkaian, IoT, UML, ERD'
+description: 'Buat flowchart, rangkaian elektronika, arsitektur IoT, jaringan, UML, dan ERD di browser dengan layar penuh. Buka dan simpan .drawio, ekspor PNG atau SVG.'
 summary: 'Gambar flowchart dan diagram dengan shape siap pakai.'
 category: 'developer'
 keywords:
@@ -15,6 +15,14 @@ keywords:
     'diagram teknik',
     'diagram kelistrikan',
     'diagram iot',
+    'rangkaian elektronika',
+    'skema rangkaian',
+    'gerbang logika',
+    'topologi jaringan',
+    'diagram uml',
+    'class diagram',
+    'use case diagram',
+    'erd',
     'svg',
   ]
 howTo:
@@ -27,7 +35,7 @@ faq:
   - q: 'Apakah diagram saya diunggah ke server?'
     a: 'Tidak. Semua proses berjalan di browser. Diagram disimpan otomatis di browsermu sendiri supaya tidak hilang saat halaman ditutup.'
   - q: 'Shape apa saja yang tersedia?'
-    a: 'Saat ini tersedia shape umum (persegi, lingkaran, belah ketupat, tabung, awan, catatan, panah, dan lainnya) serta simbol flowchart lengkap. Pustaka elektronika, IoT, jaringan, UML, dan ERD sedang disiapkan.'
+    a: 'Lebih dari 160 shape dalam delapan pustaka: Umum, Flowchart, Elektronika (resistor, kapasitor, dioda, LED, transistor, op-amp, IC, sumber tegangan, dan lainnya), Gerbang logika, IoT (mikrokontroler, ESP32, sensor, relay, servo, modul komunikasi, cloud), Jaringan (router, switch, server, firewall, access point), UML, dan ERD lengkap dengan notasi crow foot.'
   - q: 'Bagaimana cara menggeser dan memperbesar kanvas?'
     a: 'Gulir untuk menggeser, Ctrl + gulir untuk zoom, atau tahan Spasi lalu seret. Tombol Tampilkan semua menyesuaikan zoom supaya seluruh diagram terlihat.'
   - q: 'Bisakah diekspor untuk laporan atau presentasi?'
@@ -50,8 +58,15 @@ dipindah, lalu dirapikan dengan fitur rata dan sebar.
 - **Undo/redo, salin-tempel, duplikat, grup**, dan pintasan keyboard.
 - **Simpan otomatis**, buka/simpan **.drawio**, serta ekspor **PNG** dan **SVG**.
 
-## Simbol flowchart
+## Pustaka shape
 
-Terminator, proses, keputusan, data input/output, proses terdefinisi, dokumen, input manual,
-persiapan, tunda, penghubung, basis data, tampilan, batas perulangan, dan simbol lainnya
-tersedia di panel Flowchart.
+- **Flowchart**: terminator, proses, keputusan, data, dokumen, persiapan, basis data, dan lainnya.
+- **Elektronika**: simbol rangkaian dengan titik sambung tepat di ujung kaki komponen. Garis yang
+  ditarik dari kaki komponen otomatis menjadi kabel tanpa panah.
+- **Gerbang logika**: AND, OR, NOT, NAND, NOR, XOR, XNOR, dan buffer.
+- **IoT**: mikrokontroler, modul WiFi, sensor suhu, gerak, jarak, cahaya, gas, relay, servo, LCD,
+  WiFi, Bluetooth, LoRa, GSM, gateway, cloud, dan dasbor.
+- **Jaringan**: router, switch, server, komputer, laptop, firewall, access point, dan CCTV.
+- **UML**: kelas, interface, use case, aktor, paket, komponen, lifeline, state, serta garis
+  pewarisan, realisasi, dependensi, agregasi, dan komposisi.
+- **ERD**: entitas, atribut, relasi, tabel, dan garis satu-ke-banyak bernotasi crow foot.

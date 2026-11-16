@@ -1728,7 +1728,7 @@
   "diagram.panelFormat": "Format panel",
   "diagram.searchShapes": "Search shapes…",
   "diagram.noShapes": "No shapes found.",
-  "diagram.moreSoon": "Electronics, IoT, network, UML, and ERD libraries are on the way.",
+  "diagram.moreSoon": "Tip: type a component name in the search box, such as resistor, ESP32, temperature sensor, router, or class.",
   "diagram.canvas": "Diagram canvas",
   "diagram.emptyTitle": "The canvas is empty",
   "diagram.emptyBody": "Drag a shape from the left panel, or click a shape to place it in the center. Hover a shape and drag from its blue points to draw a connector.",

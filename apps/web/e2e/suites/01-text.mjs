@@ -951,6 +951,102 @@ export const tests = [
     },
   },
   {
+    name: 'editor diagram: pustaka teknik, pencarian, kabel otomatis antar pin',
+    path: '/tools/editor-diagram',
+    async run(h) {
+      const { page } = h;
+      await page.evaluate(() => localStorage.removeItem('toolland-diagram'));
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.waitForSelector('[data-dg-item="rect"] svg');
+      await page.$eval('[data-dg-full]', (e) => e.click());
+      await h.sleep(300);
+      // Semua grup pustaka ada dan setiap item punya pratinjau.
+      const groups = await page.$$eval('[data-dg-library] section > button', (bs) =>
+        bs.map((b) => b.textContent.trim()),
+      );
+      for (const g of ['Elektronika', 'Gerbang logika', 'IoT', 'Jaringan', 'UML', 'ERD'])
+        expect(groups.includes(g), `grup ${g} tidak ada: ${groups.join(', ')}`);
+      // Pencarian menemukan simbol teknik.
+      await h.type('[data-dg-search]', 'resistor');
+      await page.waitForSelector('[data-dg-item="elResistor"] svg');
+      await h.type('[data-dg-search]', 'esp32');
+      await page.waitForSelector('[data-dg-item="iotEsp"] svg');
+      await h.type('[data-dg-search]', '');
+      await page.$$eval('[data-dg-library] section > button[aria-expanded="false"]', (bs) =>
+        bs.forEach((b) => b.click()),
+      );
+      await h.sleep(200);
+      const missing = await page.$$eval('[data-dg-item]', (els) =>
+        els.filter((e) => !e.querySelector('svg')).map((e) => e.dataset.dgItem),
+      );
+      expect(!missing.length, `tanpa pratinjau: ${missing.join(', ')}`);
+      // Resistor dan LED, lalu tarik kabel dari pin kanan resistor ke pin kiri LED.
+      const cb = await (await page.$('[data-dg-canvas]')).boundingBox();
+      const drag = async (id, x, y) => {
+        const el = await page.$(`[data-dg-item="${id}"]`);
+        await el.scrollIntoView();
+        const it = await el.boundingBox();
+        await page.mouse.move(it.x + it.width / 2, it.y + it.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(cb.x + x, cb.y + y, { steps: 12 });
+        await page.mouse.up();
+        await h.sleep(150);
+      };
+      await drag('elResistor', 300, 300);
+      await drag('elLed', 500, 300);
+      await page.mouse.click(cb.x + 700, cb.y + 600);
+      const read = async () =>
+        JSON.parse(await page.evaluate(() => localStorage.getItem('toolland-diagram')));
+      await h.sleep(800);
+      // Baca geometri dan garis dari XML tersimpan.
+      const cellsOf = (xml) =>
+        page.evaluate((x) => {
+          const d = new DOMParser().parseFromString(x, 'text/xml');
+          return [...d.querySelectorAll('mxCell')].map((c) => {
+            const g = c.querySelector('mxGeometry');
+            return {
+              style: c.getAttribute('style') ?? '',
+              edge: c.getAttribute('edge') === '1',
+              source: c.getAttribute('source'),
+              target: c.getAttribute('target'),
+              geo: g
+                ? ['x', 'y', 'width', 'height'].map((k) => Number(g.getAttribute(k) ?? 0))
+                : null,
+            };
+          });
+        }, xml);
+      const geo = (cells, shape) => cells.find((c) => c.style.includes(`shape=${shape};`))?.geo;
+      let saved = await read();
+      let cells = await cellsOf(saved.xml);
+      const res = geo(cells, 'tl.el.resistor');
+      const led = geo(cells, 'tl.el.led');
+      expect(res && led, saved.xml.slice(0, 300));
+      // Koordinat diagram = layar - 40 (translate awal); pin: resistor (1, 0.5), LED (0, 0.625).
+      const sx = cb.x + 40 + res[0] + res[2];
+      const sy = cb.y + 40 + res[1] + res[3] / 2;
+      const tx = cb.x + 40 + led[0];
+      const ty = cb.y + 40 + led[1] + led[3] * 0.625;
+      await page.mouse.move(sx - 20, sy);
+      await h.sleep(150);
+      await page.mouse.move(sx, sy);
+      await h.sleep(150);
+      await page.mouse.down();
+      await page.mouse.move(tx, ty, { steps: 10 });
+      await h.sleep(150);
+      await page.mouse.up();
+      await h.sleep(900);
+      saved = await read();
+      cells = await cellsOf(saved.xml);
+      const edge = cells.find((c) => c.edge && c.source && c.target);
+      expect(edge, `kabel tidak tersambung: ${saved.xml.slice(-500)}`);
+      expect(edge.style.includes('endArrow=none') && edge.style.includes('rounded=0'), edge.style);
+      expect(
+        edge.style.includes('exitX=1') && edge.style.includes('entryX=0'),
+        `bukan pin: ${edge.style}`,
+      );
+    },
+  },
+  {
     name: 'tes mengetik klasik: mode kata, hasil, dan rekor',
     path: '/tools/tes-kecepatan-mengetik',
     async run(h) {

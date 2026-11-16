@@ -10,7 +10,9 @@ import {
   toDrawioFile,
 } from './drawio';
 import { FLOWCHART, GENERAL, LIBRARY, searchLibrary } from './library';
+import { ER_MARKERS, registerMarkers } from './markers';
 import { STENCILS } from './stencils';
+import { isWireShape, TECH_STENCILS } from './stencils-tech';
 
 describe('style ke string .drawio', () => {
   it('nama gaya dulu, lalu kunci=nilai; boolean jadi 1/0', () => {
@@ -130,26 +132,62 @@ describe('pustaka shape', () => {
       'cylinder',
       'cloud',
       'actor',
+      'doubleEllipse',
     ]);
     for (const it of items) {
       const shape = it.style.shape;
-      if (shape) expect(builtin.has(shape) || shape in STENCILS, `${it.id}: ${shape}`).toBe(true);
+      if (shape)
+        expect(
+          builtin.has(shape) || shape in STENCILS || shape in TECH_STENCILS,
+          `${it.id}: ${shape}`,
+        ).toBe(true);
     }
     expect(GENERAL.items.length).toBeGreaterThan(20);
     expect(FLOWCHART.items.length).toBeGreaterThan(20);
   });
 
-  it('stencil XML valid', () => {
-    for (const [name, xml] of Object.entries(STENCILS)) {
+  it('stencil XML valid, dengan titik sambung', () => {
+    for (const [name, xml] of Object.entries({ ...STENCILS, ...TECH_STENCILS })) {
       const doc = new DOMParser().parseFromString(xml, 'text/xml');
       expect(doc.getElementsByTagName('parsererror').length, name).toBe(0);
       expect(doc.documentElement.getAttribute('name')).toBe(name);
+      expect(doc.getElementsByTagName('constraint').length, `${name} tanpa pin`).toBeGreaterThan(0);
     }
   });
 
+  it('pustaka teknik lengkap', () => {
+    const ids = new Set(LIBRARY.map((g) => g.id));
+    for (const id of ['electronics', 'logic', 'iot', 'network', 'uml', 'erd'])
+      expect(ids.has(id), id).toBe(true);
+    expect(LIBRARY.flatMap((g) => g.items).length).toBeGreaterThan(150);
+    // Pin komponen dua kaki ada di ujung kiri dan kanan.
+    const res = new DOMParser().parseFromString(TECH_STENCILS['tl.el.resistor'], 'text/xml');
+    const pins = [...res.getElementsByTagName('constraint')].map(
+      (c) => `${c.getAttribute('x')},${c.getAttribute('y')}`,
+    );
+    expect(pins).toEqual(['0,0.5', '1,0.5']);
+  });
+
+  it('kabel otomatis hanya untuk elektronika dan gerbang logika', () => {
+    expect(isWireShape('tl.el.resistor')).toBe(true);
+    expect(isWireShape('tl.logic.and')).toBe(true);
+    expect(isWireShape('tl.iot.esp')).toBe(false);
+    expect(isWireShape(undefined)).toBe(false);
+  });
+
+  it('marker ERD terdaftar', async () => {
+    registerMarkers();
+    const { EdgeMarkerRegistry } = await import('@maxgraph/core');
+    for (const name of Object.keys(ER_MARKERS))
+      expect(EdgeMarkerRegistry.get(name), name).toBeTruthy();
+  });
+
   it('pencarian dua bahasa', () => {
-    expect(searchLibrary(LIBRARY, 'keputusan').map((i) => i.id)).toEqual(['fcDecision']);
-    expect(searchLibrary(LIBRARY, 'decision').map((i) => i.id)).toEqual(['fcDecision']);
+    expect(searchLibrary(LIBRARY, 'keputusan').map((i) => i.id)).toEqual([
+      'fcDecision',
+      'umlDecision',
+    ]);
+    expect(searchLibrary(LIBRARY, 'decision').map((i) => i.id)).toContain('fcDecision');
     expect(searchLibrary(LIBRARY, 'database').map((i) => i.id)).toContain('fcDatabase');
     expect(searchLibrary(LIBRARY, '  ')).toEqual([]);
   });

@@ -1,7 +1,7 @@
 ---
 name: 'Diagram Editor'
-title: 'Online Diagram Editor: Free Flowcharts and Technical Diagrams'
-description: 'Draw flowcharts and diagrams in your browser with a shape library, smart connectors, and fullscreen mode. Open and save .drawio files, export PNG or SVG.'
+title: 'Online Diagram Editor: Flowcharts, Circuits, IoT, UML, ERD'
+description: 'Draw flowcharts, electronic circuits, IoT architectures, networks, UML, and ERDs in your browser, fullscreen. Open and save .drawio files, export PNG or SVG.'
 summary: 'Draw flowcharts and diagrams with ready-made shapes.'
 category: 'developer'
 idSlug: 'editor-diagram'
@@ -13,6 +13,11 @@ keywords:
     'drawio',
     'free diagram tool',
     'technical diagram',
+    'circuit diagram',
+    'logic gates',
+    'network diagram',
+    'uml diagram',
+    'erd',
     'svg',
   ]
 howTo:
@@ -25,7 +30,7 @@ faq:
   - q: 'Is my diagram uploaded?'
     a: 'No. Everything runs in your browser, and your diagram is saved in your own browser so it is not lost when you close the page.'
   - q: 'Which shapes are available?'
-    a: 'General shapes and a full set of flowchart symbols. Electronics, IoT, network, UML, and ERD libraries are on the way.'
+    a: 'Over 160 shapes in eight libraries: General, Flowchart, Electronics, Logic gates, IoT, Network, UML, and ERD with crow foot notation. Lines drawn from component pins become wires automatically.'
   - q: 'Can I export for reports or slides?'
     a: 'Yes. Export PNG (up to 4× resolution, optionally transparent) or SVG, which stays sharp at any size.'
 related: ['json-formatter', 'qr-code-generator', 'base64-encode-decode']

@@ -33,7 +33,9 @@ import { VENDOR } from '../vendor';
 import { installCspSafeDom } from './csp-dom';
 import { modelOptions, modelToXml, readDrawio, toDrawioFile } from './drawio';
 import type { LibItem } from './library';
+import { WIRE_STYLE } from './library-tech';
 import { registerStencils } from './stencils';
+import { isWireShape } from './stencils-tech';
 
 export const INK = '#1f2937';
 export const DEFAULT_VERTEX: CellStyle = {
@@ -174,8 +176,13 @@ export class DiagramEditor {
       // maxGraph 0.25 memanggil insertEdge dengan id '' (bukan null), sehingga model tidak
       // membuatkan id dan garis pertama ber-id kosong. Paksa null supaya id dibuat otomatis.
       const insertEdge = conn.insertEdge.bind(conn);
-      conn.insertEdge = (parent, id, value, source, target, style) =>
-        insertEdge(parent, (id || null) as string, value, source, target, style);
+      // Garis yang ditarik dari pin komponen elektronika/gerbang logika menjadi kabel.
+      conn.insertEdge = (parent, id, value, source, target, style) => {
+        const wire =
+          isWireShape(source?.getStyle()?.shape) || isWireShape(target?.getStyle()?.shape);
+        const s = wire ? { ...(style ?? {}), ...WIRE_STYLE } : style;
+        return insertEdge(parent, (id || null) as string, value, source, target, s);
+      };
     }
 
     // Undo/redo.
@@ -712,26 +719,62 @@ export class DiagramEditor {
 }
 
 /** Ikon garis/panah untuk panel (digambar langsung, cukup sederhana). */
+/** Gambar ujung garis untuk ikon panel; `ang` = arah garis menuju ujung (radian). */
+function iconMarker(
+  type: string | undefined,
+  filled: boolean,
+  x: number,
+  y: number,
+  ang: number,
+): string {
+  if (!type || type === 'none') return '';
+  const ux = Math.cos(ang);
+  const uy = Math.sin(ang);
+  const at = (back: number, side: number) =>
+    `${(x - ux * back - uy * side).toFixed(1)} ${(y - uy * back + ux * side).toFixed(1)}`;
+  const fill = filled ? INK : '#ffffff';
+  const st = `stroke="${INK}" stroke-width="1.3" stroke-linejoin="round"`;
+  switch (type) {
+    case 'open':
+      return `<path d="M${at(8, 4.5)} L${x} ${y} L${at(8, -4.5)}" fill="none" ${st}/>`;
+    case 'diamond':
+      return `<path d="M${x} ${y} L${at(6, 4)} L${at(12, 0)} L${at(6, -4)} Z" fill="${fill}" ${st}/>`;
+    case 'ERmandOne':
+      return `<path d="M${at(5, 5)} L${at(5, -5)} M${at(9, 5)} L${at(9, -5)}" ${st}/>`;
+    case 'ERone':
+      return `<path d="M${at(6, 5)} L${at(6, -5)}" ${st}/>`;
+    case 'ERmany':
+      return `<path d="M${at(8, 0)} L${at(0, 5)} M${at(8, 0)} L${at(0, -5)}" ${st}/>`;
+    case 'ERoneToMany':
+      return `<path d="M${at(8, 0)} L${at(0, 5)} M${at(8, 0)} L${at(0, -5)} M${at(11, 5)} L${at(11, -5)}" ${st}/>`;
+    case 'ERzeroToMany':
+      return `<path d="M${at(8, 0)} L${at(0, 5)} M${at(8, 0)} L${at(0, -5)}" ${st}/><circle cx="${(x - ux * 12).toFixed(1)}" cy="${(y - uy * 12).toFixed(1)}" r="3" fill="#ffffff" ${st}/>`;
+    default:
+      // classic, block: segitiga (berisi atau kosong).
+      return `<path d="M${x} ${y} L${at(9, 4.5)} L${at(9, -4.5)} Z" fill="${type === 'block' && !filled ? '#ffffff' : INK}" ${st}/>`;
+  }
+}
+
+/** Ikon garis/panah untuk panel (digambar langsung, cukup sederhana). */
 function edgeIcon(it: LibItem, size: number): string {
   const m = 5;
-  const end = it.style.endArrow !== 'none';
-  const start = it.style.startArrow === 'classic';
-  const dash = it.style.dashed ? ' stroke-dasharray="4 3"' : '';
-  const d = it.style.curved
+  const s = it.style;
+  const dash = s.dashed ? ' stroke-dasharray="4 3"' : '';
+  const d = s.curved
     ? `M${m} ${size - m} C${size * 0.45} ${size - m} ${size * 0.55} ${m} ${size - m} ${m}`
     : `M${m} ${size - m} L${size - m} ${m}`;
-  const head = (x: number, y: number, ang: number) => {
-    const a = 0.45;
-    const l = 8;
-    const p1 = [x - l * Math.cos(ang - a), y - l * Math.sin(ang - a)];
-    const p2 = [x - l * Math.cos(ang + a), y - l * Math.sin(ang + a)];
-    return `<path d="M${x} ${y} L${p1[0].toFixed(1)} ${p1[1].toFixed(1)} L${p2[0].toFixed(1)} ${p2[1].toFixed(1)} Z" fill="${INK}"/>`;
-  };
-  const angEnd = it.style.curved ? 0 : -Math.PI / 4;
-  const angStart = it.style.curved ? Math.PI : (3 * Math.PI) / 4;
-  return `<svg xmlns="${SVG_NS}" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><path d="${d}" fill="none" stroke="${INK}" stroke-width="1.5"${dash}/>${
-    end ? head(size - m, m, angEnd) : ''
-  }${start ? head(m, size - m, angStart) : ''}</svg>`;
+  const angEnd = s.curved ? 0 : -Math.PI / 4;
+  const angStart = s.curved ? Math.PI : (3 * Math.PI) / 4;
+  const endType = s.endArrow ?? 'classic';
+  const end = iconMarker(String(endType), s.endFill !== false, size - m, m, angEnd);
+  const start = iconMarker(
+    s.startArrow ? String(s.startArrow) : undefined,
+    s.startFill !== false,
+    m,
+    size - m,
+    angStart,
+  );
+  return `<svg xmlns="${SVG_NS}" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><path d="${d}" fill="none" stroke="${INK}" stroke-width="1.5"${dash}/>${end}${start}</svg>`;
 }
 
 /** Pratinjau SVG kecil untuk item pustaka; shape digambar oleh maxGraph supaya sama dengan hasilnya. */
@@ -760,7 +803,8 @@ export function libraryPreviews(items: LibItem[], size = 36): Map<string, string
       );
       continue;
     }
-    const k = Math.min((size - pad * 2) / it.w, (size - pad * 2) / it.h);
+    // Simbol sangat kecil (titik sambungan) tidak diperbesar berlebihan.
+    const k = Math.min((size - pad * 2) / it.w, (size - pad * 2) / it.h, 1.6);
     let cell: Cell | null = null;
     graph.batchUpdate(() => {
       cell = graph.insertVertex({

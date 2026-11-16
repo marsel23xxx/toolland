@@ -160,8 +160,9 @@ onBeforeUnmount(() => {
 
 // --- Pustaka shape -----------------------------------------------------------------------------
 const query = ref('');
+// Umum dan Flowchart terbuka; pustaka teknik dibuka saat dibutuhkan (atau lewat pencarian).
 const open = reactive<Record<string, boolean>>(
-  Object.fromEntries(LIBRARY.map((g) => [g.id, true])),
+  Object.fromEntries(LIBRARY.map((g) => [g.id, g.id === 'general' || g.id === 'flowchart'])),
 );
 const previews = shallowRef(new Map<string, string>());
 const found = computed(() => searchLibrary(LIBRARY, query.value));
