@@ -1,0 +1,9 @@
+---
+import StatTables from '../../components/tools/StatTables.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../i18n';
+---
+
+<ToolPage slug="tabel-statistik">
+  <StatTables client:visible m={toolMessages('id', 'stat')} />
+</ToolPage>

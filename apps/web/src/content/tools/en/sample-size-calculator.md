@@ -31,7 +31,7 @@ faq:
     a: 'Not every questionnaire comes back complete. With a 10% allowance, you send it to more people so the number collected still meets the minimum.'
   - q: 'Why does Krejcie-Morgan differ slightly from the published table?'
     a: 'The 1970 table does not round consistently. This calculator uses the same formula and always rounds up, so results can be one respondent higher.'
-related: ['thesis-format-checker', 'word-counter', 'diff-checker']
+related: ['statistical-tables', 'thesis-format-checker', 'word-counter']
 ---
 
 ## Sample size without calculation mistakes

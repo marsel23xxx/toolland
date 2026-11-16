@@ -31,7 +31,7 @@ faq:
     a: 'Tidak semua kuesioner kembali atau terisi lengkap. Dengan cadangan 10%, misalnya, kuesioner disebar ke lebih banyak orang supaya jumlah yang terkumpul tetap memenuhi sampel minimal.'
   - q: 'Kenapa hasil Krejcie-Morgan sedikit berbeda dengan tabelnya?'
     a: 'Tabel Krejcie & Morgan (1970) membulatkan hasil dengan cara yang tidak selalu sama. Kalkulator ini memakai rumus yang sama dan selalu membulatkan ke atas, jadi hasilnya bisa lebih besar satu responden.'
-related: ['cek-format-skripsi', 'hitung-kata', 'bandingkan-teks']
+related: ['tabel-statistik', 'cek-format-skripsi', 'hitung-kata']
 ---
 
 ## Hitung sampel skripsi tanpa salah hitung

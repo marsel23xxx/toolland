@@ -522,6 +522,83 @@ export const tests = [
     },
   },
   {
+    name: 'tabel statistik: r, t, F, chi-square, nilai hitung, rentang, unduh',
+    path: '/tools/tabel-statistik',
+    async run(h) {
+      const { page } = h;
+      // Kosongkan lewat DOM: klik bisa meleset saat tabel sedang bergulir.
+      const setNum = async (sel, v) => {
+        await page.$eval(sel, (el) => {
+          el.value = '';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        await page.type(sel, v);
+        await h.sleep(80);
+      };
+      const value = () => h.text('[data-st-value]');
+      await page.waitForSelector('[data-st-value]');
+      // Tabel r: N = 30 → df 28 → 0,3610.
+      expect((await value()) === '0,3610', await value());
+      expect(
+        (await h.text('[data-st-found]')).includes('df = 28'),
+        await h.text('[data-st-found]'),
+      );
+      await setNum('[data-st-stat]', '0.45');
+      const dec = await h.text('[data-st-decision]');
+      expect(dec.includes('signifikan') && dec.includes('valid') && !dec.includes('tidak'), dec);
+      expect(!!(await page.$('[data-st-hi][data-st-row="28"]')), 'baris df 28 tidak disorot');
+      // Tabel t: df 10 → 2,2281 dua sisi, 1,8125 satu sisi.
+      await page.click('[data-st-kind="t"]');
+      await setNum('[data-st-df]', '10');
+      expect((await value()) === '2,2281', await value());
+      await page.click('[data-st-tails="1"]');
+      expect((await value()) === '1,8125', await value());
+      // Tabel F: df1 3, df2 20 → 3,0984; tunjukkan di tabel.
+      await page.click('[data-st-kind="f"]');
+      await setNum('[data-st-df1]', '3');
+      await setNum('[data-st-df2]', '20');
+      expect((await value()) === '3,0984', await value());
+      await page.click('[data-st-show]');
+      await page.waitForSelector('[data-st-hi][data-st-row="20"]');
+      // Chi-square: df 10 → 18,3070; nilai hitung 15 tidak signifikan.
+      await page.click('[data-st-kind="chi"]');
+      await setNum('[data-st-df]', '10');
+      expect((await value()) === '18,3070', await value());
+      await setNum('[data-st-stat]', '15');
+      expect(
+        (await h.text('[data-st-decision]')).includes('tidak signifikan'),
+        await h.text('[data-st-decision]'),
+      );
+      // Rentang dibatasi 500 baris.
+      await setNum('[data-st-to]', '2000');
+      const rows = await page.$$eval('[data-st-row]', (els) => els.length);
+      expect(rows === 500, `baris ${rows}`);
+      await setNum('[data-st-to]', '30');
+      // Salin dan unduh.
+      await page.evaluate(() => {
+        window.__copied = '';
+        navigator.clipboard.writeText = async (t) => {
+          window.__copied = t;
+        };
+      });
+      await page.click('[data-st-copy]');
+      const tsv = await page.evaluate(() => window.__copied);
+      expect(tsv.startsWith('Tabel Chi-Square') && tsv.includes('18,307'), tsv.slice(0, 200));
+      const xlsx = await h.downloadVia(/^tabel-chi-df-1-30\.xlsx$/, () =>
+        page.click('[data-st-xlsx]'),
+      );
+      expect(xlsx.subarray(0, 2).toString() === 'PK', 'bukan xlsx');
+      const pdf = await h.downloadVia(/^tabel-chi-df-1-30\.pdf$/, () =>
+        page.click('[data-st-pdf]'),
+      );
+      expect(pdf.subarray(0, 4).toString() === '%PDF', 'bukan pdf');
+      // Link dengan #f langsung membuka tabel F.
+      await page.goto('about:blank');
+      await page.goto(`${h.base}/tools/tabel-statistik#f`, { waitUntil: 'networkidle0' });
+      await page.waitForSelector('[data-st-kind="f"][aria-selected="true"]');
+    },
+  },
+  {
     name: 'tes mengetik klasik: mode kata, hasil, dan rekor',
     path: '/tools/tes-kecepatan-mengetik',
     async run(h) {

@@ -33,7 +33,7 @@ faq:
     a: 'Tidak. File dibaca dan dirapikan langsung di browser. Skripsimu tidak dikirim ke mana pun, jadi aman meskipun belum diujikan.'
   - q: 'File saya .doc atau dari Google Docs, bisakah?'
     a: 'Format .doc lama belum didukung. Buka di Word lalu simpan sebagai .docx. Dari Google Docs, pilih File → Download → Microsoft Word (.docx).'
-related: ['kalkulator-sampel', 'bandingkan-teks', 'hitung-kata']
+related: ['kalkulator-sampel', 'tabel-statistik', 'bandingkan-teks']
 ---
 
 ## Tidak perlu lagi memeriksa halaman satu per satu
