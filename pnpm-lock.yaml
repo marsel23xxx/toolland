@@ -220,6 +220,9 @@ importers:
       '@lezer/highlight':
         specifier: ^1.2.5
         version: 1.2.5
+      '@maxgraph/core':
+        specifier: 0.25.1
+        version: 0.25.1
       '@mediapipe/tasks-vision':
         specifier: 1.2.0
         version: 1.2.0
@@ -1106,6 +1109,9 @@ packages:
 
   '@marijn/find-cluster-break@1.0.4':
     resolution: {integrity: sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ==}
+
+  '@maxgraph/core@0.25.1':
+    resolution: {integrity: sha512-XlokOzDh3eOviwrnHBPwhElz7t3Cv03GFJQ5y1gapcpMjdP609W+NRLmVtht0Ukje2WmoFBet8IGP/e8kE2bSg==}
 
   '@mediapipe/tasks-vision@1.2.0':
     resolution: {integrity: sha512-7+dr9GbGyTtcuLh11wE5TOn4dNFRncIT9oAWs72620WX99KW5FfzF6rFJ/ChTgXG9vJ6dCiE9FrEEY4CnwPWKQ==}
@@ -4707,6 +4713,8 @@ snapshots:
       '@lezer/common': 1.5.5
 
   '@marijn/find-cluster-break@1.0.4': {}
+
+  '@maxgraph/core@0.25.1': {}
 
   '@mediapipe/tasks-vision@1.2.0': {}
 

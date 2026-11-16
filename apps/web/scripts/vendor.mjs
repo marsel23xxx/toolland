@@ -65,6 +65,7 @@ const v = {
   tesseract: await version('tesseract.js'),
   qpdf: await version('@neslinesli93/qpdf-wasm'),
   mediapipe: await version('@mediapipe/tasks-vision'),
+  maxgraph: await version('@maxgraph/core'),
 };
 
 const paths = {
@@ -75,6 +76,7 @@ const paths = {
   tesseract: `/vendor/tesseract/${v.tesseract}/`,
   qpdf: `/vendor/qpdf/${v.qpdf}/`,
   mediapipe: `/vendor/mediapipe/${v.mediapipe}/`,
+  maxgraph: `/vendor/maxgraph/${v.maxgraph}/`,
 };
 const dest = (p) => path.join(root, 'public', p);
 
@@ -139,6 +141,12 @@ await fetchCached(
   'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite',
   path.join(dest(paths.mediapipe), 'selfie_segmenter.tflite'),
   '191ac9529ae506ee0beefa6b2c945a172dab9d07d1e802a290a4e4038226658b',
+);
+
+// maxGraph: gambar kecil bawaan (misalnya titik sambung point.gif) untuk Editor Diagram.
+await copy(
+  path.join(pkgDir('@maxgraph/core'), 'images'),
+  path.join(dest(paths.maxgraph), 'images'),
 );
 
 // @imgly/background-removal: hanya model dan runtime yang dipakai.

@@ -845,6 +845,112 @@ export const tests = [
     },
   },
   {
+    name: 'editor diagram: seret, sambung, teks, format, undo, ekspor, buka .drawio, simpan otomatis',
+    path: '/tools/editor-diagram',
+    async run(h) {
+      const { page } = h;
+      page.on('dialog', (d) => d.accept());
+      await page.evaluate(() => localStorage.removeItem('toolland-diagram'));
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.waitForSelector('[data-dg-item="fcDecision"] svg');
+      await page.$eval('[data-dg-full]', (e) => e.click());
+      await h.sleep(300);
+      expect(
+        await page.$eval('[data-dg-root]', (e) => e.classList.contains('fixed')),
+        'tidak layar penuh',
+      );
+      const cb = await (await page.$('[data-dg-canvas]')).boundingBox();
+      const drag = async (id, x, y) => {
+        const it = await (await page.$(`[data-dg-item="${id}"]`)).boundingBox();
+        await page.mouse.move(it.x + it.width / 2, it.y + it.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(cb.x + x, cb.y + y, { steps: 12 });
+        await page.mouse.up();
+        await h.sleep(150);
+      };
+      const typeAt = async (x, y, text) => {
+        await page.mouse.click(cb.x + x, cb.y + y, { count: 2 });
+        await h.sleep(150);
+        await page.keyboard.type(text);
+        await page.mouse.click(cb.x + 900, cb.y + 650);
+        await h.sleep(150);
+      };
+      await drag('fcTerminator', 300, 100);
+      await drag('fcProcess', 300, 260);
+      await typeAt(300, 100, 'Mulai');
+      await typeAt(300, 260, 'Hitung');
+      expect(!(await page.$('[data-dg-empty]')), 'petunjuk kanvas kosong masih tampil');
+      // Garis dari titik sambung bawah terminator ke proses.
+      await page.mouse.move(cb.x + 300, cb.y + 100);
+      await h.sleep(150);
+      await page.mouse.move(cb.x + 300, cb.y + 125);
+      await h.sleep(150);
+      await page.mouse.down();
+      await page.mouse.move(cb.x + 300, cb.y + 232, { steps: 8 });
+      await h.sleep(150);
+      await page.mouse.up();
+      await h.sleep(150);
+      // Format: pilih proses, beri warna isi.
+      await page.mouse.click(cb.x + 300, cb.y + 260);
+      await page.waitForSelector('[data-dg-selcount]');
+      await page.$eval('[data-dg-format] button[title="#bfdbfe"]', (e) => e.click());
+      await h.sleep(900);
+      const read = async () =>
+        JSON.parse(await page.evaluate(() => localStorage.getItem('toolland-diagram')));
+      let saved = await read();
+      expect(saved.xml.includes('Mulai') && saved.xml.includes('Hitung'), 'teks tidak tersimpan');
+      expect(saved.xml.includes('fillColor=#bfdbfe'), 'warna isi tidak tersimpan');
+      const edge = /<mxCell id="([^"]*)"[^>]*edge="1"[^>]*source="\d+" target="\d+"/.exec(
+        saved.xml,
+      );
+      expect(edge && edge[1] !== '', 'garis tidak tersambung atau id kosong');
+      // Undo menghapus warna.
+      await page.$eval('[data-dg-undo]', (e) => e.click());
+      await h.sleep(900);
+      saved = await read();
+      expect(!saved.xml.includes('fillColor=#bfdbfe'), 'undo gagal');
+      // Simpan .drawio, ekspor SVG dan PNG.
+      await h.type('[data-dg-title]', 'Alur Uji');
+      const drawio = await h.downloadVia(/^alur-uji\.drawio$/, () =>
+        page.$eval('[data-dg-save]', (e) => e.click()),
+      );
+      expect(
+        drawio.toString().startsWith('<mxfile') && drawio.toString().includes('Mulai'),
+        'drawio',
+      );
+      await page.$eval('[data-dg-export]', (e) => e.click());
+      const svg = await h.downloadVia(/^alur-uji\.svg$/, () =>
+        page.$eval('[data-dg-export-svg]', (e) => e.click()),
+      );
+      expect(svg.toString().includes('<svg') && svg.toString().includes('Hitung'), 'svg');
+      await page.$eval('[data-dg-export]', (e) => e.click());
+      const png = await h.downloadVia(/^alur-uji\.png$/, () =>
+        page.$eval('[data-dg-export-png]', (e) => e.click()),
+      );
+      expect(png.subarray(1, 4).toString() === 'PNG', 'png');
+      // Buka .drawio terkompresi berisi dua halaman.
+      const input = await page.$('[data-dg-file]');
+      await input.uploadFile(h.fixture('diagram.drawio'));
+      await page.waitForSelector('[data-dg-message]');
+      expect((await h.text('[data-dg-message]')).includes('2 halaman'), 'pesan multi halaman');
+      await h.sleep(900);
+      saved = await read();
+      expect(
+        saved.xml.includes('ESP32') &&
+          saved.xml.includes('shape=process') &&
+          saved.title === 'diagram',
+        saved.xml.slice(0, 200),
+      );
+      // Muat ulang: diagram dipulihkan.
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.waitForSelector('[data-dg-status]');
+      await page.waitForFunction(() =>
+        document.querySelector('[data-dg-status]')?.textContent?.includes('dipulihkan'),
+      );
+      expect((await page.$eval('[data-dg-title]', (e) => e.value)) === 'diagram', 'judul');
+    },
+  },
+  {
     name: 'tes mengetik klasik: mode kata, hasil, dan rekor',
     path: '/tools/tes-kecepatan-mengetik',
     async run(h) {

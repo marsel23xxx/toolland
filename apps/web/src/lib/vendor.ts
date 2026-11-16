@@ -7,4 +7,5 @@ export const VENDOR = {
   tesseract: '/vendor/tesseract/7.0.0/',
   qpdf: '/vendor/qpdf/0.3.0/',
   mediapipe: '/vendor/mediapipe/1.2.0/',
+  maxgraph: '/vendor/maxgraph/0.25.1/',
 } as const;

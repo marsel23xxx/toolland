@@ -1,0 +1,9 @@
+---
+import DiagramEditor from '../../../components/tools/diagram/DiagramEditor.vue';
+import ToolPage from '../../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../../i18n';
+---
+
+<ToolPage slug="diagram-editor">
+  <DiagramEditor client:only="vue" m={toolMessages('en', 'diagram')} />
+</ToolPage>

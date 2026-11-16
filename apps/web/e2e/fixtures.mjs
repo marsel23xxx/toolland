@@ -1,7 +1,7 @@
 // Buat file uji yang tidak di-commit (PDF, JPG dengan EXIF rotasi, salinan untuk batch) di folder sementara.
 import fs from 'node:fs';
 import path from 'node:path';
-import { strToU8, zipSync } from 'fflate';
+import { deflateSync, strToU8, zipSync } from 'fflate';
 import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 const HERE = path.dirname(new URL(import.meta.url).pathname);
@@ -167,6 +167,20 @@ export async function makeFixtures() {
       /* offline: uji HEIC dilewati */
     }
   }
+  // Diagram .drawio terkompresi (seperti simpanan aplikasi diagram lain), dua halaman.
+  const diagramXml =
+    '<mxGraphModel grid="1" gridSize="10" background="#fffbe6"><root><mxCell id="0"/><mxCell id="1" parent="0"/>' +
+    '<mxCell id="a" value="Sensor &lt;b&gt;DHT22&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="120" height="60" as="geometry"/></mxCell>' +
+    '<mxCell id="b" value="ESP32" style="shape=process;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="260" y="40" width="120" height="60" as="geometry"/></mxCell>' +
+    '<mxCell id="c" value="Kirim" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;" edge="1" parent="1" source="a" target="b"><mxGeometry relative="1" as="geometry"/></mxCell>' +
+    '</root></mxGraphModel>';
+  const packed = Buffer.from(deflateSync(strToU8(encodeURIComponent(diagramXml)))).toString(
+    'base64',
+  );
+  fs.writeFileSync(
+    path.join(dir, 'diagram.drawio'),
+    `<mxfile host="test"><diagram id="p1" name="IoT">${packed}</diagram><diagram id="p2" name="Kedua"><mxGraphModel><root><mxCell id="0"/></root></mxGraphModel></diagram></mxfile>`,
+  );
   if (fs.existsSync(heic)) fs.copyFileSync(heic, path.join(dir, 'contoh.heic'));
   return dir;
 }
