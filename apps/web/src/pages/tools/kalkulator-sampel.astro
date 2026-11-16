@@ -1,0 +1,9 @@
+---
+import SampleSize from '../../components/tools/SampleSize.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../i18n';
+---
+
+<ToolPage slug="kalkulator-sampel">
+  <SampleSize client:visible m={toolMessages('id', 'sample')} />
+</ToolPage>

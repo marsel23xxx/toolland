@@ -453,6 +453,75 @@ export const tests = [
     },
   },
   {
+    name: 'kalkulator sampel: slovin, lemeshow, langkah, cadangan, strata',
+    path: '/tools/kalkulator-sampel',
+    async run(h) {
+      const { page } = h;
+      await page.waitForSelector('[data-ss-result="slovin"]');
+      const n = (id) => h.text(`[data-ss-result="${id}"] [data-ss-n]`);
+      const setNum = async (sel, v) => {
+        // Klik tiga kali tidak memilih isi <input type="number">; pakai Ctrl+A.
+        await page.click(sel);
+        await page.keyboard.down('Control');
+        await page.keyboard.press('a');
+        await page.keyboard.up('Control');
+        await page.type(sel, v);
+      };
+      expect((await n('slovin')) === '80', await n('slovin'));
+      expect((await n('krejcie')) === '80', await n('krejcie'));
+      const steps = await h.text('[data-ss-steps]');
+      expect(steps.includes('100 / (1 + 100 × 0,05²)') && steps.includes('80 responden'), steps);
+      // Populasi 1000: Slovin 286.
+      await setNum('[data-ss-pop]', '1000');
+      await h.sleep(100);
+      expect((await n('slovin')) === '286', await n('slovin'));
+      // Pilih Krejcie-Morgan: langkah ikut berganti.
+      await page.click('[data-ss-result="krejcie"]');
+      expect((await h.text('[data-ss-steps]')).includes('χ²'), 'langkah krejcie');
+      // Populasi tidak diketahui: hanya Lemeshow, 385 pada 95% dan 5%.
+      await page.click('[data-ss-known="no"]');
+      await page.waitForSelector('[data-ss-result="lemeshow"]');
+      expect(!(await page.$('[data-ss-result="slovin"]')), 'slovin masih tampil');
+      expect((await n('lemeshow')) === '385', await n('lemeshow'));
+      // Salin langkah.
+      await page.evaluate(() => {
+        window.__copied = '';
+        navigator.clipboard.writeText = async (t) => {
+          window.__copied = t;
+        };
+      });
+      await page.click('[data-ss-copy]');
+      const copied = await page.evaluate(() => window.__copied);
+      expect(copied.startsWith('Lemeshow') && copied.includes('Keterangan:'), copied);
+      // Populasi 325, e 10%, cadangan 10%: Slovin 77, disebar ke 86, lalu bagi ke 3 strata.
+      await page.click('[data-ss-known="yes"]');
+      await setNum('[data-ss-pop]', '325');
+      await setNum('[data-ss-error]', '10');
+      await page.click('[data-ss-result="slovin"]');
+      await setNum('[data-ss-dropout]', '10');
+      await h.sleep(100);
+      expect((await n('slovin')) === '77', await n('slovin'));
+      expect((await h.text('[data-ss-final]')).includes('86'), await h.text('[data-ss-final]'));
+      for (const [name, size] of [
+        ['X', '120'],
+        ['XI', '110'],
+        ['XII', '95'],
+      ]) {
+        await page.click('[data-ss-add]');
+        const rows = await page.$$('[data-ss-row]');
+        const inputs = await rows[rows.length - 1].$$('input');
+        await inputs[0].type(name);
+        await inputs[1].type(size);
+      }
+      await h.sleep(100);
+      const alloc = await page.$$eval('[data-ss-alloc]', (els) =>
+        els.map((e) => e.textContent.trim()),
+      );
+      expect(alloc.join(',') === '32,29,25', alloc.join(','));
+      expect((await h.text('[data-ss-alloc-total]')) === '86', 'total alokasi');
+    },
+  },
+  {
     name: 'tes mengetik klasik: mode kata, hasil, dan rekor',
     path: '/tools/tes-kecepatan-mengetik',
     async run(h) {

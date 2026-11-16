@@ -32,7 +32,7 @@ faq:
     a: 'No. The file is read and fixed in your browser. Your thesis is never sent anywhere, so it is safe even before your defense.'
   - q: 'Can I use a .doc file or Google Docs?'
     a: 'Old .doc files are not supported yet. Open the file in Word and save it as .docx. From Google Docs, choose File → Download → Microsoft Word (.docx).'
-related: ['diff-checker', 'word-counter', 'image-to-text']
+related: ['sample-size-calculator', 'diff-checker', 'word-counter']
 ---
 
 ## No more checking page by page
