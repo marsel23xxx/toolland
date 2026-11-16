@@ -7,7 +7,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import type { ToolMessages } from '../../i18n';
 import { downloadBlob, pickTextFile } from '../../lib/download';
-import { fill, LOCALE_TAGS, pageLocale } from '../../lib/format';
+import { fill, LOCALE_TAGS, pageLocale, type Locale } from '../../lib/format';
 import {
   analyze,
   groupItems,
@@ -18,10 +18,11 @@ import {
   type VariableResult,
 } from '../../lib/thesis/validity';
 
-const props = defineProps<{ m: Record<string, string> }>();
+// Bahasa dari halaman (prop) supaya format angka sama saat render server dan di browser.
+const props = defineProps<{ m: Record<string, string>; locale?: Locale }>();
 const m = props.m as ToolMessages<'validity'>;
 
-const tag = LOCALE_TAGS[pageLocale()];
+const tag = LOCALE_TAGS[props.locale ?? pageLocale()];
 const num = (x: number, d: number) =>
   x.toLocaleString(tag, { minimumFractionDigits: d, maximumFractionDigits: d });
 const fmtR = (x: number | null) => (x === null ? '–' : num(x, 3));

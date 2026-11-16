@@ -5,7 +5,7 @@
  */
 import { computed, ref } from 'vue';
 import type { ToolMessages } from '../../i18n';
-import { fill, LOCALE_TAGS, pageLocale } from '../../lib/format';
+import { fill, LOCALE_TAGS, pageLocale, type Locale } from '../../lib/format';
 import {
   allocate,
   CHI2,
@@ -19,10 +19,11 @@ import {
   type SampleInput,
 } from '../../lib/thesis/sample';
 
-const props = defineProps<{ m: Record<string, string> }>();
+// Bahasa dari halaman (prop) supaya format angka sama saat render server dan di browser.
+const props = defineProps<{ m: Record<string, string>; locale?: Locale }>();
 const m = props.m as ToolMessages<'sample'>;
 
-const tag = LOCALE_TAGS[pageLocale()];
+const tag = LOCALE_TAGS[props.locale ?? pageLocale()];
 const num = (x: number, digits = 0) => x.toLocaleString(tag, { maximumFractionDigits: digits });
 
 const known = ref(true);

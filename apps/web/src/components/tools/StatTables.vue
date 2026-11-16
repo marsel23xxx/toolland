@@ -7,7 +7,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import type { ToolMessages } from '../../i18n';
 import { downloadBlob } from '../../lib/download';
-import { fill, LOCALE_TAGS, pageLocale } from '../../lib/format';
+import { fill, LOCALE_TAGS, pageLocale, type Locale } from '../../lib/format';
 import {
   buildTable,
   cellText,
@@ -30,10 +30,11 @@ import {
   type Lookup,
 } from '../../lib/thesis/stat-tables';
 
-const props = defineProps<{ m: Record<string, string> }>();
+// Bahasa dari halaman (prop) supaya format angka sama saat render server dan di browser.
+const props = defineProps<{ m: Record<string, string>; locale?: Locale }>();
 const m = props.m as ToolMessages<'stat'>;
 
-const tag = LOCALE_TAGS[pageLocale()];
+const tag = LOCALE_TAGS[props.locale ?? pageLocale()];
 const num = (x: number, d: number) =>
   x.toLocaleString(tag, { minimumFractionDigits: d, maximumFractionDigits: d });
 const fmtAlpha = (x: number) => x.toLocaleString(tag, { maximumFractionDigits: 4 });

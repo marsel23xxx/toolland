@@ -7,7 +7,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import type { ToolMessages } from '../../i18n';
 import { downloadBlob, downloadText } from '../../lib/download';
-import { pageLocale } from '../../lib/format';
+import { pageLocale, type Locale } from '../../lib/format';
 import { entries, toBibtex, toDocx, toHtml, toPlain, toRis } from '../../lib/thesis/cite/export';
 import {
   formatRef,
@@ -38,13 +38,14 @@ import {
   type RefType,
 } from '../../lib/thesis/cite/model';
 
-const props = defineProps<{ m: Record<string, string> }>();
+// Bahasa dari halaman (prop) supaya render server dan browser sama.
+const props = defineProps<{ m: Record<string, string>; locale?: Locale }>();
 const m = props.m as ToolMessages<'biblio'>;
 
 // --- Penyimpanan ---------------------------------------------------------------------------------
 const STORE = 'toolland-bibliography';
 const style = ref<Style>('apa');
-const lang = ref<Lang>(pageLocale());
+const lang = ref<Lang>(props.locale ?? pageLocale());
 const refs = ref<Ref[]>([]);
 onMounted(() => {
   try {
