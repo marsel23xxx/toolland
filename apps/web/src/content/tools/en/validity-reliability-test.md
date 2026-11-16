@@ -28,7 +28,7 @@ faq:
     a: "They are flagged and named in the interpretation, and Cronbach's alpha is recalculated without them."
   - q: 'Is my data uploaded?'
     a: 'No. Everything runs in your browser. Pasted data is only kept in your browser so it survives a reload. Click Clear to remove it.'
-related: ['statistical-tables', 'sample-size-calculator', 'thesis-format-checker']
+related: ['statistical-tables', 'citation-generator', 'sample-size-calculator']
 ---
 
 ## Test your research instrument without SPSS

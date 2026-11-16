@@ -84,7 +84,8 @@ export default defineConfig({
         "media-src 'self' blob:",
         "font-src 'self'",
         // Cari Subdomain: browser mengambil data langsung dari log sertifikat publik.
-        "connect-src 'self' https://crt.sh https://api.certspotter.com",
+        // Daftar Pustaka: DOI ke Crossref, ISBN ke Google Books dan Open Library.
+        "connect-src 'self' https://crt.sh https://api.certspotter.com https://api.crossref.org https://www.googleapis.com https://openlibrary.org",
         "worker-src 'self' blob:",
         "object-src 'none'",
         "base-uri 'self'",

@@ -678,6 +678,173 @@ export const tests = [
     },
   },
   {
+    name: 'daftar pustaka: DOI, ISBN, manual, gaya, salin, unduh, simpan',
+    path: '/tools/daftar-pustaka',
+    async run(h) {
+      const { page } = h;
+      // Crossref, Google Books, dan Open Library disimulasikan. CSP tetap diuji: intersepsi
+      // terjadi setelah browser mengizinkan connect-src.
+      const cors = { 'Access-Control-Allow-Origin': '*' };
+      const json = (r, body, status = 200) =>
+        r.respond({
+          status,
+          headers: cors,
+          contentType: 'application/json',
+          body: JSON.stringify(body),
+        });
+      await page.setRequestInterception(true);
+      page.on('request', (r) => {
+        const u = r.url();
+        if (u.startsWith('https://api.crossref.org/works/'))
+          return json(r, {
+            message: {
+              type: 'journal-article',
+              title: ['Nanometre-scale thermometry in a living cell'],
+              author: [
+                { given: 'Georg', family: 'Kucsko' },
+                { given: 'Peter C.', family: 'Maurer' },
+              ],
+              'container-title': ['Nature'],
+              volume: '500',
+              issue: '7460',
+              page: '54-58',
+              issued: { 'date-parts': [[2013, 7, 31]] },
+              DOI: '10.1038/nature12373',
+            },
+          });
+        if (u.startsWith('https://www.googleapis.com/books/'))
+          return u.includes('9786022895336')
+            ? json(r, {
+                items: [
+                  {
+                    volumeInfo: {
+                      title: 'Metode Penelitian Kuantitatif',
+                      authors: ['Sugiyono'],
+                      publishedDate: '2019',
+                    },
+                  },
+                ],
+              })
+            : json(r, { totalItems: 0 });
+        if (u.startsWith('https://openlibrary.org/'))
+          return u.includes('9786022895336')
+            ? json(r, {
+                'ISBN:9786022895336': {
+                  publishers: [{ name: 'Alfabeta' }],
+                  publish_places: [{ name: 'Bandung' }],
+                },
+              })
+            : json(r, {});
+        return r.continue();
+      });
+      await page.evaluate(() => localStorage.removeItem('toolland-bibliography'));
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.waitForSelector('[data-bib-query]');
+      const search = async (q) => {
+        await page.$eval('[data-bib-query]', (el) => {
+          el.value = '';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        await page.type('[data-bib-query]', q);
+        await page.click('[data-bib-search]');
+        await page.waitForSelector('[data-bib-form]');
+        await page.waitForFunction(() => document.querySelector('[data-bib-msg]'));
+      };
+      // DOI.
+      await search('https://doi.org/10.1038/nature12373');
+      const pv = await h.text('[data-bib-preview]');
+      expect(pv.startsWith('Kucsko, G., & Maurer, P. C. (2013).') && pv.includes('54–58'), pv);
+      await page.click('[data-bib-save]');
+      // ISBN: Google Books dilengkapi Open Library.
+      await search('978-602-289-533-6');
+      expect(
+        (await h.text('[data-bib-preview]')) ===
+          'Sugiyono. (2019). Metode Penelitian Kuantitatif. Alfabeta.',
+        await h.text('[data-bib-preview]'),
+      );
+      await page.click('[data-bib-save]');
+      // ISBN tidak ditemukan: form tetap terbuka dengan ISBN terisi.
+      await search('0-306-40615-2');
+      expect(
+        (await h.text('[data-bib-msg]')).includes('tidak ditemukan'),
+        await h.text('[data-bib-msg]'),
+      );
+      expect(
+        (await page.$eval('[data-bib-field="isbn"]', (el) => el.value)) === '0306406152',
+        'ISBN tidak terisi',
+      );
+      // Isi manual: halaman web lembaga.
+      await page.click('[data-bib-new="web"]');
+      await page.type('[data-bib-authors]', 'Badan Pusat Statistik');
+      await page.type('[data-bib-title]', 'Statistik Pendidikan 2023');
+      await page.type('[data-bib-year]', '2023');
+      await page.type('[data-bib-field="container"]', 'BPS');
+      await page.type('[data-bib-field="url"]', 'https://www.bps.go.id/x');
+      await page.click('[data-bib-save]');
+      // APA: urut abjad.
+      const texts = () =>
+        page.$$eval('[data-bib-text]', (els) => els.map((e) => e.textContent.trim()));
+      let list = await texts();
+      expect(list.length === 3, `jumlah ${list.length}`);
+      expect(
+        list[0].startsWith('Badan Pusat Statistik. (2023).') &&
+          list[1].startsWith('Kucsko') &&
+          list[2].startsWith('Sugiyono'),
+        list.join(' | '),
+      );
+      expect(
+        (await page.$$eval('[data-bib-cite] strong', (els) => els.map((e) => e.textContent)))[2] ===
+          '(Sugiyono, 2019)',
+        'kutipan dalam teks',
+      );
+      // IEEE: urutan masukan dan bernomor (istilah Indonesia: "dan", "hlm.").
+      await page.click('[data-bib-style="ieee"]');
+      list = await texts();
+      expect(
+        list[0].startsWith('[1]') && list[0].includes('G. Kucsko dan P. C. Maurer, “Nanometre'),
+        list[0],
+      );
+      expect(list[0].includes('hlm. 54–58, 2013'), list[0]);
+      expect(
+        list[1].startsWith('[2]') &&
+          list[1].includes('Sugiyono, Metode Penelitian Kuantitatif. Bandung: Alfabeta, 2019.'),
+        list[1],
+      );
+      // Salin semua sebagai HTML berformat.
+      await page.evaluate(() => {
+        window.__html = '';
+        navigator.clipboard.write = async (items) => {
+          window.__html = await (await items[0].getType('text/html')).text();
+        };
+      });
+      await page.click('[data-bib-copy]');
+      await page.waitForFunction(() => window.__html);
+      const html = await page.evaluate(() => window.__html);
+      expect(html.includes('<i>Nature</i>') && html.includes('[1]'), html.slice(0, 300));
+      // Unduh Word, BibTeX, RIS.
+      const docx = await h.downloadVia(/^daftar-pustaka\.docx$/, () =>
+        page.click('[data-bib-docx]'),
+      );
+      const doc = strFromU8(unzipSync(new Uint8Array(docx))['word/document.xml']);
+      expect(doc.includes('DAFTAR PUSTAKA') && doc.includes('w:hanging="720"'), 'docx');
+      const bib = await h.downloadVia(/^daftar-pustaka\.bib$/, () => page.click('[data-bib-bib]'));
+      expect(
+        bib.toString().includes('@article{kucsko2013nanometrescale,'),
+        bib.toString().slice(0, 200),
+      );
+      const ris = await h.downloadVia(/^daftar-pustaka\.ris$/, () => page.click('[data-bib-ris]'));
+      expect(ris.toString().includes('TY  - BOOK'), 'ris');
+      // Daftar dan gaya tersimpan.
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForFunction(() => document.querySelectorAll('[data-bib-text]').length === 3);
+      expect(
+        !!(await page.$('[data-bib-style="ieee"][aria-checked="true"]')),
+        'gaya tidak tersimpan',
+      );
+    },
+  },
+  {
     name: 'tes mengetik klasik: mode kata, hasil, dan rekor',
     path: '/tools/tes-kecepatan-mengetik',
     async run(h) {

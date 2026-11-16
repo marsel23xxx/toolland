@@ -32,7 +32,7 @@ faq:
     a: 'Banyak skripsi memakai 0,60, sedangkan sebagian pedoman memakai 0,70. Pilih batas yang sesuai di pengaturan; kalimat interpretasi ikut menyesuaikan.'
   - q: 'Apakah data kuesioner saya dikirim ke server?'
     a: 'Tidak. Semua perhitungan berjalan di browser. Data yang ditempel hanya disimpan di browsermu supaya tidak hilang saat halaman dimuat ulang. Klik Hapus untuk menghapusnya.'
-related: ['tabel-statistik', 'kalkulator-sampel', 'cek-format-skripsi']
+related: ['tabel-statistik', 'daftar-pustaka', 'kalkulator-sampel']
 ---
 
 ## Uji instrumen penelitian tanpa SPSS
