@@ -599,6 +599,85 @@ export const tests = [
     },
   },
   {
+    name: 'uji validitas & reliabilitas: data contoh, per variabel, salin, unduh, simpan',
+    path: '/tools/uji-validitas-reliabilitas',
+    async run(h) {
+      const { page } = h;
+      await page.evaluate(() => localStorage.removeItem('toolland-validity-data'));
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.waitForSelector('[data-vt-sample]');
+      await page.click('[data-vt-sample]');
+      await page.waitForSelector('[data-vt-result]');
+      const info = await h.text('[data-vt-info]');
+      expect(info.includes('30 responden × 10 item') && info.includes('No'), info);
+      expect((await h.text('[data-vt-rtable]')) === '0,361', await h.text('[data-vt-rtable]'));
+      expect((await h.text('[data-vt-valid-count]')) === '9 / 10', 'jumlah item valid');
+      expect(
+        (await h.text('[data-vt-item="P7"] [data-vt-verdict]')) === 'Tidak valid',
+        'P7 seharusnya tidak valid',
+      );
+      expect((await h.text('[data-vt-item="P1"] [data-vt-verdict]')) === 'Valid', 'P1 valid');
+      const interp = await h.text('[data-vt-interp]');
+      expect(interp.includes('P7') && interp.includes('dinyatakan reliabel'), interp);
+      // Salin kalimat interpretasi.
+      await page.evaluate(() => {
+        window.__copied = '';
+        navigator.clipboard.writeText = async (t) => {
+          window.__copied = t;
+        };
+      });
+      await page.click('[data-vt-copy-interp]');
+      expect((await page.evaluate(() => window.__copied)) === interp, 'kalimat tersalin');
+      // Corrected item-total: P7 tetap tidak valid.
+      await page.select('[data-vt-method]', 'corrected');
+      await h.sleep(100);
+      expect(
+        (await h.text('[data-vt-item="P7"] [data-vt-verdict]')) === 'Tidak valid',
+        'P7 corrected',
+      );
+      // Data tersimpan setelah muat ulang.
+      await h.sleep(600);
+      await page.reload({ waitUntil: 'networkidle0' });
+      // Posisi gulir dipulihkan di bawah tool; gulir ke atas supaya island client:visible aktif.
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForSelector('[data-vt-result]');
+      // Nama kolom X1.* dan Y.*: uji per variabel.
+      await page.$eval('[data-vt-data]', (el) => {
+        const lines = el.value.split('\n');
+        lines[0] = [
+          'No',
+          'X1.1',
+          'X1.2',
+          'X1.3',
+          'X1.4',
+          'X1.5',
+          'Y.1',
+          'Y.2',
+          'Y.3',
+          'Y.4',
+          'Y.5',
+        ].join('\t');
+        el.value = lines.join('\n');
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await page.waitForFunction(() => document.querySelectorAll('[data-vt-result]').length === 2);
+      await page.click('[data-vt-grouped]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-vt-result]').length === 1);
+      await page.click('[data-vt-grouped]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-vt-result]').length === 2);
+      // Unduh Excel: 3 sheet.
+      const out = await h.downloadVia(/^uji-validitas-reliabilitas\.xlsx$/, () =>
+        page.click('[data-vt-xlsx]'),
+      );
+      const files = unzipSync(new Uint8Array(out));
+      const wb = strFromU8(files['xl/workbook.xml']);
+      expect(
+        wb.includes('Validitas') && wb.includes('Reliabilitas') && wb.includes('Interpretasi'),
+        wb,
+      );
+    },
+  },
+  {
     name: 'tes mengetik klasik: mode kata, hasil, dan rekor',
     path: '/tools/tes-kecepatan-mengetik',
     async run(h) {

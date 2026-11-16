@@ -29,7 +29,7 @@ faq:
     a: 'With n observations and k predictors, the partial t test uses df = n − k − 1 and the overall F test uses df1 = k and df2 = n − k − 1.'
   - q: 'Do the values match printed tables?'
     a: 'Yes. Values are computed from the distribution formulas with high precision, so they match printed tables to the last digit shown, for any df.'
-related: ['sample-size-calculator', 'thesis-format-checker', 'word-counter']
+related: ['validity-reliability-test', 'sample-size-calculator', 'thesis-format-checker']
 ---
 
 ## Every statistical table in one place

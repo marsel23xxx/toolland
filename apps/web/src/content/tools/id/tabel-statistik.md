@@ -33,7 +33,7 @@ faq:
     a: 'Ya. Nilai dihitung langsung dari rumus distribusinya dengan ketelitian tinggi, sehingga cocok dengan tabel cetak sampai digit terakhir yang ditampilkan. Bedanya, kamu bisa mencari df berapa pun, tidak terbatas pada baris yang tercetak.'
   - q: 'Bolehkah tabel ini dilampirkan di skripsi?'
     a: 'Boleh. Unduh sebagai PDF untuk dilampirkan langsung, atau sebagai Excel bila perlu diatur ulang. Rentang df bisa disesuaikan, misalnya df 1 sampai 100 saja.'
-related: ['kalkulator-sampel', 'cek-format-skripsi', 'hitung-kata']
+related: ['uji-validitas-reliabilitas', 'kalkulator-sampel', 'cek-format-skripsi']
 ---
 
 ## Semua tabel statistik untuk skripsi di satu tempat

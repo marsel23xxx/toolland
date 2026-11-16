@@ -1,0 +1,9 @@
+---
+import ValidityTest from '../../components/tools/ValidityTest.vue';
+import ToolPage from '../../components/ui/ToolPage.astro';
+import { toolMessages } from '../../i18n';
+---
+
+<ToolPage slug="uji-validitas-reliabilitas">
+  <ValidityTest client:visible m={toolMessages('id', 'validity')} />
+</ToolPage>
