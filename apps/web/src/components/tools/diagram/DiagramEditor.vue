@@ -1166,7 +1166,7 @@ const ed = () => editor.value!;
         <div class="min-h-0 flex-1 overflow-y-auto p-2 text-sm">
           <template v-if="query.trim()">
             <p v-if="!found.length" class="px-1 text-xs text-ink-2">{{ m.noShapes }}</p>
-            <div class="grid grid-cols-4 gap-1">
+            <div class="grid grid-cols-3 gap-1">
               <button
                 v-for="it in found"
                 :key="it.id"
@@ -1178,7 +1178,8 @@ const ed = () => editor.value!;
                 @click="addItem(it)"
               >
                 <!-- eslint-disable-next-line vue/no-v-html -- SVG dibuat sendiri dari pustaka shape -->
-                <span class="pointer-events-none" v-html="previews.get(it.id) ?? ''" />
+                <span class="dg-icon pointer-events-none" v-html="previews.get(it.id) ?? ''" />
+                <span class="dg-label pointer-events-none">{{ itemName(it) }}</span>
               </button>
             </div>
           </template>
@@ -1197,7 +1198,7 @@ const ed = () => editor.value!;
                   aria-hidden="true"
                 />
               </button>
-              <div v-show="open[g.id]" class="grid grid-cols-4 gap-1 pt-1">
+              <div v-show="open[g.id]" class="grid grid-cols-3 gap-1 pt-1">
                 <button
                   v-for="it in g.items"
                   :key="it.id"
@@ -1209,7 +1210,8 @@ const ed = () => editor.value!;
                   @click="addItem(it)"
                 >
                   <!-- eslint-disable-next-line vue/no-v-html -- SVG dibuat sendiri dari pustaka shape -->
-                  <span class="pointer-events-none" v-html="previews.get(it.id) ?? ''" />
+                  <span class="dg-icon pointer-events-none" v-html="previews.get(it.id) ?? ''" />
+                  <span class="dg-label pointer-events-none">{{ itemName(it) }}</span>
                 </button>
               </div>
             </section>
@@ -2264,12 +2266,47 @@ const ed = () => editor.value!;
   background: color-mix(in srgb, currentColor 8%, transparent);
 }
 .dg-item {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.15rem;
+  padding: 0.3rem 0 0.25rem;
   border-radius: 0.25rem;
   border: 1px solid transparent;
   cursor: grab;
+}
+.dg-icon {
+  display: grid;
+  place-items: center;
+  height: 36px;
+}
+.dg-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  width: 100%;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ink-2);
+  letter-spacing: -0.01em;
+}
+/* Mode gelap: tinta gelap pratinjau (garis, panah, teks, simbol) dibuat putih supaya terlihat. */
+@media (prefers-color-scheme: dark) {
+  .dg-icon :deep([stroke='#1f2937']),
+  .dg-icon :deep([stroke='#111827']) {
+    stroke: #ffffff;
+  }
+  .dg-icon :deep([fill='#1f2937']),
+  .dg-icon :deep([fill='#111827']) {
+    fill: #ffffff;
+  }
+  /* Isi putih dikosongkan agar detail di dalam shape (garis tabung, silang, pin) tidak tertutup. */
+  .dg-icon :deep([fill='#ffffff']) {
+    fill: transparent;
+  }
 }
 .dg-item:hover {
   border-color: color-mix(in srgb, currentColor 20%, transparent);
