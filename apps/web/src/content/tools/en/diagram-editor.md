@@ -32,7 +32,7 @@ faq:
   - q: 'Which shapes are available?'
     a: 'Over 160 shapes in eight libraries: General, Flowchart, Electronics, Logic gates, IoT, Network, UML, and ERD with crow foot notation. Lines drawn from component pins become wires automatically.'
   - q: 'Can I export for reports or slides?'
-    a: 'Yes. Export PNG (up to 4× resolution, optionally transparent) or SVG, which stays sharp at any size.'
+    a: 'Yes. Export PNG (up to 4× resolution, optionally transparent), SVG that stays sharp at any size, or a PDF with every page, sized to the diagram or A4.'
 related: ['json-formatter', 'qr-code-generator', 'base64-encode-decode']
 ---
 
@@ -48,4 +48,8 @@ keep everything tidy.
 - **Smart connectors**: orthogonal, straight, or curved, with arrowhead options.
 - **Format panel** for fill, border, line width, text, shadow, and opacity.
 - **Undo/redo, copy-paste, duplicate, group**, and keyboard shortcuts.
-- **Autosave**, open/save **.drawio**, and export **PNG** and **SVG**.
+- **Multiple pages** in one file and **layers** you can hide and lock.
+- **Templates**: flowcharts, LED circuit, half adder, IoT architecture, office network, ERD, use
+  case, and class diagram.
+- **Auto layout**, **find and replace**, **minimap**, and **insert images and tables**.
+- **Autosave**, open/save **.drawio**, and export **PNG**, **SVG**, and **PDF**.

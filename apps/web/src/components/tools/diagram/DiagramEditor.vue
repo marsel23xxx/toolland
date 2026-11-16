@@ -51,11 +51,33 @@ import IconUndo from '~icons/lucide/undo-2';
 import IconUngroup from '~icons/lucide/ungroup';
 import IconZoomIn from '~icons/lucide/zoom-in';
 import IconZoomOut from '~icons/lucide/zoom-out';
+import IconEye from '~icons/lucide/eye';
+import IconEyeOff from '~icons/lucide/eye-off';
+import IconImage from '~icons/lucide/image';
+import IconLayout from '~icons/lucide/network';
+import IconLock from '~icons/lucide/lock';
+import IconLockOpen from '~icons/lucide/lock-open';
+import IconMap from '~icons/lucide/map';
+import IconMore from '~icons/lucide/ellipsis';
+import IconPlus from '~icons/lucide/plus';
+import IconTable from '~icons/lucide/table';
+import IconTemplate from '~icons/lucide/layout-template';
+import IconUp from '~icons/lucide/chevron-up';
+import IconX from '~icons/lucide/x';
 import type { ToolMessages } from '../../../i18n';
 import { downloadBlob, downloadText } from '../../../lib/download';
 import { pageLocale } from '../../../lib/format';
-import { DrawioError } from '../../../lib/diagram/drawio';
-import { DiagramEditor, libraryPreviews } from '../../../lib/diagram/editor';
+import { readDrawio, toDrawioFile } from '../../../lib/diagram/drawio';
+import {
+  DiagramEditor,
+  libraryPreviews,
+  rasterize,
+  renderModelSvg,
+  type LayerInfo,
+  type LayoutKind,
+} from '../../../lib/diagram/editor';
+import { diagramPdf, type PdfPage, type PdfPaper } from '../../../lib/diagram/pdf';
+import { TEMPLATES, type DiagramTemplate } from '../../../lib/diagram/templates';
 import { LIBRARY, searchLibrary, type LibItem } from '../../../lib/diagram/library';
 
 const props = defineProps<{ m: Record<string, string> }>();
@@ -84,11 +106,34 @@ function scheduleSave() {
   window.clearTimeout(saveTimer);
   saveTimer = window.setTimeout(saveNow, 600);
 }
-function saveNow() {
+
+// --- Halaman ---------------------------------------------------------------------------------------
+interface Page {
+  id: string;
+  name: string;
+  xml: string;
+}
+const EMPTY_XML =
+  '<mxGraphModel grid="1" gridSize="10"><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel>';
+const pages = ref<Page[]>([]);
+const current = ref(0);
+const newId = () => Math.random().toString(36).slice(2, 9);
+const pageName = (n: number) => `${m.pageLabel} ${n}`;
+
+/** Simpan isi kanvas ke halaman aktif. */
+function syncCurrent() {
   const ed = editor.value;
-  if (!ed) return;
+  const p = pages.value[current.value];
+  if (ed && p) p.xml = ed.toModelXml();
+}
+function saveNow() {
+  if (!editor.value) return;
+  syncCurrent();
   try {
-    localStorage.setItem(STORE, JSON.stringify({ title: title.value, xml: ed.toModelXml() }));
+    localStorage.setItem(
+      STORE,
+      JSON.stringify({ title: title.value, pages: pages.value, current: current.value }),
+    );
     status.value = m.saved;
   } catch {
     status.value = m.saveFailed;
@@ -99,12 +144,73 @@ watch(title, () => {
   if (!restoring) scheduleSave();
 });
 
+function showPage(i: number) {
+  const ed = editor.value;
+  const p = pages.value[i];
+  if (!ed || !p) return;
+  current.value = i;
+  ed.loadModelXml(p.xml);
+  Object.assign(page, ed.getSettings());
+  ed.fit();
+  find.matches = [];
+  refreshStyle();
+}
+function switchPage(i: number) {
+  if (i === current.value) return;
+  syncCurrent();
+  showPage(i);
+  scheduleSave();
+}
+function addPage(xml = EMPTY_XML, name?: string) {
+  syncCurrent();
+  let n = pages.value.length + 1;
+  while (pages.value.some((p) => p.name === pageName(n))) n++;
+  pages.value.push({ id: newId(), name: name ?? pageName(n), xml });
+  showPage(pages.value.length - 1);
+  scheduleSave();
+}
+function duplicatePage(i: number) {
+  syncCurrent();
+  const p = pages.value[i];
+  pages.value.splice(i + 1, 0, { id: newId(), name: `${p.name} ${m.copySuffix}`, xml: p.xml });
+  showPage(i + 1);
+  scheduleSave();
+}
+function deletePage(i: number) {
+  if (
+    pages.value.length < 2 ||
+    !confirm(m.confirmDeletePage.replace('{name}', pages.value[i].name))
+  )
+    return;
+  syncCurrent();
+  const wasCurrent = i === current.value;
+  pages.value.splice(i, 1);
+  const next = Math.min(
+    i < current.value ? current.value - 1 : current.value,
+    pages.value.length - 1,
+  );
+  // Halaman lain dihapus: kanvas tetap, hanya indeks yang bergeser.
+  if (wasCurrent) showPage(next);
+  else current.value = next;
+  scheduleSave();
+}
+const renaming = ref(-1);
+function renamePage(i: number, name: string) {
+  renaming.value = -1;
+  const v = name.trim();
+  if (v && pages.value[i]) {
+    pages.value[i].name = v;
+    scheduleSave();
+  }
+}
+
 function refreshStyle() {
   const ed = editor.value;
   if (!ed) return;
   selection.value = ed.selection();
   style.value = ed.selectionStyle();
   empty.value = ed.isEmpty();
+  layerList.value = ed.layers();
 }
 
 onMounted(async () => {
@@ -126,20 +232,30 @@ onMounted(async () => {
   });
   editor.value = ed;
   try {
+    restoring = true;
     const saved = JSON.parse(localStorage.getItem(STORE) ?? 'null') as {
       title?: string;
       xml?: string;
+      pages?: Page[];
+      current?: number;
     } | null;
-    if (saved?.xml) {
-      restoring = true;
-      ed.loadModelXml(saved.xml);
-      if (saved.title) title.value = saved.title;
-      Object.assign(page, ed.getSettings());
-      ed.fit();
+    // Simpanan versi lama berisi satu halaman (xml).
+    const list = saved?.pages?.length
+      ? saved.pages
+      : saved?.xml
+        ? [{ id: newId(), name: pageName(1), xml: saved.xml }]
+        : [];
+    if (list.length) {
+      pages.value = list.map((p) => ({ id: p.id || newId(), name: p.name, xml: p.xml }));
+      if (saved?.title) title.value = saved.title;
+      showPage(Math.min(Math.max(0, saved?.current ?? 0), list.length - 1));
       status.value = m.restored;
+    } else {
+      pages.value = [{ id: newId(), name: pageName(1), xml: EMPTY_XML }];
     }
   } catch {
     // Data rusak: mulai kosong.
+    pages.value = [{ id: newId(), name: pageName(1), xml: EMPTY_XML }];
   } finally {
     await nextTick();
     restoring = false;
@@ -148,6 +264,7 @@ onMounted(async () => {
   buildPreviews();
   document.addEventListener('fullscreenchange', onFullscreenChange);
   window.addEventListener('keydown', onWindowKey);
+  document.addEventListener('pointerdown', closeMenuOutside);
 });
 onBeforeUnmount(() => {
   window.clearTimeout(saveTimer);
@@ -155,6 +272,8 @@ onBeforeUnmount(() => {
   editor.value?.destroy();
   document.removeEventListener('fullscreenchange', onFullscreenChange);
   window.removeEventListener('keydown', onWindowKey);
+  document.removeEventListener('pointerdown', closeMenuOutside);
+  disposeMap?.();
   document.documentElement.classList.remove('overflow-hidden');
 });
 
@@ -271,9 +390,16 @@ function setPage<K extends keyof typeof page>(k: K, v: (typeof page)[K]) {
   editor.value?.setSettings({ [k]: v });
 }
 
+// --- Menu ----------------------------------------------------------------------------------------
+/** Menu tarik-turun yang sedang terbuka (hanya satu). */
+const menu = ref<string | null>(null);
+const toggleMenu = (id: string) => (menu.value = menu.value === id ? null : id);
+function closeMenuOutside(e: PointerEvent) {
+  if (menu.value && !(e.target as Element | null)?.closest('[data-dg-menu]')) menu.value = null;
+}
+
 // --- File --------------------------------------------------------------------------------------
 const fileInput = ref<HTMLInputElement>();
-const exportOpen = ref(false);
 const message = ref('');
 
 function slug(s: string) {
@@ -287,12 +413,19 @@ function slug(s: string) {
   );
 }
 
+const hasContent = () => {
+  syncCurrent();
+  return pages.value.length > 1 || !editor.value?.isEmpty();
+};
+
 function newDiagram() {
   const ed = editor.value;
   if (!ed) return;
-  if (!ed.isEmpty() && !confirm(m.confirmNew)) return;
-  ed.clear();
+  if (hasContent() && !confirm(m.confirmNew)) return;
+  pages.value = [{ id: newId(), name: pageName(1), xml: EMPTY_XML }];
   title.value = m.untitled;
+  showPage(0);
+  ed.clear();
   Object.assign(page, { grid: true, gridSize: 10, background: '#ffffff' });
   ed.setSettings({ ...page });
   refreshStyle();
@@ -302,31 +435,39 @@ async function openFile(e: Event) {
   const input = e.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
-  const ed = editor.value;
-  if (!file || !ed) return;
-  if (!ed.isEmpty() && !confirm(m.confirmOpen)) return;
+  if (!file || !editor.value) return;
+  if (hasContent() && !confirm(m.confirmOpen)) return;
   try {
-    const pages = ed.loadFile(await file.text());
+    const read = readDrawio(await file.text());
+    pages.value = read.map((p) => ({ id: newId(), name: p.name, xml: p.model }));
     title.value = file.name.replace(/\.(drawio|dio|xml)$/i, '') || m.untitled;
-    Object.assign(page, ed.getSettings());
-    message.value = pages.length > 1 ? m.multiPage.replace('{n}', String(pages.length)) : '';
-    refreshStyle();
+    message.value = '';
+    showPage(0);
     scheduleSave();
-  } catch (err) {
-    message.value = err instanceof DrawioError ? m.openError : m.openError;
+  } catch {
+    message.value = m.openError;
   }
 }
 
 function saveFile() {
-  const ed = editor.value;
-  if (!ed) return;
-  downloadText(ed.toFile(title.value), `${slug(title.value)}.drawio`, 'application/xml');
+  if (!editor.value) return;
+  syncCurrent();
+  const file = toDrawioFile(pages.value.map((p) => ({ name: p.name, model: p.xml })));
+  downloadText(file, `${slug(title.value)}.drawio`, 'application/xml');
 }
 
-async function exportAs(kindOut: 'png' | 'png-t' | 'svg') {
-  exportOpen.value = false;
+const pngScale = ref(2);
+const exportSelection = ref(false);
+const pdfAll = ref(true);
+const pdfPaper = ref<PdfPaper>('fit');
+const exporting = ref(false);
+
+async function exportAs(kindOut: 'png' | 'png-t' | 'svg' | 'pdf') {
+  menu.value = null;
   const ed = editor.value;
-  if (!ed || ed.isEmpty()) return;
+  if (!ed) return;
+  if (kindOut === 'pdf') return exportPdf();
+  if (ed.isEmpty()) return;
   const sel = ed.selection().length > 0 && exportSelection.value;
   if (kindOut === 'svg') {
     const { svg } = ed.toSvg({ selectionOnly: sel });
@@ -336,8 +477,170 @@ async function exportAs(kindOut: 'png' | 'png-t' | 'svg') {
     downloadBlob(blob, `${slug(title.value)}.png`);
   }
 }
-const pngScale = ref(2);
-const exportSelection = ref(false);
+
+async function exportPdf() {
+  const ed = editor.value;
+  if (!ed) return;
+  exporting.value = true;
+  try {
+    syncCurrent();
+    // Halaman kosong dilewati (kecuali semuanya kosong).
+    const filled = pages.value.filter((p) => /(vertex|edge)="1"/.test(p.xml));
+    const list = pdfAll.value
+      ? filled.length
+        ? filled
+        : pages.value
+      : [pages.value[current.value]];
+    const out: PdfPage[] = [];
+    for (const p of list) {
+      const r = p === pages.value[current.value] ? ed.toSvg() : renderModelSvg(p.xml);
+      const png = await rasterize(r.svg, r.width, r.height, 2);
+      out.push({ png: new Uint8Array(await png.arrayBuffer()), width: r.width, height: r.height });
+    }
+    const bytes = await diagramPdf(out, pdfPaper.value, title.value);
+    downloadBlob(
+      new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' }),
+      `${slug(title.value)}.pdf`,
+    );
+  } finally {
+    exporting.value = false;
+  }
+}
+
+// --- Template --------------------------------------------------------------------------------------
+const tplOpen = ref(false);
+const tplThumbs = shallowRef(new Map<string, string>());
+async function openTemplates() {
+  menu.value = null;
+  tplOpen.value = true;
+  if (tplThumbs.value.size) return;
+  await nextTick();
+  const map = new Map<string, string>();
+  for (const t of TEMPLATES) {
+    try {
+      map.set(t.id, renderModelSvg(t.build(lang), { border: 8 }).svg);
+    } catch {
+      // Pratinjau gagal: kartu tetap bisa dipakai.
+    }
+  }
+  tplThumbs.value = map;
+}
+function useTemplate(t: DiagramTemplate) {
+  tplOpen.value = false;
+  addPage(t.build(lang), t.name[lang]);
+}
+
+// --- Sisipkan --------------------------------------------------------------------------------------
+const imageInput = ref<HTMLInputElement>();
+const tblRows = ref(3);
+const tblCols = ref(3);
+const IMG_MAX = 1200;
+async function onImage(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  menu.value = null;
+  if (!file || !editor.value) return;
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    // Gambar besar diperkecil supaya diagram (dan simpanan browser) tetap ringan.
+    const k = Math.min(1, IMG_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * k));
+    const h = Math.max(1, Math.round(img.naturalHeight * k));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+    const data = /png|gif|webp|svg/.test(file.type)
+      ? canvas.toDataURL('image/png')
+      : canvas.toDataURL('image/jpeg', 0.85);
+    const shown = Math.min(1, 320 / Math.max(w, h));
+    editor.value.insertImage(data, Math.round(w * shown), Math.round(h * shown));
+  } catch {
+    message.value = m.imageError;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+function insertTable() {
+  menu.value = null;
+  const r = Math.min(20, Math.max(1, Math.floor(tblRows.value) || 3));
+  const c = Math.min(10, Math.max(1, Math.floor(tblCols.value) || 3));
+  editor.value?.insertTable(r, c);
+}
+
+// --- Tata letak --------------------------------------------------------------------------------------
+const LAYOUTS: LayoutKind[] = ['vertical', 'horizontal', 'tree', 'circle', 'organic'];
+function doLayout(k: LayoutKind) {
+  menu.value = null;
+  editor.value?.layout(k);
+}
+
+// --- Cari dan ganti ----------------------------------------------------------------------------------
+const find = reactive({ open: false, q: '', r: '', i: 0, matches: [] as Cell[], note: '' });
+const findInput = ref<HTMLInputElement>();
+function openFind() {
+  find.open = true;
+  void nextTick(() => findInput.value?.select());
+}
+function runFind() {
+  const ed = editor.value;
+  find.note = '';
+  find.matches = ed ? ed.find(find.q) : [];
+  find.i = 0;
+  if (find.matches.length) ed?.focusCell(find.matches[0]);
+}
+function stepFind(d: number) {
+  const n = find.matches.length;
+  if (!n) return;
+  find.i = (find.i + d + n) % n;
+  editor.value?.focusCell(find.matches[find.i]);
+}
+function replaceAll() {
+  const ed = editor.value;
+  if (!ed || !find.q.trim()) return;
+  const n = ed.replaceAll(find.q, find.r);
+  find.note = m.replaced.replace('{n}', String(n));
+  find.matches = ed.find(find.q);
+  find.i = 0;
+}
+
+// --- Minimap -----------------------------------------------------------------------------------------
+const showMap = ref(false);
+const mapEl = ref<HTMLDivElement>();
+let disposeMap: (() => void) | undefined;
+watch(showMap, async (on) => {
+  disposeMap?.();
+  disposeMap = undefined;
+  if (!on) return;
+  await nextTick();
+  if (mapEl.value && editor.value) disposeMap = editor.value.outline(mapEl.value);
+});
+
+// --- Layer -------------------------------------------------------------------------------------------
+const layerList = shallowRef<LayerInfo[]>([]);
+const renamingLayer = ref<Cell | null>(null);
+function layerAction(fn: (ed: DiagramEditor) => void) {
+  const ed = editor.value;
+  if (!ed) return;
+  fn(ed);
+  refreshStyle();
+}
+function addLayer() {
+  layerAction((ed) => ed.addLayer(`Layer ${layerList.value.length + 1}`));
+}
+function deleteLayer(l: LayerInfo) {
+  if (layerList.value.length < 2) return;
+  if (l.count && !confirm(m.confirmDeleteLayer.replace('{name}', l.name))) return;
+  layerAction((ed) => ed.removeLayer(l.cell));
+}
+function renameLayer(l: LayerInfo, name: string) {
+  renamingLayer.value = null;
+  if (name.trim()) layerAction((ed) => ed.renameLayer(l.cell, name.trim()));
+}
 
 // --- Layar penuh dan panel -----------------------------------------------------------------------
 const full = ref(false);
@@ -364,7 +667,16 @@ function onFullscreenChange() {
   if (!document.fullscreenElement && full.value) full.value = false;
 }
 function onWindowKey(e: KeyboardEvent) {
+  const inside = root.value?.contains(document.activeElement) || full.value;
+  if (e.key === 'Escape' && find.open && inside) {
+    find.open = false;
+    return;
+  }
   if (e.key === 'Escape' && full.value && !document.fullscreenElement) full.value = false;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' && inside) {
+    e.preventDefault();
+    openFind();
+  }
   if (
     (e.ctrlKey || e.metaKey) &&
     e.key.toLowerCase() === 's' &&
@@ -383,7 +695,7 @@ const ed = () => editor.value!;
 <template>
   <div
     ref="root"
-    class="flex flex-col overflow-hidden rounded-md border border-rule bg-paper text-ink"
+    class="relative flex flex-col overflow-hidden rounded-md border border-rule bg-paper text-ink"
     :class="
       full ? 'fixed inset-0 z-50 rounded-none border-0' : 'h-[calc(100vh-7rem)] min-h-[560px]'
     "
@@ -432,20 +744,20 @@ const ed = () => editor.value!;
       >
         <IconSave aria-hidden="true" />
       </button>
-      <div class="relative">
+      <div class="relative" data-dg-menu>
         <button
           type="button"
           class="dg-btn gap-1 px-2"
-          :aria-expanded="exportOpen"
+          :aria-expanded="menu === 'export'"
           data-dg-export
-          @click="exportOpen = !exportOpen"
+          @click="toggleMenu('export')"
         >
           <IconDownload aria-hidden="true" /><span class="hidden sm:inline">{{ m.export }}</span
           ><IconChevron class="size-3" aria-hidden="true" />
         </button>
         <div
-          v-if="exportOpen"
-          class="absolute left-0 top-full z-20 mt-1 w-60 space-y-2 rounded border border-rule bg-paper p-2 shadow-lg"
+          v-if="menu === 'export'"
+          class="absolute left-0 top-full z-30 mt-1 w-64 space-y-2 rounded border border-rule bg-paper p-2 shadow-lg"
           data-dg-export-menu
         >
           <button type="button" class="dg-menu" data-dg-export-png @click="exportAs('png')">
@@ -469,8 +781,139 @@ const ed = () => editor.value!;
           <label class="flex items-center gap-2 px-2 text-xs">
             <input v-model="exportSelection" type="checkbox" /> {{ m.exportSelection }}
           </label>
+          <div class="space-y-1 border-t border-rule pt-2">
+            <button
+              type="button"
+              class="dg-menu"
+              :disabled="exporting"
+              data-dg-export-pdf
+              @click="exportAs('pdf')"
+            >
+              PDF
+            </button>
+            <label class="flex items-center gap-2 px-2 text-xs">
+              <input v-model="pdfAll" type="checkbox" /> {{ m.pdfAllPages }}
+            </label>
+            <label class="flex items-center justify-between gap-2 px-2 text-xs">
+              {{ m.pdfPaper }}
+              <select v-model="pdfPaper" class="field w-28 py-0.5 text-xs">
+                <option value="fit">{{ m.paperFit }}</option>
+                <option value="a4">A4</option>
+              </select>
+            </label>
+          </div>
         </div>
       </div>
+      <button type="button" class="dg-btn gap-1 px-2" data-dg-templates @click="openTemplates">
+        <IconTemplate aria-hidden="true" /><span class="hidden 2xl:inline">{{ m.templates }}</span>
+      </button>
+      <div class="relative" data-dg-menu>
+        <button
+          type="button"
+          class="dg-btn gap-1 px-2"
+          :aria-expanded="menu === 'insert'"
+          data-dg-insert
+          @click="toggleMenu('insert')"
+        >
+          <IconPlus aria-hidden="true" /><span class="hidden 2xl:inline">{{ m.insert }}</span
+          ><IconChevron class="size-3" aria-hidden="true" />
+        </button>
+        <div
+          v-if="menu === 'insert'"
+          class="absolute left-0 top-full z-30 mt-1 w-60 space-y-2 rounded border border-rule bg-paper p-2 shadow-lg"
+        >
+          <button
+            type="button"
+            class="dg-menu flex items-center gap-2"
+            data-dg-insert-image
+            @click="imageInput?.click()"
+          >
+            <IconImage class="size-4" aria-hidden="true" />{{ m.insertImage }}
+          </button>
+          <div class="space-y-2 border-t border-rule px-2 pt-2 text-xs">
+            <p class="flex items-center gap-2 font-semibold">
+              <IconTable class="size-4" aria-hidden="true" />{{ m.insertTable }}
+            </p>
+            <div class="flex items-center gap-2">
+              <label class="flex items-center gap-1"
+                >{{ m.rows }}
+                <input
+                  v-model.number="tblRows"
+                  type="number"
+                  min="1"
+                  max="20"
+                  class="field w-14 py-0.5"
+                  data-dg-tbl-rows
+                />
+              </label>
+              <label class="flex items-center gap-1"
+                >{{ m.cols }}
+                <input
+                  v-model.number="tblCols"
+                  type="number"
+                  min="1"
+                  max="10"
+                  class="field w-14 py-0.5"
+                  data-dg-tbl-cols
+                />
+              </label>
+            </div>
+            <button
+              type="button"
+              class="btn w-full py-1 text-xs"
+              data-dg-insert-table
+              @click="insertTable"
+            >
+              {{ m.insertTableBtn }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <input
+        ref="imageInput"
+        type="file"
+        accept="image/*"
+        class="hidden"
+        data-dg-image-file
+        @change="onImage"
+      />
+      <div class="relative" data-dg-menu>
+        <button
+          type="button"
+          class="dg-btn gap-1 px-2"
+          :aria-expanded="menu === 'layout'"
+          data-dg-layout
+          @click="toggleMenu('layout')"
+        >
+          <IconLayout aria-hidden="true" /><span class="hidden 2xl:inline">{{ m.layoutMenu }}</span
+          ><IconChevron class="size-3" aria-hidden="true" />
+        </button>
+        <div
+          v-if="menu === 'layout'"
+          class="absolute left-0 top-full z-30 mt-1 w-60 rounded border border-rule bg-paper p-2 shadow-lg"
+        >
+          <button
+            v-for="k in LAYOUTS"
+            :key="k"
+            type="button"
+            class="dg-menu"
+            :data-dg-layout-kind="k"
+            @click="doLayout(k)"
+          >
+            {{ m[`layout_${k}`] }}
+          </button>
+          <p class="px-2 pt-1 text-xs text-ink-2">{{ m.layoutHint }}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="dg-btn"
+        :title="`${m.find} (Ctrl+F)`"
+        data-dg-find
+        @click="openFind"
+      >
+        <IconSearch aria-hidden="true" />
+      </button>
       <span class="dg-sep" />
       <button
         type="button"
@@ -557,10 +1000,23 @@ const ed = () => editor.value!;
       >
         <IconFit aria-hidden="true" />
       </button>
+      <button
+        type="button"
+        class="dg-btn hidden sm:inline-flex"
+        :title="m.minimap"
+        :aria-pressed="showMap"
+        data-dg-minimap
+        @click="showMap = !showMap"
+      >
+        <IconMap aria-hidden="true" />
+      </button>
       <span class="flex-1" />
-      <span class="hidden text-xs text-ink-2 md:inline" aria-live="polite" data-dg-status>{{
-        status
-      }}</span>
+      <span
+        class="hidden max-w-40 truncate text-xs text-ink-2 xl:inline"
+        aria-live="polite"
+        data-dg-status
+        >{{ status }}</span
+      >
       <button type="button" class="dg-btn gap-1 px-2" data-dg-full @click="toggleFull">
         <component :is="full ? IconShrink : IconExpand" aria-hidden="true" />
         <span class="hidden sm:inline">{{ full ? m.exitFullscreen : m.fullscreen }}</span>
@@ -683,6 +1139,87 @@ const ed = () => editor.value!;
             <p>{{ m.emptyBody }}</p>
           </div>
         </div>
+        <!-- Cari dan ganti -->
+        <div
+          v-if="find.open"
+          class="absolute right-2 top-2 z-20 w-80 max-w-[calc(100%-1rem)] space-y-2 rounded border border-rule bg-paper p-2 text-sm shadow-lg"
+          data-dg-findbar
+        >
+          <div class="flex items-center gap-1">
+            <input
+              ref="findInput"
+              v-model="find.q"
+              class="field min-w-0 flex-1 py-1"
+              :placeholder="m.findPlaceholder"
+              :aria-label="m.find"
+              data-dg-find-input
+              @input="runFind"
+              @keydown.enter.prevent="stepFind($event.shiftKey ? -1 : 1)"
+            />
+            <span
+              class="w-14 shrink-0 text-center text-xs tabular-nums text-ink-2"
+              data-dg-find-count
+              >{{
+                find.q.trim()
+                  ? find.matches.length
+                    ? m.findCount
+                        .replace('{i}', String(find.i + 1))
+                        .replace('{n}', String(find.matches.length))
+                    : m.findNone
+                  : ''
+              }}</span
+            >
+            <button
+              type="button"
+              class="dg-btn"
+              :title="m.prev"
+              :disabled="!find.matches.length"
+              @click="stepFind(-1)"
+            >
+              <IconUp aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              class="dg-btn"
+              :title="m.next"
+              :disabled="!find.matches.length"
+              data-dg-find-next
+              @click="stepFind(1)"
+            >
+              <IconChevron aria-hidden="true" />
+            </button>
+            <button type="button" class="dg-btn" :title="m.close" @click="find.open = false">
+              <IconX aria-hidden="true" />
+            </button>
+          </div>
+          <div class="flex items-center gap-1">
+            <input
+              v-model="find.r"
+              class="field min-w-0 flex-1 py-1"
+              :placeholder="m.replacePlaceholder"
+              :aria-label="m.replacePlaceholder"
+              data-dg-replace-input
+            />
+            <button
+              type="button"
+              class="btn py-1 text-xs"
+              :disabled="!find.matches.length"
+              data-dg-replace-all
+              @click="replaceAll"
+            >
+              {{ m.replaceAll }}
+            </button>
+          </div>
+          <p v-if="find.note" class="text-xs text-ink-2" data-dg-find-note>{{ find.note }}</p>
+        </div>
+        <!-- Minimap -->
+        <div
+          v-show="showMap"
+          ref="mapEl"
+          class="absolute bottom-2 right-2 z-10 h-36 w-52 overflow-hidden rounded border border-rule bg-white shadow-md"
+          :aria-label="m.minimap"
+          data-dg-map
+        />
       </div>
 
       <!-- Panel format -->
@@ -730,6 +1267,74 @@ const ed = () => editor.value!;
               @input="setPage('background', ($event.target as HTMLInputElement).value)"
             />
           </label>
+          <div class="mt-4 flex items-center justify-between">
+            <h3 class="dg-h mb-0">{{ m.layersHead }}</h3>
+            <button
+              type="button"
+              class="dg-btn"
+              :title="m.addLayer"
+              data-dg-add-layer
+              @click="addLayer"
+            >
+              <IconPlus aria-hidden="true" />
+            </button>
+          </div>
+          <ul class="mt-1 space-y-1" data-dg-layers>
+            <li
+              v-for="l in [...layerList].reverse()"
+              :key="l.cell.getId() ?? l.name"
+              class="flex items-center gap-1 rounded border px-1 py-0.5"
+              :class="l.active ? 'border-brand-600 bg-brand-600/10' : 'border-rule'"
+              data-dg-layer
+            >
+              <button
+                type="button"
+                class="dg-btn"
+                :title="l.visible ? m.hideLayer : m.showLayer"
+                :aria-pressed="!l.visible"
+                @click="layerAction((e) => e.setLayerVisible(l.cell, !l.visible))"
+              >
+                <component :is="l.visible ? IconEye : IconEyeOff" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                class="dg-btn"
+                :title="l.locked ? m.unlockLayer : m.lockLayer"
+                :aria-pressed="l.locked"
+                data-dg-lock-layer
+                @click="layerAction((e) => e.setLayerLocked(l.cell, !l.locked))"
+              >
+                <component :is="l.locked ? IconLock : IconLockOpen" aria-hidden="true" />
+              </button>
+              <input
+                v-if="renamingLayer === l.cell"
+                class="field min-w-0 flex-1 py-0.5 text-xs"
+                :value="l.name"
+                @keydown.enter="renameLayer(l, ($event.target as HTMLInputElement).value)"
+                @blur="renameLayer(l, ($event.target as HTMLInputElement).value)"
+              />
+              <button
+                v-else
+                type="button"
+                class="min-w-0 flex-1 truncate text-left text-xs"
+                :title="m.activeLayer"
+                @click="layerAction((e) => e.setActiveLayer(l.cell))"
+                @dblclick="renamingLayer = l.cell"
+              >
+                {{ l.name }} <span class="text-ink-2">({{ l.count }})</span>
+              </button>
+              <button
+                v-if="layerList.length > 1"
+                type="button"
+                class="dg-btn"
+                :title="m.deleteLayer"
+                @click="deleteLayer(l)"
+              >
+                <IconTrash aria-hidden="true" />
+              </button>
+            </li>
+          </ul>
+          <p class="mt-1 text-xs text-ink-2">{{ m.layersHint }}</p>
           <h3 class="dg-h mt-4">{{ m.tipsHead }}</h3>
           <ul class="space-y-1 text-xs text-ink-2">
             <li
@@ -1036,6 +1641,30 @@ const ed = () => editor.value!;
             </select>
           </label>
 
+          <label v-if="layerList.length > 1" class="dg-row mt-4">
+            <span>{{ m.moveToLayer }}</span>
+            <select
+              class="field w-36 py-1"
+              :value="selection[0]?.getParent()?.getId() ?? ''"
+              data-dg-move-layer
+              @change="
+                (e) => {
+                  const id = (e.target as HTMLSelectElement).value;
+                  const l = layerList.find((x) => x.cell.getId() === id);
+                  if (l) layerAction((ed) => ed.moveSelectionToLayer(l.cell));
+                }
+              "
+            >
+              <option
+                v-for="l in layerList"
+                :key="l.cell.getId() ?? l.name"
+                :value="l.cell.getId() ?? ''"
+              >
+                {{ l.name }}
+              </option>
+            </select>
+          </label>
+
           <!-- Susun -->
           <h3 class="dg-h mt-4">{{ m.arrangeHead }}</h3>
           <div v-if="geo" class="mb-2 grid grid-cols-2 gap-2" data-dg-geo>
@@ -1132,6 +1761,129 @@ const ed = () => editor.value!;
         </template>
       </aside>
     </div>
+
+    <!-- Tab halaman -->
+    <div
+      class="flex items-center gap-1 overflow-x-auto border-t border-rule bg-paper-2 px-2 py-1 text-xs"
+      data-dg-pages
+    >
+      <div
+        v-for="(p, i) in pages"
+        :key="p.id"
+        class="relative flex shrink-0 items-center rounded"
+        :class="i === current ? 'bg-paper font-semibold shadow-sm' : 'hover:bg-rule/30'"
+        data-dg-menu
+      >
+        <input
+          v-if="renaming === i"
+          class="field w-28 py-0.5 text-xs"
+          :value="p.name"
+          data-dg-page-rename
+          @keydown.enter="renamePage(i, ($event.target as HTMLInputElement).value)"
+          @blur="renamePage(i, ($event.target as HTMLInputElement).value)"
+        />
+        <button
+          v-else
+          type="button"
+          class="px-2 py-1"
+          :aria-current="i === current ? 'page' : undefined"
+          data-dg-page
+          @click="switchPage(i)"
+          @dblclick="renaming = i"
+        >
+          {{ p.name }}
+        </button>
+        <button
+          v-if="i === current"
+          type="button"
+          class="px-1 py-1 text-ink-2 hover:text-ink"
+          :aria-label="m.pageMenu"
+          data-dg-page-menu
+          @click="toggleMenu(`page-${i}`)"
+        >
+          <IconMore class="size-3.5" aria-hidden="true" />
+        </button>
+        <div
+          v-if="menu === `page-${i}`"
+          class="absolute bottom-full left-0 z-30 mb-1 w-40 rounded border border-rule bg-paper p-1 shadow-lg"
+        >
+          <button type="button" class="dg-menu" @click="((menu = null), (renaming = i))">
+            {{ m.renamePage }}
+          </button>
+          <button
+            type="button"
+            class="dg-menu"
+            data-dg-page-dup
+            @click="((menu = null), duplicatePage(i))"
+          >
+            {{ m.duplicatePage }}
+          </button>
+          <button
+            type="button"
+            class="dg-menu"
+            :disabled="pages.length < 2"
+            data-dg-page-del
+            @click="((menu = null), deletePage(i))"
+          >
+            {{ m.deletePage }}
+          </button>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="dg-btn shrink-0"
+        :title="m.addPage"
+        data-dg-add-page
+        @click="addPage()"
+      >
+        <IconPlus aria-hidden="true" />
+      </button>
+    </div>
+
+    <!-- Dialog template -->
+    <div
+      v-if="tplOpen"
+      class="absolute inset-0 z-40 grid place-items-center bg-black/40 p-4"
+      data-dg-tpl-dialog
+      @click.self="tplOpen = false"
+    >
+      <div
+        class="flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-md bg-paper shadow-xl"
+        role="dialog"
+        :aria-label="m.templatesHead"
+      >
+        <div class="flex items-center justify-between border-b border-rule px-4 py-2">
+          <div>
+            <h2 class="font-display text-lg">{{ m.templatesHead }}</h2>
+            <p class="text-xs text-ink-2">{{ m.templatesIntro }}</p>
+          </div>
+          <button type="button" class="dg-btn" :title="m.close" @click="tplOpen = false">
+            <IconX aria-hidden="true" />
+          </button>
+        </div>
+        <div class="grid grid-cols-1 gap-3 overflow-y-auto p-4 sm:grid-cols-2 lg:grid-cols-3">
+          <button
+            v-for="t in TEMPLATES"
+            :key="t.id"
+            type="button"
+            class="group overflow-hidden rounded border border-rule text-left hover:border-brand-600"
+            :data-dg-tpl="t.id"
+            @click="useTemplate(t)"
+          >
+            <span class="dg-thumb grid h-36 place-items-center overflow-hidden bg-white p-2">
+              <!-- eslint-disable-next-line vue/no-v-html -- SVG dibuat sendiri dari template -->
+              <span class="contents" v-html="tplThumbs.get(t.id) ?? ''" />
+            </span>
+            <span class="block border-t border-rule px-3 py-2">
+              <span class="block text-sm font-semibold group-hover:text-brand-700">{{
+                t.name[lang]
+              }}</span>
+              <span class="block text-xs text-ink-2">{{ t.desc[lang] }}</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1185,6 +1937,12 @@ const ed = () => editor.value!;
 .dg-item:hover {
   border-color: color-mix(in srgb, currentColor 20%, transparent);
   background: color-mix(in srgb, currentColor 5%, transparent);
+}
+.dg-thumb :deep(svg) {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
 }
 .dg-h {
   margin-bottom: 0.5rem;

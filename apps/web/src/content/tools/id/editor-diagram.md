@@ -39,7 +39,9 @@ faq:
   - q: 'Bagaimana cara menggeser dan memperbesar kanvas?'
     a: 'Gulir untuk menggeser, Ctrl + gulir untuk zoom, atau tahan Spasi lalu seret. Tombol Tampilkan semua menyesuaikan zoom supaya seluruh diagram terlihat.'
   - q: 'Bisakah diekspor untuk laporan atau presentasi?'
-    a: 'Bisa. Ekspor ke PNG (sampai 4× resolusi, bisa berlatar transparan) untuk Word dan PowerPoint, atau ke SVG yang tetap tajam saat diperbesar.'
+    a: 'Bisa. Ekspor ke PNG (sampai 4× resolusi, bisa berlatar transparan) untuk Word dan PowerPoint, ke SVG yang tetap tajam saat diperbesar, atau ke PDF berisi semua halaman, dengan ukuran sesuai diagram atau A4.'
+  - q: 'Apakah ada template siap pakai?'
+    a: 'Ada. Klik Template untuk membuka flowchart login dan perulangan, rangkaian LED, half adder, arsitektur IoT monitoring suhu, topologi jaringan kantor, ERD toko online, use case perpustakaan, dan class diagram. Template dibuka sebagai halaman baru, jadi diagram yang sedang dikerjakan tidak berubah.'
 related: ['json-formatter', 'buat-qr-code', 'base64-encode-decode']
 ---
 
@@ -56,7 +58,12 @@ dipindah, lalu dirapikan dengan fitur rata dan sebar.
 - **Panel format** untuk warna isi, garis tepi, tebal garis, teks, bayangan, dan opasitas.
 - **Grid dan garis bantu** supaya posisi shape rapi.
 - **Undo/redo, salin-tempel, duplikat, grup**, dan pintasan keyboard.
-- **Simpan otomatis**, buka/simpan **.drawio**, serta ekspor **PNG** dan **SVG**.
+- **Banyak halaman** dalam satu file, **layer** yang bisa disembunyikan dan dikunci.
+- **Template siap pakai**: flowchart, rangkaian LED, half adder, arsitektur IoT, topologi jaringan,
+  ERD, use case, dan class diagram.
+- **Tata letak otomatis** (hierarki, pohon, lingkaran, organik), **cari dan ganti** teks,
+  **minimap**, serta **sisipkan gambar dan tabel**.
+- **Simpan otomatis**, buka/simpan **.drawio**, serta ekspor **PNG**, **SVG**, dan **PDF**.
 
 ## Pustaka shape
 

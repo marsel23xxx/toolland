@@ -49,7 +49,7 @@ dikompres (deflate + base64).
 - UML (class, use case, sequence dasar), ERD, BPMN dasar.
 - Dibuat sebagai stencil maxGraph (XML) dengan titik sambung per pin.
 
-## Tahap 3: dokumen besar
+## Tahap 3: dokumen besar (selesai 2026-11-16)
 
 - Banyak halaman (tab) dan layer.
 - Template siap pakai (flowchart, rangkaian, arsitektur IoT, jaringan, ERD).

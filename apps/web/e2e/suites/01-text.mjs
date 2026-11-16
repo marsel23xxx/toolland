@@ -895,8 +895,11 @@ export const tests = [
       await page.waitForSelector('[data-dg-selcount]');
       await page.$eval('[data-dg-format] button[title="#bfdbfe"]', (e) => e.click());
       await h.sleep(900);
-      const read = async () =>
-        JSON.parse(await page.evaluate(() => localStorage.getItem('toolland-diagram')));
+      // Simpanan berisi semua halaman; `xml` = halaman aktif.
+      const read = async () => {
+        const st = JSON.parse(await page.evaluate(() => localStorage.getItem('toolland-diagram')));
+        return { ...st, xml: st.pages[st.current].xml };
+      };
       let saved = await read();
       expect(saved.xml.includes('Mulai') && saved.xml.includes('Hitung'), 'teks tidak tersimpan');
       expect(saved.xml.includes('fillColor=#bfdbfe'), 'warna isi tidak tersimpan');
@@ -931,8 +934,9 @@ export const tests = [
       // Buka .drawio terkompresi berisi dua halaman.
       const input = await page.$('[data-dg-file]');
       await input.uploadFile(h.fixture('diagram.drawio'));
-      await page.waitForSelector('[data-dg-message]');
-      expect((await h.text('[data-dg-message]')).includes('2 halaman'), 'pesan multi halaman');
+      await page.waitForFunction(() => document.querySelectorAll('[data-dg-page]').length === 2);
+      const tabs = await page.$$eval('[data-dg-page]', (e) => e.map((x) => x.textContent.trim()));
+      expect(tabs.join('|') === 'IoT|Kedua', tabs.join('|'));
       await h.sleep(900);
       saved = await read();
       expect(
@@ -995,8 +999,11 @@ export const tests = [
       await drag('elResistor', 300, 300);
       await drag('elLed', 500, 300);
       await page.mouse.click(cb.x + 700, cb.y + 600);
-      const read = async () =>
-        JSON.parse(await page.evaluate(() => localStorage.getItem('toolland-diagram')));
+      // Simpanan berisi semua halaman; `xml` = halaman aktif.
+      const read = async () => {
+        const st = JSON.parse(await page.evaluate(() => localStorage.getItem('toolland-diagram')));
+        return { ...st, xml: st.pages[st.current].xml };
+      };
       await h.sleep(800);
       // Baca geometri dan garis dari XML tersimpan.
       const cellsOf = (xml) =>
@@ -1044,6 +1051,123 @@ export const tests = [
         edge.style.includes('exitX=1') && edge.style.includes('entryX=0'),
         `bukan pin: ${edge.style}`,
       );
+    },
+  },
+  {
+    name: 'editor diagram: template, halaman, cari-ganti, tata letak, layer, tabel, minimap, PDF',
+    path: '/tools/editor-diagram',
+    async run(h) {
+      const { page } = h;
+      page.on('dialog', (d) => d.accept());
+      await page.evaluate(() => localStorage.removeItem('toolland-diagram'));
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.waitForSelector('[data-dg-item="rect"] svg');
+      await page.$eval('[data-dg-full]', (e) => e.click());
+      await h.sleep(300);
+      const click = (sel) => page.$eval(sel, (e) => e.click());
+      const tabs = () => page.$$eval('[data-dg-page]', (e) => e.map((x) => x.textContent.trim()));
+      const read = async () => {
+        await h.sleep(800);
+        return JSON.parse(await page.evaluate(() => localStorage.getItem('toolland-diagram')));
+      };
+      // Template dibuka sebagai halaman baru, dengan pratinjau.
+      await click('[data-dg-templates]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-dg-tpl] svg').length >= 9);
+      await click('[data-dg-tpl="flowLogin"]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-dg-page]').length === 2);
+      expect((await tabs()).join('|') === 'Halaman 1|Flowchart login', (await tabs()).join('|'));
+      let saved = await read();
+      expect(saved.current === 1 && saved.pages[1].xml.includes('Data valid?'), 'template');
+      // Tambah, duplikat, ganti nama, hapus halaman.
+      await click('[data-dg-add-page]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-dg-page]').length === 3);
+      await page.$$eval('[data-dg-page]', (e) => e[1].click());
+      await click('[data-dg-page-menu]');
+      await click('[data-dg-page-dup]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-dg-page]').length === 4);
+      expect((await tabs())[2] === 'Flowchart login (salinan)', (await tabs()).join('|'));
+      await page.$$eval('[data-dg-page]', (e) =>
+        e[2].dispatchEvent(new MouseEvent('dblclick', { bubbles: true })),
+      );
+      await page.waitForSelector('[data-dg-page-rename]');
+      await page.$eval('[data-dg-page-rename]', (e) => {
+        e.value = 'Login v2';
+        e.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      });
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('[data-dg-page]')].some(
+          (e) => e.textContent.trim() === 'Login v2',
+        ),
+      );
+      await page.$$eval('[data-dg-page]', (e) => e[3].click());
+      await click('[data-dg-page-menu]');
+      await click('[data-dg-page-del]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-dg-page]').length === 3);
+      // Kembali ke Login v2: cari dan ganti.
+      await page.$$eval('[data-dg-page]', (e) => e[2].click());
+      await h.sleep(200);
+      await click('[data-dg-find]');
+      await page.waitForSelector('[data-dg-find-input]');
+      await page.type('[data-dg-find-input]', 'tampilkan');
+      await page.waitForFunction(() =>
+        document.querySelector('[data-dg-find-count]')?.textContent?.includes('1 dari 2'),
+      );
+      await page.type('[data-dg-replace-input]', 'Munculkan');
+      await click('[data-dg-replace-all]');
+      expect(
+        (await h.text('[data-dg-find-note]')).includes('2 label'),
+        await h.text('[data-dg-find-note]'),
+      );
+      saved = await read();
+      expect(
+        saved.pages[2].name === 'Login v2' && saved.pages[2].xml.includes('Munculkan dasbor'),
+        saved.pages[2].xml.slice(0, 300),
+      );
+      expect(saved.pages[1].xml.includes('Tampilkan dasbor'), 'halaman lain ikut berubah');
+      // Tata letak hierarki bisa diurungkan.
+      const before = saved.pages[2].xml;
+      await click('[data-dg-layout]');
+      await click('[data-dg-layout-kind="horizontal"]');
+      saved = await read();
+      expect(saved.pages[2].xml !== before, 'tata letak tidak mengubah posisi');
+      await click('[data-dg-undo]');
+      saved = await read();
+      expect(saved.pages[2].xml === before, 'undo tata letak');
+      // Layer: tambah, kunci; tabel masuk ke layer aktif.
+      await page.keyboard.press('Escape');
+      await page.mouse.click(5, 5);
+      await page.evaluate(() => document.querySelector('[data-dg-canvas]').focus());
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('[data-dg-add-layer]');
+      await click('[data-dg-add-layer]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-dg-layer]').length === 2);
+      await click('[data-dg-insert]');
+      await click('[data-dg-insert-table]');
+      await h.sleep(200);
+      await page.evaluate(() => document.querySelector('[data-dg-canvas]').focus());
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('[data-dg-lock-layer]');
+      await page.$$eval('[data-dg-lock-layer]', (e) => e[0].click());
+      saved = await read();
+      const doc = saved.pages[2].xml;
+      expect(/<mxCell id="[^"]+" value="Layer 2" style="locked=1;/.test(doc), doc.slice(0, 400));
+      expect(doc.includes('&lt;table'), 'tabel tidak tersimpan');
+      // Minimap dan PDF semua halaman (halaman kosong dilewati).
+      await click('[data-dg-minimap]');
+      await page.waitForSelector('[data-dg-map] svg');
+      await click('[data-dg-export]');
+      const pdf = await h.downloadVia(/^diagram-tanpa-judul\.pdf$/, () =>
+        click('[data-dg-export-pdf]'),
+      );
+      expect(pdf.subarray(0, 4).toString() === '%PDF', 'pdf');
+      const { PDFDocument } = await import('pdf-lib');
+      const n = (await PDFDocument.load(pdf)).getPageCount();
+      expect(n === 2, `halaman pdf ${n}`);
+      // Simpan .drawio berisi semua halaman.
+      const file = await h.downloadVia(/^diagram-tanpa-judul\.drawio$/, () =>
+        click('[data-dg-save]'),
+      );
+      expect((file.toString().match(/<diagram /g) ?? []).length === 3, 'drawio 3 halaman');
     },
   },
   {

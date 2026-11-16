@@ -10,17 +10,22 @@ import {
   type CellStyle,
   Client,
   Clipboard,
+  CircleLayout,
+  CompactTreeLayout,
   ConnectionConstraint,
   type ConnectionHandler,
   type EventObject,
+  FastOrganicLayout,
   Geometry,
   getDefaultPlugins,
   gestureUtils,
   Graph,
+  HierarchicalLayout,
   ImageExport,
   InternalEvent,
   KeyHandler,
   ModelXmlSerializer,
+  Outline,
   type PanningHandler,
   Point,
   Rectangle,
@@ -92,8 +97,95 @@ export interface PageSettings {
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+
+export interface LayerInfo {
+  cell: Cell;
+  name: string;
+  visible: boolean;
+  locked: boolean;
+  active: boolean;
+  count: number;
+}
+
+export type LayoutKind = 'vertical' | 'horizontal' | 'tree' | 'circle' | 'organic';
+
+/** Akar pohon: shape tanpa garis masuk (atau shape pertama bila semuanya punya). */
+function treeRoots(parent: Cell): Cell[] {
+  const kids = parent.children ?? [];
+  const vertices = kids.filter((c) => c.isVertex());
+  const targets = new Set(
+    kids
+      .filter((c) => c.isEdge() && c.getTerminal(true) !== c.getTerminal(false))
+      .map((e) => e.getTerminal(false)),
+  );
+  const roots = vertices.filter((v) => !targets.has(v));
+  return roots.length ? roots : vertices.slice(0, 1);
+}
+
+/** Teks polos dari label (HTML dibuang). */
+export function labelText(value: unknown): string {
+  return String(value ?? '')
+    .replace(/<br\s*\/?>|<\/(p|div|tr|li)>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 export const MIN_SCALE = 0.1;
 export const MAX_SCALE = 8;
+
+/** Gaya bawaan, grup tanpa bingkai, titik sambung, dan kunci layer: dipakai editor dan render offscreen. */
+export function configureGraph(graph: Graph): void {
+  graph.setHtmlLabels(true);
+  const styles = graph.getStylesheet();
+  Object.assign(styles.getDefaultVertexStyle(), DEFAULT_VERTEX);
+  Object.assign(styles.getDefaultEdgeStyle(), DEFAULT_EDGE);
+  styles.putCellStyle('text', { fillColor: 'none', strokeColor: 'none', whiteSpace: 'wrap' });
+  styles.putCellStyle('group', { fillColor: 'none', strokeColor: 'none', pointerEvents: false });
+
+  // Grup tanpa bingkai (seperti format .drawio: style "group").
+  graph.createGroupCell = () => {
+    const g = new (graph.getDataModel().getRoot()!.constructor as typeof Cell)('', new Geometry(), {
+      baseStyleNames: ['group'],
+    });
+    g.setVertex(true);
+    g.setConnectable(false);
+    return g;
+  };
+
+  // Titik sambung: dari stencil bila ada, selain itu 12 titik bawaan.
+  const baseConstraints = graph.getAllConnectionConstraints.bind(graph);
+  graph.getAllConnectionConstraints = (terminal: CellState | null, source: boolean) => {
+    const own = baseConstraints(terminal, source);
+    if (own?.length) return own;
+    if (!terminal || !terminal.cell.isVertex()) return null;
+    const names = terminal.cell.getStyle()?.baseStyleNames ?? [];
+    if (names.includes('text') || names.includes('group')) return null;
+    return DEFAULT_POINTS.map(([x, y]) => new ConnectionConstraint(new Point(x, y), true));
+  };
+
+  // Layer terkunci (style locked=1 pada layer, seperti .drawio): isinya tidak bisa dipilih/diubah.
+  const baseLocked = graph.isCellLocked.bind(graph);
+  graph.isCellLocked = (cell: Cell) => baseLocked(cell) || inLockedLayer(cell);
+  const baseSelectable = graph.isCellSelectable.bind(graph);
+  graph.isCellSelectable = (cell: Cell) => baseSelectable(cell) && !inLockedLayer(cell);
+}
+
+/** Sel berada di layer yang terkunci. */
+function inLockedLayer(cell: Cell | null): boolean {
+  for (let c = cell; c; c = c.getParent()) {
+    const p = c.getParent();
+    if (p && !p.getParent()) return isLocked(c);
+  }
+  return false;
+}
+const isLocked = (layer: Cell) => {
+  const v = (layer.getStyle() as Record<string, unknown> | null)?.locked;
+  return v === 1 || v === true || v === '1';
+};
 
 export class DiagramEditor {
   readonly graph: Graph;
@@ -115,7 +207,6 @@ export class DiagramEditor {
     const graph = new Graph(container, undefined, [...getDefaultPlugins(), RubberBandHandler]);
     this.graph = graph;
 
-    graph.setHtmlLabels(true);
     graph.setConnectable(true);
     graph.setAllowDanglingEdges(true);
     graph.setDisconnectOnMove(false);
@@ -129,34 +220,7 @@ export class DiagramEditor {
     graph.centerZoom = false;
     graph.setAllowLoops(true);
 
-    const styles = graph.getStylesheet();
-    Object.assign(styles.getDefaultVertexStyle(), DEFAULT_VERTEX);
-    Object.assign(styles.getDefaultEdgeStyle(), DEFAULT_EDGE);
-    styles.putCellStyle('text', { fillColor: 'none', strokeColor: 'none', whiteSpace: 'wrap' });
-    styles.putCellStyle('group', { fillColor: 'none', strokeColor: 'none', pointerEvents: false });
-
-    // Grup tanpa bingkai (seperti format .drawio: style "group").
-    graph.createGroupCell = () => {
-      const g = new (graph.getDataModel().getRoot()!.constructor as typeof Cell)(
-        '',
-        new Geometry(),
-        { baseStyleNames: ['group'] },
-      );
-      g.setVertex(true);
-      g.setConnectable(false);
-      return g;
-    };
-
-    // Titik sambung: dari stencil bila ada, selain itu 12 titik bawaan.
-    const baseConstraints = graph.getAllConnectionConstraints.bind(graph);
-    graph.getAllConnectionConstraints = (terminal: CellState | null, source: boolean) => {
-      const own = baseConstraints(terminal, source);
-      if (own?.length) return own;
-      if (!terminal || !terminal.cell.isVertex()) return null;
-      const names = terminal.cell.getStyle()?.baseStyleNames ?? [];
-      if (names.includes('text') || names.includes('group')) return null;
-      return DEFAULT_POINTS.map(([x, y]) => new ConnectionConstraint(new Point(x, y), true));
-    };
+    configureGraph(graph);
 
     const panning = graph.getPlugin<PanningHandler>('PanningHandler');
     if (panning) {
@@ -580,7 +644,13 @@ export class DiagramEditor {
     k.bindControlShiftKey(85, () => this.ungroup());
     k.bindControlKey(48, () => this.zoomTo(1));
     k.bindControlShiftKey(72, () => this.fit());
-    k.bindKey(27, () => this.graph.clearSelection());
+    // Escape ditangani khusus oleh KeyHandler (membatalkan aksi), jadi kosongkan seleksi di sini.
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !this.graph.isEditing() && e.target === this.container)
+        this.graph.clearSelection();
+    };
+    this.container.addEventListener('keydown', esc);
+    this.disposers.push(() => this.container.removeEventListener('keydown', esc));
     // Ctrl+D, Ctrl+G, dan lainnya juga punya fungsi bawaan browser: cegah.
     const block = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && /^[adgsyz0]$/i.test(e.key) && e.target === this.container)
@@ -593,6 +663,225 @@ export class DiagramEditor {
   editSelected() {
     const cell = this.selection()[0];
     if (cell) this.graph.startEditingAtCell(cell);
+  }
+
+  // --- Layer ------------------------------------------------------------------------------------
+
+  /** Daftar layer dari bawah ke atas. */
+  layers(): LayerInfo[] {
+    const root = this.graph.getDataModel().getRoot();
+    const active = this.graph.getDefaultParent();
+    return (root?.children ?? []).map((c, i) => ({
+      cell: c,
+      name: String(c.getValue() || `Layer ${i + 1}`),
+      visible: c.isVisible(),
+      locked: isLocked(c),
+      active: c === active,
+      count: c.getChildCount(),
+    }));
+  }
+
+  addLayer(name: string): Cell {
+    const model = this.graph.getDataModel();
+    const layer = new (model.getRoot()!.constructor as typeof Cell)(name);
+    model.add(model.getRoot(), layer);
+    this.graph.setDefaultParent(layer);
+    return layer;
+  }
+
+  removeLayer(layer: Cell) {
+    const model = this.graph.getDataModel();
+    const root = model.getRoot();
+    if (!root || root.getChildCount() < 2) return;
+    this.graph.batchUpdate(() => model.remove(layer));
+    this.graph.setDefaultParent(root.getChildAt(root.getChildCount() - 1));
+  }
+
+  renameLayer(layer: Cell, name: string) {
+    this.graph.getDataModel().setValue(layer, name);
+  }
+
+  setLayerVisible(layer: Cell, visible: boolean) {
+    this.graph.getDataModel().setVisible(layer, visible);
+  }
+
+  setLayerLocked(layer: Cell, locked: boolean) {
+    const style = { ...(layer.getStyle() ?? {}) } as Record<string, unknown>;
+    if (locked) style.locked = 1;
+    else delete style.locked;
+    this.graph.getDataModel().setStyle(layer, style as CellStyle);
+    if (locked) this.graph.removeSelectionCells(this.selection().filter((c) => inLockedLayer(c)));
+  }
+
+  setActiveLayer(layer: Cell) {
+    this.graph.setDefaultParent(layer);
+    this.graph.clearSelection();
+  }
+
+  /** Pindahkan shape terpilih ke layer lain (posisi tetap). */
+  moveSelectionToLayer(layer: Cell) {
+    const cells = this.selection().filter((c) => c.getParent() !== layer);
+    if (cells.length) this.graph.moveCells(cells, 0, 0, false, layer);
+  }
+
+  // --- Tata letak otomatis ------------------------------------------------------------------------
+
+  layout(kind: LayoutKind) {
+    const graph = this.graph;
+    const parent = graph.getDefaultParent();
+    const sel = this.selection().filter((c) => c.isVertex());
+    graph.batchUpdate(() => {
+      if (kind === 'vertical' || kind === 'horizontal') {
+        const l = new HierarchicalLayout(graph, kind === 'vertical' ? 'north' : 'west');
+        l.intraCellSpacing = 40;
+        l.interRankCellSpacing = 70;
+        l.execute(parent, sel.length ? sel : undefined);
+      } else if (kind === 'tree') {
+        const roots = sel.length ? sel : treeRoots(parent);
+        const l = new CompactTreeLayout(graph, false);
+        l.levelDistance = 40;
+        l.nodeDistance = 30;
+        l.edgeRouting = false;
+        for (const r of roots) l.execute(parent, r);
+      } else if (kind === 'circle') {
+        new CircleLayout(graph).execute(parent);
+      } else {
+        const l = new FastOrganicLayout(graph);
+        l.forceConstant = 120;
+        l.execute(parent);
+      }
+      // Titik belok dari algoritma layout bentrok dengan garis siku: biarkan garis dirutekan ulang.
+      const model = graph.getDataModel();
+      for (const c of parent.children ?? []) {
+        const g = c.isEdge() ? c.getGeometry() : null;
+        if (g?.points?.length) {
+          const ng = g.clone();
+          ng.points = [];
+          model.setGeometry(c, ng);
+        }
+      }
+    });
+    this.fit();
+  }
+
+  // --- Cari dan ganti -----------------------------------------------------------------------------
+
+  /** Sel di layer aktif dan layer lain yang labelnya memuat `query` (tanpa membedakan huruf besar). */
+  find(query: string): Cell[] {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const out: Cell[] = [];
+    const walk = (c: Cell) => {
+      for (const k of c.children ?? []) {
+        if ((k.isVertex() || k.isEdge()) && labelText(k.getValue()).toLowerCase().includes(q))
+          out.push(k);
+        walk(k);
+      }
+    };
+    const root = this.graph.getDataModel().getRoot();
+    if (root) for (const layer of root.children ?? []) if (layer.isVisible()) walk(layer);
+    return out;
+  }
+
+  /** Pilih sel dan geser tampilan supaya sel berada di tengah. */
+  focusCell(cell: Cell) {
+    const graph = this.graph;
+    graph.setSelectionCell(cell);
+    const st = graph.getView().getState(cell);
+    if (!st) return;
+    const view = graph.getView();
+    const r = this.container.getBoundingClientRect();
+    const cx = (st.x + st.width / 2) / view.scale - view.translate.x;
+    const cy = (st.y + st.height / 2) / view.scale - view.translate.y;
+    view.setTranslate(r.width / 2 / view.scale - cx, r.height / 2 / view.scale - cy);
+  }
+
+  /** Ganti teks di semua label yang cocok; mengembalikan jumlah sel yang berubah. */
+  replaceAll(query: string, replacement: string): number {
+    const cells = this.find(query);
+    if (!cells.length) return 0;
+    const re = new RegExp(query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const model = this.graph.getDataModel();
+    this.graph.batchUpdate(() => {
+      for (const c of cells) {
+        const v = String(c.getValue() ?? '');
+        // Ganti hanya di luar tag HTML.
+        const next = v.replace(
+          /(^|>)([^<]*)/g,
+          (_m, a: string, txt: string) => a + txt.replace(re, replacement),
+        );
+        model.setValue(c, next);
+      }
+    });
+    return cells.length;
+  }
+
+  // --- Sisipkan ------------------------------------------------------------------------------------
+
+  insertImage(src: string, width: number, height: number): Cell {
+    const c = this.viewCenter();
+    let cell!: Cell;
+    this.graph.batchUpdate(() => {
+      cell = this.graph.insertVertex({
+        parent: this.graph.getDefaultParent(),
+        value: '',
+        position: [this.snap(c.x - width / 2), this.snap(c.y - height / 2)],
+        size: [width, height],
+        style: {
+          shape: 'image',
+          image: src,
+          imageAspect: true,
+          verticalLabelPosition: 'bottom',
+          verticalAlign: 'top',
+          strokeColor: 'none',
+          fillColor: 'none',
+        },
+      });
+    });
+    this.graph.setSelectionCell(cell);
+    return cell;
+  }
+
+  /** Tabel sebagai label HTML (bisa diedit langsung, kompatibel .drawio). */
+  insertTable(rows: number, cols: number, header = true): Cell {
+    const cell = (r: number, c: number) => {
+      const tag = header && r === 0 ? 'th' : 'td';
+      const txt = header && r === 0 ? `Kolom ${c + 1}` : '';
+      return `<${tag} style="border:1px solid #1f2937;padding:4px 6px;${tag === 'th' ? 'background:#f3f4f6;' : ''}">${txt || '&nbsp;'}</${tag}>`;
+    };
+    const html = `<table style="width:100%;height:100%;border-collapse:collapse;">${Array.from(
+      { length: rows },
+      (_, r) => `<tr>${Array.from({ length: cols }, (_, c) => cell(r, c)).join('')}</tr>`,
+    ).join('')}</table>`;
+    const w = Math.max(160, cols * 90);
+    const h = Math.max(60, rows * 28);
+    const c = this.viewCenter();
+    let out!: Cell;
+    this.graph.batchUpdate(() => {
+      out = this.graph.insertVertex({
+        parent: this.graph.getDefaultParent(),
+        value: html,
+        position: [this.snap(c.x - w / 2), this.snap(c.y - h / 2)],
+        size: [w, h],
+        style: {
+          overflow: 'fill',
+          fillColor: '#ffffff',
+          strokeColor: 'none',
+          verticalAlign: 'top',
+          align: 'left',
+        },
+      });
+    });
+    this.graph.setSelectionCell(out);
+    return out;
+  }
+
+  // --- Minimap ---------------------------------------------------------------------------------------
+
+  /** Pasang minimap di elemen `el`; kembalikan fungsi pembersih. */
+  outline(el: HTMLElement): () => void {
+    const o = new Outline(this.graph, el);
+    return () => o.destroy();
   }
 
   // --- Simpan dan muat ---------------------------------------------------------------------------
@@ -612,6 +901,7 @@ export class DiagramEditor {
     const opts = modelOptions(xml);
     graph.getDataModel().clear();
     new ModelXmlSerializer(graph.getDataModel()).import(xml);
+    fixDataImages(graph);
     this.settings = {
       grid: opts.grid ?? true,
       gridSize: opts.gridSize ?? 10,
@@ -645,70 +935,18 @@ export class DiagramEditor {
   // --- Ekspor gambar ----------------------------------------------------------------------------
 
   /** SVG mandiri dari seluruh diagram (atau sel terpilih saja). */
-  toSvg(opts: { border?: number; background?: boolean; selectionOnly?: boolean } = {}): {
-    svg: string;
-    width: number;
-    height: number;
-  } {
-    const graph = this.graph;
-    const view = graph.getView();
-    const border = opts.border ?? 16;
+  toSvg(opts: { border?: number; background?: boolean; selectionOnly?: boolean } = {}) {
     const cells = opts.selectionOnly && this.selection().length ? this.selection() : null;
-    const vs = view.scale;
-    let bounds: Rectangle | null = cells ? graph.getBoundingBox(cells) : graph.getGraphBounds();
-    if (!bounds || !bounds.width) bounds = new Rectangle(0, 0, 1, 1);
-    const w = Math.ceil(bounds.width / vs + border * 2);
-    const h = Math.ceil(bounds.height / vs + border * 2);
-
-    const root = document.createElementNS(SVG_NS, 'svg');
-    root.setAttribute('xmlns', SVG_NS);
-    root.setAttribute('width', String(w));
-    root.setAttribute('height', String(h));
-    root.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    if (opts.background !== false && this.settings.background !== 'none') {
-      const bg = document.createElementNS(SVG_NS, 'rect');
-      bg.setAttribute('width', '100%');
-      bg.setAttribute('height', '100%');
-      bg.setAttribute('fill', this.settings.background);
-      root.appendChild(bg);
-    }
-    const group = document.createElementNS(SVG_NS, 'g');
-    root.appendChild(group);
-    const canvas = new SvgCanvas2D(group, false);
-    canvas.translate(Math.floor(border - bounds.x / vs), Math.floor(border - bounds.y / vs));
-    canvas.scale(1 / vs);
-    const exp = new ImageExport();
-    if (cells) {
-      for (const c of cells) {
-        const st = view.getState(c);
-        if (st) exp.visitStatesRecursive(st, canvas, (s, cv) => exp.drawCellState(s, cv));
-      }
-    } else {
-      const st = view.getState(graph.getDataModel().getRoot()!);
-      if (st) exp.drawState(st, canvas);
-    }
-    return { svg: new XMLSerializer().serializeToString(root), width: w, height: h };
+    return exportSvg(this.graph, opts.background === false ? 'none' : this.settings.background, {
+      border: opts.border,
+      cells,
+    });
   }
 
   /** PNG dari SVG di atas, digambar ke canvas dengan skala tertentu. */
   async toPng(scale = 2, transparent = false, selectionOnly = false): Promise<Blob> {
     const { svg, width, height } = this.toSvg({ background: !transparent, selectionOnly });
-    // data: URL, bukan blob: — Chrome menandai canvas "tercemar" bila SVG berisi foreignObject
-    // (label HTML) dimuat dari blob:, sehingga toBlob gagal.
-    const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    const img = new Image();
-    img.decoding = 'async';
-    img.src = url;
-    await img.decode();
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(width * scale);
-    canvas.height = Math.round(height * scale);
-    const ctx = canvas.getContext('2d')!;
-    ctx.scale(scale, scale);
-    ctx.drawImage(img, 0, 0, width, height);
-    return new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('png'))), 'image/png'),
-    );
+    return rasterize(svg, width, height, scale);
   }
 
   destroy() {
@@ -718,7 +956,120 @@ export class DiagramEditor {
   }
 }
 
-/** Ikon garis/panah untuk panel (digambar langsung, cukup sederhana). */
+export interface SvgResult {
+  svg: string;
+  width: number;
+  height: number;
+}
+
+/** Gambar graph (atau sel tertentu) ke SVG mandiri dengan bingkai `border` piksel. */
+export function exportSvg(
+  graph: Graph,
+  background: string,
+  opts: { border?: number; cells?: Cell[] | null } = {},
+): SvgResult {
+  const view = graph.getView();
+  const border = opts.border ?? 16;
+  const cells = opts.cells?.length ? opts.cells : null;
+  const vs = view.scale;
+  let bounds: Rectangle | null = cells ? graph.getBoundingBox(cells) : graph.getGraphBounds();
+  if (!bounds || !bounds.width) bounds = new Rectangle(0, 0, 1, 1);
+  const w = Math.ceil(bounds.width / vs + border * 2);
+  const h = Math.ceil(bounds.height / vs + border * 2);
+
+  const root = document.createElementNS(SVG_NS, 'svg');
+  root.setAttribute('xmlns', SVG_NS);
+  root.setAttribute('width', String(w));
+  root.setAttribute('height', String(h));
+  root.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  if (background && background !== 'none') {
+    const bg = document.createElementNS(SVG_NS, 'rect');
+    bg.setAttribute('width', '100%');
+    bg.setAttribute('height', '100%');
+    bg.setAttribute('fill', background);
+    root.appendChild(bg);
+  }
+  const group = document.createElementNS(SVG_NS, 'g');
+  root.appendChild(group);
+  const canvas = new SvgCanvas2D(group, false);
+  canvas.translate(Math.floor(border - bounds.x / vs), Math.floor(border - bounds.y / vs));
+  canvas.scale(1 / vs);
+  const exp = new ImageExport();
+  if (cells) {
+    for (const c of cells) {
+      const st = view.getState(c);
+      if (st) exp.visitStatesRecursive(st, canvas, (s, cv) => exp.drawCellState(s, cv));
+    }
+  } else {
+    const st = view.getState(graph.getDataModel().getRoot()!);
+    if (st) exp.drawState(st, canvas);
+  }
+  return { svg: new XMLSerializer().serializeToString(root), width: w, height: h };
+}
+
+/** SVG → PNG. Dimuat sebagai data: URL, bukan blob: — Chrome menandai canvas "tercemar" bila SVG
+ * berisi foreignObject (label HTML) dimuat dari blob:, sehingga toBlob gagal. */
+export async function rasterize(
+  svg: string,
+  width: number,
+  height: number,
+  scale = 2,
+): Promise<Blob> {
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  await img.decode();
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const ctx = canvas.getContext('2d')!;
+  ctx.scale(scale, scale);
+  ctx.drawImage(img, 0, 0, width, height);
+  return new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('png'))), 'image/png'),
+  );
+}
+
+/** Render XML mxGraphModel (halaman lain, template) ke SVG di graph tersembunyi. */
+export function renderModelSvg(
+  xml: string,
+  opts: { border?: number; transparent?: boolean } = {},
+): SvgResult {
+  installCspSafeDom();
+  registerStencils();
+  const host = document.createElement('div');
+  host.style.cssText =
+    'position:absolute;left:-10000px;top:0;width:800px;height:600px;overflow:hidden;';
+  document.body.appendChild(host);
+  const graph = new Graph(host);
+  try {
+    configureGraph(graph);
+    new ModelXmlSerializer(graph.getDataModel()).import(xml);
+    fixDataImages(graph);
+    const bg = opts.transparent ? 'none' : (modelOptions(xml).background ?? '#ffffff');
+    return exportSvg(graph, bg, { border: opts.border });
+  } finally {
+    graph.destroy();
+    host.remove();
+  }
+}
+
+/** .drawio menyimpan gambar sebagai "data:image/png,BASE64" (tanpa ;base64 karena ; memisah style). */
+function fixDataImages(graph: Graph) {
+  const model = graph.getDataModel();
+  const walk = (c: Cell) => {
+    const img = c.getStyle()?.image;
+    if (typeof img === 'string' && /^data:image\/[\w.+-]+,/.test(img) && !img.includes(';base64,'))
+      model.setStyle(c, {
+        ...c.getStyle(),
+        image: img.replace(/^(data:image\/[\w.+-]+),/, '$1;base64,'),
+      });
+    for (const k of c.children ?? []) walk(k);
+  };
+  const root = model.getRoot();
+  if (root) walk(root);
+}
+
 /** Gambar ujung garis untuk ikon panel; `ang` = arah garis menuju ujung (radian). */
 function iconMarker(
   type: string | undefined,

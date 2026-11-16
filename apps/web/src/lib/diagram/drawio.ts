@@ -25,14 +25,17 @@ export function styleToString(style: CellStyle | null | undefined): string {
   for (const [k, raw] of Object.entries(style)) {
     if (k === 'baseStyleNames' || k === 'ignoreDefaultStyle' || raw === undefined || raw === null)
       continue;
-    const value = typeof raw === 'boolean' ? (raw ? '1' : '0') : String(raw);
+    let value = typeof raw === 'boolean' ? (raw ? '1' : '0') : String(raw);
+    // ";" memisah style: gambar data: disimpan seperti .drawio, "data:image/png,BASE64".
+    if (k === 'image') value = value.replace(/^(data:image\/[\w.+-]+);base64,/, '$1,');
     parts.push(`${KEY_TO_DRAWIO[k] ?? k}=${value}`);
   }
   const body = parts.map((p) => `${p};`).join('');
   return style.ignoreDefaultStyle ? `;${body}` : body;
 }
 
-const attr = (s: string) =>
+/** Escape nilai atribut XML. */
+export const attr = (s: string) =>
   s
     .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
