@@ -53,3 +53,5 @@ keep everything tidy.
   case, and class diagram.
 - **Auto layout**, **find and replace**, **minimap**, and **insert images and tables**.
 - **Autosave**, open/save **.drawio**, and export **PNG**, **SVG**, and **PDF**.
+- **Right-click menu**, a **keyboard shortcut** list (press ?), Tab navigation between shapes,
+  and **touch gestures**: pinch to zoom, one-finger pan, long-press for the menu.

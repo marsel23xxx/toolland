@@ -37,7 +37,7 @@ faq:
   - q: 'Shape apa saja yang tersedia?'
     a: 'Lebih dari 160 shape dalam delapan pustaka: Umum, Flowchart, Elektronika (resistor, kapasitor, dioda, LED, transistor, op-amp, IC, sumber tegangan, dan lainnya), Gerbang logika, IoT (mikrokontroler, ESP32, sensor, relay, servo, modul komunikasi, cloud), Jaringan (router, switch, server, firewall, access point), UML, dan ERD lengkap dengan notasi crow foot.'
   - q: 'Bagaimana cara menggeser dan memperbesar kanvas?'
-    a: 'Gulir untuk menggeser, Ctrl + gulir untuk zoom, atau tahan Spasi lalu seret. Tombol Tampilkan semua menyesuaikan zoom supaya seluruh diagram terlihat.'
+    a: 'Gulir untuk menggeser, Ctrl + gulir untuk zoom, atau tahan Spasi lalu seret. Di HP dan tablet, geser dengan satu jari di area kosong dan cubit untuk zoom. Tombol Tampilkan semua menyesuaikan zoom supaya seluruh diagram terlihat.'
   - q: 'Bisakah diekspor untuk laporan atau presentasi?'
     a: 'Bisa. Ekspor ke PNG (sampai 4× resolusi, bisa berlatar transparan) untuk Word dan PowerPoint, ke SVG yang tetap tajam saat diperbesar, atau ke PDF berisi semua halaman, dengan ukuran sesuai diagram atau A4.'
   - q: 'Apakah ada template siap pakai?'
@@ -64,6 +64,8 @@ dipindah, lalu dirapikan dengan fitur rata dan sebar.
 - **Tata letak otomatis** (hierarki, pohon, lingkaran, organik), **cari dan ganti** teks,
   **minimap**, serta **sisipkan gambar dan tabel**.
 - **Simpan otomatis**, buka/simpan **.drawio**, serta ekspor **PNG**, **SVG**, dan **PDF**.
+- **Menu klik kanan**, daftar **pintasan keyboard** (tekan ?), navigasi Tab antar shape, dan
+  **gestur sentuh**: cubit untuk zoom, geser dengan satu jari, tekan lama untuk menu.
 
 ## Pustaka shape
 

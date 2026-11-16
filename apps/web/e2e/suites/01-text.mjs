@@ -1171,6 +1171,71 @@ export const tests = [
     },
   },
   {
+    name: 'editor diagram: menu klik kanan, Tab, pintasan, cubit dua jari',
+    path: '/tools/editor-diagram',
+    async run(h) {
+      const { page } = h;
+      page.on('dialog', (d) => d.accept());
+      await page.evaluate(() => localStorage.removeItem('toolland-diagram'));
+      await page.reload({ waitUntil: 'networkidle0' });
+      await page.waitForSelector('[data-dg-item="rect"] svg');
+      await page.$eval('[data-dg-full]', (e) => e.click());
+      await h.sleep(300);
+      await page.$eval('[data-dg-item="fcProcess"]', (e) => e.click());
+      await page.$eval('[data-dg-item="fcDecision"]', (e) => e.click());
+      await h.sleep(200);
+      const cb = await (await page.$('[data-dg-canvas]')).boundingBox();
+      // Klik kanan di area kosong: menu kanvas.
+      await page.mouse.click(cb.x + 20, cb.y + 20, { button: 'right' });
+      await page.waitForSelector('[data-dg-ctx-selectall]');
+      expect(!!(await page.$('[data-dg-ctx-paste][disabled]')), 'tempel seharusnya nonaktif');
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => !document.querySelector('[data-dg-ctx]'));
+      // Tab memilih shape; klik kanan di tengah (shape terfokus) lalu Duplikat.
+      await page.$eval('[data-dg-canvas]', (e) => e.focus());
+      await page.keyboard.press('Tab');
+      await page.waitForSelector('[data-dg-selcount]');
+      await page.mouse.click(cb.x + cb.width / 2, cb.y + cb.height / 2, { button: 'right' });
+      await page.waitForSelector('[data-dg-ctx-duplicate]');
+      await page.$eval('[data-dg-ctx-duplicate]', (e) => e.click());
+      await h.sleep(900);
+      const st = JSON.parse(await page.evaluate(() => localStorage.getItem('toolland-diagram')));
+      const n = (st.pages[st.current].xml.match(/vertex="1"/g) ?? []).length;
+      expect(n === 3, `jumlah shape ${n}`);
+      // Tanda tanya membuka daftar pintasan.
+      await page.$eval('[data-dg-canvas]', (e) => e.focus());
+      await page.keyboard.type('?');
+      await page.waitForSelector('[data-dg-help-dialog]');
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => !document.querySelector('[data-dg-help-dialog]'));
+      // Cubit dua jari memperbesar.
+      const zoom = () => page.$eval('[data-dg-zoom]', (e) => parseInt(e.textContent, 10));
+      const z0 = await zoom();
+      const cdp = await page.createCDPSession();
+      const cx = cb.x + cb.width / 2;
+      const cy = cb.y + cb.height / 2;
+      const pts = (d) => [
+        { x: cx - d, y: cy, id: 1 },
+        { x: cx + d, y: cy, id: 2 },
+      ];
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(40) });
+      for (let d = 50; d <= 80; d += 10) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts(d) });
+        await h.sleep(30);
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await h.sleep(200);
+      const z1 = await zoom();
+      expect(z1 > z0 * 1.5, `zoom ${z0} -> ${z1}`);
+      // Semua tombol ikon punya label aksesibel.
+      const unlabeled = await page.$$eval(
+        '[data-dg-root] button',
+        (bs) => bs.filter((b) => !b.textContent.trim() && !b.getAttribute('aria-label')).length,
+      );
+      expect(unlabeled === 0, `${unlabeled} tombol tanpa label`);
+    },
+  },
+  {
     name: 'tes mengetik klasik: mode kata, hasil, dan rekor',
     path: '/tools/tes-kecepatan-mengetik',
     async run(h) {

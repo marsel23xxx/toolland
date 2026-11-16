@@ -88,6 +88,8 @@ export interface EditorEvents {
   zoom?: (scale: number) => void;
   /** Status undo/redo berubah. */
   history?: (canUndo: boolean, canRedo: boolean) => void;
+  /** Klik kanan atau tekan lama: posisi layar dan sel di bawahnya (null = area kosong). */
+  contextMenu?: (clientX: number, clientY: number, cell: Cell | null) => void;
 }
 
 export interface PageSettings {
@@ -228,7 +230,9 @@ export class DiagramEditor {
       panning.usePopupTrigger = false;
       panning.isPanningTrigger = (me) => {
         const evt = me.getEvent();
-        return this.spaceDown || evt.button === 1 || evt.button === 2;
+        // Sentuhan satu jari di area kosong menggeser kanvas (seperti peta).
+        const touchEmpty = (evt as PointerEvent).pointerType === 'touch' && !me.getCell();
+        return this.spaceDown || evt.button === 1 || evt.button === 2 || touchEmpty;
       };
     }
     const sel = graph.getPlugin<SelectionHandler>('SelectionHandler');
@@ -275,6 +279,8 @@ export class DiagramEditor {
     this.bindKeys();
     this.bindWheel();
     this.bindSpace();
+    this.bindContextMenu();
+    this.bindTouch();
     container.tabIndex = 0;
     const focus = () => {
       if (!graph.isEditing()) container.focus({ preventScroll: true });
@@ -368,6 +374,126 @@ export class DiagramEditor {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
     });
+  }
+
+  /** Klik kanan tanpa menggeser (klik kanan + seret tetap menggeser kanvas) dan tekan lama. */
+  private bindContextMenu() {
+    const c = this.container;
+    let down: { x: number; y: number } | null = null;
+    const pd = (e: PointerEvent) => {
+      if (e.button === 2) down = { x: e.clientX, y: e.clientY };
+    };
+    const pu = (e: PointerEvent) => {
+      if (e.button !== 2 || !down) return;
+      const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+      down = null;
+      if (moved < 5) this.openMenuAt(e.clientX, e.clientY);
+    };
+    c.addEventListener('pointerdown', pd);
+    window.addEventListener('pointerup', pu);
+    this.disposers.push(() => {
+      c.removeEventListener('pointerdown', pd);
+      window.removeEventListener('pointerup', pu);
+    });
+    this.graph.addListener(InternalEvent.TAP_AND_HOLD, (_s: unknown, evt: EventObject) => {
+      const ev = evt.getProperty('event') as MouseEvent | TouchEvent;
+      const pt = 'touches' in ev ? (ev.touches[0] ?? ev.changedTouches[0]) : ev;
+      if (pt) this.openMenuAt(pt.clientX, pt.clientY);
+      evt.consume();
+    });
+  }
+
+  private openMenuAt(clientX: number, clientY: number) {
+    const r = this.container.getBoundingClientRect();
+    const cell = this.graph.getCellAt(clientX - r.left, clientY - r.top);
+    if (cell && !this.graph.isCellSelected(cell)) this.graph.setSelectionCell(cell);
+    if (!cell) this.graph.clearSelection();
+    this.on.contextMenu?.(clientX, clientY, cell);
+  }
+
+  /** Dua jari: cubit untuk zoom dan geser bersamaan. Gestur maxGraph yang sedang berjalan dibatalkan. */
+  private bindTouch() {
+    const c = this.container;
+    c.style.touchAction = 'none';
+    const pts = new Map<number, { x: number; y: number }>();
+    let last: { d: number; x: number; y: number } | null = null;
+    const metrics = () => {
+      const [a, b] = [...pts.values()];
+      return {
+        d: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+        x: (a.x + b.x) / 2,
+        y: (a.y + b.y) / 2,
+      };
+    };
+    const cancelGestures = () => {
+      for (const id of [
+        'SelectionHandler',
+        'RubberBandHandler',
+        'PanningHandler',
+        'ConnectionHandler',
+      ])
+        (this.graph.getPlugin(id) as unknown as { reset?: () => void } | undefined)?.reset?.();
+    };
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) {
+        cancelGestures();
+        last = metrics();
+        e.stopImmediatePropagation();
+      }
+    };
+    const move = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch' || !pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size < 2 || !last) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      const m = metrics();
+      const r = c.getBoundingClientRect();
+      const view = this.graph.getView();
+      this.zoomAt(view.scale * (m.d / last.d), m.x - r.left, m.y - r.top);
+      const s = view.scale;
+      view.setTranslate(
+        view.translate.x + (m.x - last.x) / s,
+        view.translate.y + (m.y - last.y) / s,
+      );
+      last = m;
+    };
+    const up = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      const pinching = pts.size >= 2;
+      pts.delete(e.pointerId);
+      if (pts.size < 2) last = null;
+      if (pinching) e.stopImmediatePropagation();
+    };
+    // Fase capture: gestur dua jari tidak diteruskan ke maxGraph.
+    c.addEventListener('pointerdown', down, true);
+    window.addEventListener('pointermove', move, { capture: true, passive: false });
+    window.addEventListener('pointerup', up, true);
+    window.addEventListener('pointercancel', up, true);
+    this.disposers.push(() => {
+      c.removeEventListener('pointerdown', down, true);
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', up, true);
+      window.removeEventListener('pointercancel', up, true);
+    });
+  }
+
+  canPaste(): boolean {
+    return !Clipboard.isEmpty();
+  }
+
+  /** Pilih shape/garis berikutnya atau sebelumnya di layer aktif (navigasi keyboard). */
+  selectNext(back = false) {
+    const cells = (this.graph.getDefaultParent().children ?? []).filter(
+      (c) => (c.isVertex() || c.isEdge()) && c.isVisible(),
+    );
+    if (!cells.length) return;
+    const cur = this.selection()[0];
+    const i = cur ? cells.indexOf(cur) : -1;
+    const next = cells[(i + (back ? -1 : 1) + cells.length) % cells.length] ?? cells[0];
+    this.focusCell(next);
   }
 
   /** Zoom ke skala `s` dengan titik layar (x, y) tetap di tempat. */
@@ -646,8 +772,17 @@ export class DiagramEditor {
     k.bindControlShiftKey(72, () => this.fit());
     // Escape ditangani khusus oleh KeyHandler (membatalkan aksi), jadi kosongkan seleksi di sini.
     const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !this.graph.isEditing() && e.target === this.container)
-        this.graph.clearSelection();
+      if (this.graph.isEditing() || e.target !== this.container) return;
+      if (e.key === 'Escape') this.graph.clearSelection();
+      // Tab/Shift+Tab berpindah antar shape; Enter mengedit teks.
+      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey && !this.isEmpty()) {
+        e.preventDefault();
+        this.selectNext(e.shiftKey);
+      }
+      if (e.key === 'Enter' && this.selection().length === 1) {
+        e.preventDefault();
+        this.editSelected();
+      }
     };
     this.container.addEventListener('keydown', esc);
     this.disposers.push(() => this.container.removeEventListener('keydown', esc));

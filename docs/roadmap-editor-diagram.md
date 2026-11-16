@@ -56,7 +56,7 @@ dikompres (deflate + base64).
 - Ekspor PDF, minimap, cari dan ganti, tata letak otomatis (hierarki, pohon).
 - Sisipkan gambar dan tabel.
 
-## Tahap 4: perangkat sentuh dan pemolesan
+## Tahap 4: perangkat sentuh dan pemolesan (selesai 2026-11-17)
 
 - Gestur sentuh (cubit untuk zoom, tekan lama untuk menu).
 - Menu klik kanan lengkap, panel pintasan, aksesibilitas.

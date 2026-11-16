@@ -64,6 +64,7 @@ import IconTable from '~icons/lucide/table';
 import IconTemplate from '~icons/lucide/layout-template';
 import IconUp from '~icons/lucide/chevron-up';
 import IconX from '~icons/lucide/x';
+import IconHelp from '~icons/lucide/keyboard';
 import type { ToolMessages } from '../../../i18n';
 import { downloadBlob, downloadText } from '../../../lib/download';
 import { pageLocale } from '../../../lib/format';
@@ -229,6 +230,7 @@ onMounted(async () => {
       canUndo.value = u;
       canRedo.value = r;
     },
+    contextMenu: (x, y, cell) => openCtx(x, y, cell),
   });
   editor.value = ed;
   try {
@@ -395,7 +397,9 @@ function setPage<K extends keyof typeof page>(k: K, v: (typeof page)[K]) {
 const menu = ref<string | null>(null);
 const toggleMenu = (id: string) => (menu.value = menu.value === id ? null : id);
 function closeMenuOutside(e: PointerEvent) {
-  if (menu.value && !(e.target as Element | null)?.closest('[data-dg-menu]')) menu.value = null;
+  const t = e.target as Element | null;
+  if (ctx.open && !t?.closest('[data-dg-ctx]')) ctx.open = false;
+  if (menu.value && !t?.closest('[data-dg-menu]')) menu.value = null;
 }
 
 // --- File --------------------------------------------------------------------------------------
@@ -642,6 +646,52 @@ function renameLayer(l: LayerInfo, name: string) {
   if (name.trim()) layerAction((ed) => ed.renameLayer(l.cell, name.trim()));
 }
 
+// --- Menu klik kanan / tekan lama ------------------------------------------------------------------
+const ctx = reactive({ open: false, x: 0, y: 0, onCell: false, group: false, paste: false });
+const ctxEl = ref<HTMLDivElement>();
+function openCtx(x: number, y: number, cell: Cell | null) {
+  menu.value = null;
+  refreshStyle();
+  ctx.onCell = !!cell;
+  ctx.group = !!cell && cell.getChildCount() > 0 && !cell.isEdge();
+  ctx.paste = !!editor.value?.canPaste();
+  // Jaga menu tetap di dalam layar.
+  ctx.x = Math.min(x, window.innerWidth - 220);
+  ctx.y = Math.min(y, window.innerHeight - 320);
+  ctx.open = true;
+  void nextTick(() => ctxEl.value?.querySelector<HTMLButtonElement>('button')?.focus());
+}
+function ctxRun(fn: (ed: DiagramEditor) => void) {
+  ctx.open = false;
+  const ed = editor.value;
+  if (!ed) return;
+  fn(ed);
+  canvasEl.value?.focus({ preventScroll: true });
+  refreshStyle();
+}
+
+// --- Panel pintasan -------------------------------------------------------------------------------------
+const helpOpen = ref(false);
+const SHORTCUTS: [string, string][] = [
+  ['Ctrl + Z / Ctrl + Y', 'sc_undo'],
+  ['Ctrl + C / X / V', 'sc_clipboard'],
+  ['Ctrl + D', 'sc_duplicate'],
+  ['Delete / Backspace', 'sc_delete'],
+  ['Ctrl + A', 'sc_selectAll'],
+  ['Ctrl + G / Ctrl + Shift + U', 'sc_group'],
+  ['F2 / Enter', 'sc_edit'],
+  ['Tab / Shift + Tab', 'sc_tab'],
+  ['← ↑ → ↓ (+ Shift)', 'sc_nudge'],
+  ['Esc', 'sc_escape'],
+  ['Ctrl + gulir', 'sc_zoom'],
+  ['Spasi + seret', 'sc_pan'],
+  ['Ctrl + 0', 'sc_zoomReset'],
+  ['Ctrl + Shift + H', 'sc_fit'],
+  ['Ctrl + F', 'sc_find'],
+  ['Ctrl + S', 'sc_save'],
+  ['?', 'sc_help'],
+];
+
 // --- Layar penuh dan panel -----------------------------------------------------------------------
 const full = ref(false);
 const showLeft = ref(true);
@@ -668,6 +718,20 @@ function onFullscreenChange() {
 }
 function onWindowKey(e: KeyboardEvent) {
   const inside = root.value?.contains(document.activeElement) || full.value;
+  if (e.key === 'Escape' && (ctx.open || helpOpen.value || tplOpen.value)) {
+    ctx.open = false;
+    helpOpen.value = false;
+    tplOpen.value = false;
+    return;
+  }
+  const typing =
+    /^(INPUT|TEXTAREA|SELECT)$/.test((e.target as Element)?.tagName ?? '') ||
+    (e.target as HTMLElement)?.isContentEditable;
+  if (e.key === '?' && inside && !typing && !editor.value?.graph.isEditing()) {
+    e.preventDefault();
+    helpOpen.value = true;
+    return;
+  }
   if (e.key === 'Escape' && find.open && inside) {
     find.open = false;
     return;
@@ -709,6 +773,7 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn"
         :title="m.panelShapes"
+        :aria-label="m.panelShapes"
         :aria-pressed="showLeft"
         @click="showLeft = !showLeft"
       >
@@ -721,10 +786,24 @@ const ed = () => editor.value!;
         data-dg-title
       />
       <span class="dg-sep" />
-      <button type="button" class="dg-btn" :title="m.new" data-dg-new @click="newDiagram">
+      <button
+        type="button"
+        class="dg-btn"
+        :title="m.new"
+        :aria-label="m.new"
+        data-dg-new
+        @click="newDiagram"
+      >
         <IconNew aria-hidden="true" />
       </button>
-      <button type="button" class="dg-btn" :title="m.open" data-dg-open @click="fileInput?.click()">
+      <button
+        type="button"
+        class="dg-btn"
+        :title="m.open"
+        :aria-label="m.open"
+        data-dg-open
+        @click="fileInput?.click()"
+      >
         <IconOpen aria-hidden="true" />
       </button>
       <input
@@ -739,6 +818,7 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn"
         :title="`${m.save} (Ctrl+S)`"
+        :aria-label="`${m.save} (Ctrl+S)`"
         data-dg-save
         @click="saveFile"
       >
@@ -909,6 +989,7 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn"
         :title="`${m.find} (Ctrl+F)`"
+        :aria-label="`${m.find} (Ctrl+F)`"
         data-dg-find
         @click="openFind"
       >
@@ -919,6 +1000,7 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn"
         :title="`${m.undo} (Ctrl+Z)`"
+        :aria-label="`${m.undo} (Ctrl+Z)`"
         :disabled="!canUndo"
         data-dg-undo
         @click="ed().doUndo()"
@@ -929,6 +1011,7 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn"
         :title="`${m.redo} (Ctrl+Y)`"
+        :aria-label="`${m.redo} (Ctrl+Y)`"
         :disabled="!canRedo"
         data-dg-redo
         @click="ed().doRedo()"
@@ -939,6 +1022,7 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn"
         :title="`${m.delete} (Delete)`"
+        :aria-label="`${m.delete} (Delete)`"
         :disabled="!selection.length"
         data-dg-delete
         @click="ed().remove()"
@@ -949,6 +1033,7 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn hidden sm:inline-flex"
         :title="m.toFront"
+        :aria-label="m.toFront"
         :disabled="!selection.length"
         @click="ed().toFront()"
       >
@@ -958,6 +1043,7 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn hidden sm:inline-flex"
         :title="m.toBack"
+        :aria-label="m.toBack"
         :disabled="!selection.length"
         @click="ed().toBack()"
       >
@@ -968,6 +1054,7 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn"
         :title="m.zoomOut"
+        :aria-label="m.zoomOut"
         data-dg-zoom-out
         @click="ed().zoom(1 / 1.2)"
       >
@@ -977,6 +1064,7 @@ const ed = () => editor.value!;
         type="button"
         class="min-w-12 rounded px-1 py-1 text-xs tabular-nums hover:bg-rule/40"
         :title="m.zoomReset"
+        :aria-label="m.zoomReset"
         data-dg-zoom
         @click="ed().zoomTo(1)"
       >
@@ -986,6 +1074,7 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn"
         :title="m.zoomIn"
+        :aria-label="m.zoomIn"
         data-dg-zoom-in
         @click="ed().zoom(1.2)"
       >
@@ -995,6 +1084,7 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn"
         :title="`${m.fit} (Ctrl+Shift+H)`"
+        :aria-label="`${m.fit} (Ctrl+Shift+H)`"
         data-dg-fit
         @click="ed().fit()"
       >
@@ -1004,27 +1094,39 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn hidden sm:inline-flex"
         :title="m.minimap"
+        :aria-label="m.minimap"
         :aria-pressed="showMap"
         data-dg-minimap
         @click="showMap = !showMap"
       >
         <IconMap aria-hidden="true" />
       </button>
+      <button
+        type="button"
+        class="dg-btn hidden sm:inline-flex"
+        :title="`${m.shortcuts} (?)`"
+        :aria-label="`${m.shortcuts} (?)`"
+        data-dg-help
+        @click="helpOpen = true"
+      >
+        <IconHelp aria-hidden="true" />
+      </button>
       <span class="flex-1" />
       <span
-        class="hidden max-w-40 truncate text-xs text-ink-2 xl:inline"
+        class="hidden max-w-40 truncate text-xs text-ink-2 2xl:inline"
         aria-live="polite"
         data-dg-status
         >{{ status }}</span
       >
       <button type="button" class="dg-btn gap-1 px-2" data-dg-full @click="toggleFull">
         <component :is="full ? IconShrink : IconExpand" aria-hidden="true" />
-        <span class="hidden sm:inline">{{ full ? m.exitFullscreen : m.fullscreen }}</span>
+        <span class="hidden xl:inline">{{ full ? m.exitFullscreen : m.fullscreen }}</span>
       </button>
       <button
         type="button"
         class="dg-btn"
         :title="m.panelFormat"
+        :aria-label="m.panelFormat"
         :aria-pressed="showRight"
         @click="showRight = !showRight"
       >
@@ -1173,6 +1275,7 @@ const ed = () => editor.value!;
               type="button"
               class="dg-btn"
               :title="m.prev"
+              :aria-label="m.prev"
               :disabled="!find.matches.length"
               @click="stepFind(-1)"
             >
@@ -1182,13 +1285,20 @@ const ed = () => editor.value!;
               type="button"
               class="dg-btn"
               :title="m.next"
+              :aria-label="m.next"
               :disabled="!find.matches.length"
               data-dg-find-next
               @click="stepFind(1)"
             >
               <IconChevron aria-hidden="true" />
             </button>
-            <button type="button" class="dg-btn" :title="m.close" @click="find.open = false">
+            <button
+              type="button"
+              class="dg-btn"
+              :title="m.close"
+              :aria-label="m.close"
+              @click="find.open = false"
+            >
               <IconX aria-hidden="true" />
             </button>
           </div>
@@ -1273,6 +1383,7 @@ const ed = () => editor.value!;
               type="button"
               class="dg-btn"
               :title="m.addLayer"
+              :aria-label="m.addLayer"
               data-dg-add-layer
               @click="addLayer"
             >
@@ -1291,6 +1402,7 @@ const ed = () => editor.value!;
                 type="button"
                 class="dg-btn"
                 :title="l.visible ? m.hideLayer : m.showLayer"
+                :aria-label="l.visible ? m.hideLayer : m.showLayer"
                 :aria-pressed="!l.visible"
                 @click="layerAction((e) => e.setLayerVisible(l.cell, !l.visible))"
               >
@@ -1300,6 +1412,7 @@ const ed = () => editor.value!;
                 type="button"
                 class="dg-btn"
                 :title="l.locked ? m.unlockLayer : m.lockLayer"
+                :aria-label="l.locked ? m.unlockLayer : m.lockLayer"
                 :aria-pressed="l.locked"
                 data-dg-lock-layer
                 @click="layerAction((e) => e.setLayerLocked(l.cell, !l.locked))"
@@ -1318,6 +1431,7 @@ const ed = () => editor.value!;
                 type="button"
                 class="min-w-0 flex-1 truncate text-left text-xs"
                 :title="m.activeLayer"
+                :aria-label="m.activeLayer"
                 @click="layerAction((e) => e.setActiveLayer(l.cell))"
                 @dblclick="renamingLayer = l.cell"
               >
@@ -1536,6 +1650,7 @@ const ed = () => editor.value!;
               class="dg-btn"
               :aria-pressed="fontFlag(1)"
               :title="m.bold"
+              :aria-label="m.bold"
               data-dg-bold
               @click="
                 ed().toggleFontFlag(1);
@@ -1549,6 +1664,7 @@ const ed = () => editor.value!;
               class="dg-btn"
               :aria-pressed="fontFlag(2)"
               :title="m.italic"
+              :aria-label="m.italic"
               @click="
                 ed().toggleFontFlag(2);
                 refreshStyle();
@@ -1561,6 +1677,7 @@ const ed = () => editor.value!;
               class="dg-btn"
               :aria-pressed="fontFlag(4)"
               :title="m.underline"
+              :aria-label="m.underline"
               @click="
                 ed().toggleFontFlag(4);
                 refreshStyle();
@@ -1574,6 +1691,7 @@ const ed = () => editor.value!;
               class="dg-btn"
               :aria-pressed="str('align', 'center') === 'left'"
               :title="m.alignLeft"
+              :aria-label="m.alignLeft"
               @click="set('align', 'left')"
             >
               <IconTextL aria-hidden="true" />
@@ -1583,6 +1701,7 @@ const ed = () => editor.value!;
               class="dg-btn"
               :aria-pressed="str('align', 'center') === 'center'"
               :title="m.alignCenter"
+              :aria-label="m.alignCenter"
               @click="set('align', 'center')"
             >
               <IconTextC aria-hidden="true" />
@@ -1592,6 +1711,7 @@ const ed = () => editor.value!;
               class="dg-btn"
               :aria-pressed="str('align', 'center') === 'right'"
               :title="m.alignRight"
+              :aria-label="m.alignRight"
               @click="set('align', 'right')"
             >
               <IconTextR aria-hidden="true" />
@@ -1690,30 +1810,62 @@ const ed = () => editor.value!;
               type="button"
               class="dg-btn"
               :title="m.alignL"
+              :aria-label="m.alignL"
               data-dg-align-left
               @click="ed().align('left')"
             >
               <IconAlignL aria-hidden="true" />
             </button>
-            <button type="button" class="dg-btn" :title="m.alignC" @click="ed().align('center')">
+            <button
+              type="button"
+              class="dg-btn"
+              :title="m.alignC"
+              :aria-label="m.alignC"
+              @click="ed().align('center')"
+            >
               <IconAlignC aria-hidden="true" />
             </button>
-            <button type="button" class="dg-btn" :title="m.alignR" @click="ed().align('right')">
+            <button
+              type="button"
+              class="dg-btn"
+              :title="m.alignR"
+              :aria-label="m.alignR"
+              @click="ed().align('right')"
+            >
               <IconAlignR aria-hidden="true" />
             </button>
-            <button type="button" class="dg-btn" :title="m.alignT" @click="ed().align('top')">
+            <button
+              type="button"
+              class="dg-btn"
+              :title="m.alignT"
+              :aria-label="m.alignT"
+              @click="ed().align('top')"
+            >
               <IconAlignT aria-hidden="true" />
             </button>
-            <button type="button" class="dg-btn" :title="m.alignM" @click="ed().align('middle')">
+            <button
+              type="button"
+              class="dg-btn"
+              :title="m.alignM"
+              :aria-label="m.alignM"
+              @click="ed().align('middle')"
+            >
               <IconAlignM aria-hidden="true" />
             </button>
-            <button type="button" class="dg-btn" :title="m.alignB" @click="ed().align('bottom')">
+            <button
+              type="button"
+              class="dg-btn"
+              :title="m.alignB"
+              :aria-label="m.alignB"
+              @click="ed().align('bottom')"
+            >
               <IconAlignB aria-hidden="true" />
             </button>
             <button
               type="button"
               class="dg-btn"
               :title="m.distH"
+              :aria-label="m.distH"
               :disabled="selection.length < 3"
               @click="ed().distribute(true)"
             >
@@ -1723,6 +1875,7 @@ const ed = () => editor.value!;
               type="button"
               class="dg-btn"
               :title="m.distV"
+              :aria-label="m.distV"
               :disabled="selection.length < 3"
               @click="ed().distribute(false)"
             >
@@ -1833,11 +1986,189 @@ const ed = () => editor.value!;
         type="button"
         class="dg-btn shrink-0"
         :title="m.addPage"
+        :aria-label="m.addPage"
         data-dg-add-page
         @click="addPage()"
       >
         <IconPlus aria-hidden="true" />
       </button>
+    </div>
+
+    <!-- Menu klik kanan -->
+    <div
+      v-if="ctx.open"
+      ref="ctxEl"
+      class="fixed z-50 w-52 rounded border border-rule bg-paper p-1 text-sm shadow-xl"
+      :style="{ left: `${ctx.x}px`, top: `${ctx.y}px` }"
+      role="menu"
+      data-dg-ctx
+    >
+      <template v-if="ctx.onCell">
+        <button
+          v-if="selection.length === 1"
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          data-dg-ctx-edit
+          @click="ctxRun((e) => e.editSelected())"
+        >
+          {{ m.ctxEdit }}<kbd>F2</kbd>
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          @click="ctxRun((e) => e.cut())"
+        >
+          {{ m.ctxCut }}<kbd>Ctrl+X</kbd>
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          data-dg-ctx-copy
+          @click="ctxRun((e) => e.copy())"
+        >
+          {{ m.ctxCopy }}<kbd>Ctrl+C</kbd>
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          data-dg-ctx-duplicate
+          @click="ctxRun((e) => e.duplicate())"
+        >
+          {{ m.duplicate }}<kbd>Ctrl+D</kbd>
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          data-dg-ctx-delete
+          @click="ctxRun((e) => e.remove())"
+        >
+          {{ m.delete }}<kbd>Del</kbd>
+        </button>
+        <hr class="my-1 border-rule" />
+        <button
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          @click="ctxRun((e) => e.toFront())"
+        >
+          {{ m.toFront }}
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          @click="ctxRun((e) => e.toBack())"
+        >
+          {{ m.toBack }}
+        </button>
+        <button
+          v-if="selection.length > 1"
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          @click="ctxRun((e) => e.group())"
+        >
+          {{ m.group }}<kbd>Ctrl+G</kbd>
+        </button>
+        <button
+          v-if="ctx.group"
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          @click="ctxRun((e) => e.ungroup())"
+        >
+          {{ m.ungroup }}
+        </button>
+      </template>
+      <template v-else>
+        <button
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          :disabled="!ctx.paste"
+          data-dg-ctx-paste
+          @click="ctxRun((e) => e.paste())"
+        >
+          {{ m.ctxPaste }}<kbd>Ctrl+V</kbd>
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          data-dg-ctx-selectall
+          @click="ctxRun((e) => e.selectAll())"
+        >
+          {{ m.ctxSelectAll }}<kbd>Ctrl+A</kbd>
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          @click="ctxRun((e) => e.fit())"
+        >
+          {{ m.fit }}
+        </button>
+        <hr class="my-1 border-rule" />
+        <button
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          @click="((ctx.open = false), openTemplates())"
+        >
+          {{ m.templates }}…
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          class="dg-menu dg-ctx"
+          @click="((ctx.open = false), addPage())"
+        >
+          {{ m.addPage }}
+        </button>
+      </template>
+    </div>
+
+    <!-- Dialog pintasan -->
+    <div
+      v-if="helpOpen"
+      class="absolute inset-0 z-40 grid place-items-center bg-black/40 p-4"
+      data-dg-help-dialog
+      @click.self="helpOpen = false"
+    >
+      <div
+        class="max-h-full w-full max-w-lg overflow-y-auto rounded-md bg-paper p-4 shadow-xl"
+        role="dialog"
+        :aria-label="m.shortcuts"
+      >
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="font-display text-lg">{{ m.shortcuts }}</h2>
+          <button
+            type="button"
+            class="dg-btn"
+            :title="m.close"
+            :aria-label="m.close"
+            @click="helpOpen = false"
+          >
+            <IconX aria-hidden="true" />
+          </button>
+        </div>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+          <template v-for="[k, label] in SHORTCUTS" :key="k">
+            <dt>
+              <kbd class="rounded border border-rule bg-paper-2 px-1.5 py-0.5 font-mono text-xs">{{
+                k
+              }}</kbd>
+            </dt>
+            <dd class="text-ink-2">{{ m[label as 'sc_undo'] }}</dd>
+          </template>
+        </dl>
+        <p class="mt-3 text-xs text-ink-2">{{ m.touchHint }}</p>
+      </div>
     </div>
 
     <!-- Dialog template -->
@@ -1857,7 +2188,13 @@ const ed = () => editor.value!;
             <h2 class="font-display text-lg">{{ m.templatesHead }}</h2>
             <p class="text-xs text-ink-2">{{ m.templatesIntro }}</p>
           </div>
-          <button type="button" class="dg-btn" :title="m.close" @click="tplOpen = false">
+          <button
+            type="button"
+            class="dg-btn"
+            :title="m.close"
+            :aria-label="m.close"
+            @click="tplOpen = false"
+          >
             <IconX aria-hidden="true" />
           </button>
         </div>
@@ -1937,6 +2274,19 @@ const ed = () => editor.value!;
 .dg-item:hover {
   border-color: color-mix(in srgb, currentColor 20%, transparent);
   background: color-mix(in srgb, currentColor 5%, transparent);
+}
+.dg-ctx {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.dg-ctx:disabled {
+  opacity: 0.4;
+}
+.dg-ctx kbd {
+  font-family: ui-monospace, monospace;
+  font-size: 0.7rem;
+  opacity: 0.55;
 }
 .dg-thumb :deep(svg) {
   max-width: 100%;
