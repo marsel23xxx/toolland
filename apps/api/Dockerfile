@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Build dari root repo: docker build -f apps/api/Dockerfile .
 
-FROM rust:1.99-slim-bookworm AS build
+FROM rust:1.100-slim-bookworm AS build
 WORKDIR /src
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY apps/api apps/api
