@@ -16,8 +16,8 @@
     "serve": "node scripts/serve.mjs"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.7.4",
-    "@astrojs/vue": "^7.1.2",
+    "@astrojs/sitemap": "^3.7.6",
+    "@astrojs/vue": "^7.1.6",
     "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/language": "^6.13.1",
@@ -48,7 +48,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@tesseract.js-data/eng": "1.0.0",
     "@tesseract.js-data/ind": "1.0.0",
-    "astro": "^7.4.4",
+    "astro": "^7.4.13",
     "comlink": "^4.4.2",
     "diff": "^9.0.0",
     "fflate": "^0.8.3",
